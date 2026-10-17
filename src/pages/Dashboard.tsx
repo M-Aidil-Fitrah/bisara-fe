@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import gsap from 'gsap'
-import { useSessionHistory } from '../lib/history'
+import { useDashboardStats, useSessionHistory } from '../lib/history'
 import { useAuthState } from '../lib/auth'
 import type { Account, SessionRecord } from '../types'
 import DashboardSidebar, { type TabKey } from '../components/dashboard/DashboardSidebar'
@@ -19,22 +19,32 @@ interface DashboardProps {
   onGoHome?: () => void
 }
 
+function isTabKey(value: string | null): value is TabKey {
+  return value === 'overview' || value === 'history' || value === 'users' || value === 'psikolog' || value === 'vocab'
+}
+
 export default function Dashboard({ user: propUser }: DashboardProps) {
   const { user: authUser, loading: authLoading, error: authError } = useAuthState()
   const user = propUser !== undefined ? propUser : authUser
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
-  const tabParam = (searchParams.get('tab') as TabKey) || 'overview'
-  const tab: TabKey = ['overview', 'history', 'users', 'psikolog', 'vocab'].includes(tabParam)
-    ? tabParam
-    : 'overview'
+  const tabParam = searchParams.get('tab')
+  const tab: TabKey = isTabKey(tabParam) ? tabParam : 'overview'
   const [navOpen, setNavOpen] = useState(false)
   const [openSession, setOpenSession] = useState<SessionRecord | null>(null)
   const [showAddPsy, setShowAddPsy] = useState(false)
   const mainRef = useRef<HTMLElement>(null)
   const historyRequired = ['overview', 'history', 'psikolog'].includes(tab)
-  const { history: data, loading: historyLoading, error: historyError } = useSessionHistory(historyRequired)
+  const {
+    history: data,
+    loading: historyLoading,
+    error: historyError,
+    loadMore: loadMoreHistory,
+    hasMore: hasMoreHistory,
+    loadingMore: loadingMoreHistory,
+  } = useSessionHistory(historyRequired)
+  const { stats, loading: statsLoading, error: statsError } = useDashboardStats(tab === 'overview')
 
   const setTab = (t: TabKey) => {
     setSearchParams({ tab: t })
@@ -96,9 +106,12 @@ export default function Dashboard({ user: propUser }: DashboardProps) {
         <main ref={mainRef} className="px-4 py-8 sm:px-8 sm:py-10">
           {['overview', 'history', 'psikolog'].includes(tab) && historyLoading && <p className="mb-6 rounded-xl bg-surface p-6 text-muted">Memuat data sesi dari server…</p>}
           {['overview', 'history', 'psikolog'].includes(tab) && historyError && <p role="alert" className="mb-6 rounded-xl bg-surface p-6 text-[#b8483e]">{historyError}</p>}
-          {!historyLoading && !historyError && tab === 'overview' && (
+          {tab === 'overview' && statsLoading && <p className="mb-6 rounded-xl bg-surface p-6 text-muted">Memuat statistik dari server…</p>}
+          {tab === 'overview' && statsError && <p role="alert" className="mb-6 rounded-xl bg-surface p-6 text-[#b8483e]">{statsError}</p>}
+          {!historyLoading && !historyError && !statsLoading && !statsError && stats && tab === 'overview' && (
             <OverviewTab
               data={data}
+              stats={stats}
               onOpen={setOpenSession}
               goHistory={() => setTab('history')}
             />
@@ -107,6 +120,9 @@ export default function Dashboard({ user: propUser }: DashboardProps) {
             <HistoryTab
               data={data}
               onOpen={setOpenSession}
+              onLoadMore={() => void loadMoreHistory()}
+              hasMore={hasMoreHistory}
+              loadingMore={loadingMoreHistory}
             />
           )}
           {tab === 'users' && (

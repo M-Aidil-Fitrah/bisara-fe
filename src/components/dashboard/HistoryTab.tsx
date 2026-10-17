@@ -5,6 +5,9 @@ import type { SessionRecord } from '../../types'
 interface HistoryTabProps {
   data: SessionRecord[]
   onOpen: (s: SessionRecord) => void
+  onLoadMore: () => void
+  hasMore: boolean
+  loadingMore: boolean
 }
 
 const fmtDate = (d: string) =>
@@ -14,7 +17,7 @@ const fmtTime = (d: string) =>
 const pct = (n: number) => `${Math.round(n * 100)}%`
 const level = (s: number) => (s <= 13 ? 'Rendah' : s <= 26 ? 'Sedang' : 'Tinggi')
 
-export default function HistoryTab({ data, onOpen }: HistoryTabProps) {
+export default function HistoryTab({ data, onOpen, onLoadMore, hasMore, loadingMore }: HistoryTabProps) {
   const [q, setQ] = useState('')
   const [status, setStatus] = useState('Semua')
   const [lvl, setLvl] = useState('Semua')
@@ -32,10 +35,22 @@ export default function HistoryTab({ data, onOpen }: HistoryTabProps) {
         <div>
           <h1 className="text-4xl font-normal tracking-tight">Riwayat Sesi</h1>
           <p className="mt-2 text-muted">
-            Hingga 50 sesi terbaru yang tercatat, termasuk transkrip dan catatan psikolog.
+            Riwayat sesi dimuat bertahap; transkrip hanya diambil saat detail dibuka.
           </p>
         </div>
       </div>
+      {hasMore && (
+        <div className="mt-5 text-center">
+          <button
+            type="button"
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            className="rounded-full border border-ink/30 px-5 py-2 text-sm hover:bg-surface disabled:opacity-50"
+          >
+            {loadingMore ? 'Memuat…' : 'Muat riwayat berikutnya'}
+          </button>
+        </div>
+      )}
 
       <div data-dash className="mb-4 flex flex-col gap-3 md:flex-row md:items-center">
         <div className="relative flex-1">

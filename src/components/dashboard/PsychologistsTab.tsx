@@ -34,7 +34,7 @@ export default function PsychologistsTab({ data, onOpenAddPsy }: PsychologistsTa
       {error && <p role="alert" className="rounded-xl bg-surface p-8 text-[#b8483e]">{error}</p>}
       {!loading && !error && <div className="grid gap-4 md:grid-cols-2">
         {psychologists.map((p) => {
-          const mine = data.filter((d) => d.psikolog === p.name)
+          const mine = data.filter((d) => d.psychologistId === p.userId)
           const measuredDurations = mine.flatMap((session) => session.durationMin === null ? [] : [session.durationMin])
           const initials = p.name
             .replace(/^dr\. /, '')
@@ -43,6 +43,16 @@ export default function PsychologistsTab({ data, onOpenAddPsy }: PsychologistsTa
             .map((w) => w[0] ?? '')
             .join('')
           const lastDate = mine[0]?.date ? fmtDate(mine[0].date) : 'Baru'
+          const metrics: ReadonlyArray<{ label: string; value: string | number }> = [
+            { label: 'Sesi ditangani', value: mine.length },
+            {
+              label: 'Rata-rata durasi',
+              value: measuredDurations.length
+                ? `${Math.round(measuredDurations.reduce((sum, value) => sum + value, 0) / measuredDurations.length)} mnt`
+                : '—',
+            },
+            { label: 'Terakhir aktif', value: lastDate },
+          ]
 
           return (
             <div key={p.name} data-dash className="rounded-xl bg-surface p-6">
@@ -71,22 +81,10 @@ export default function PsychologistsTab({ data, onOpenAddPsy }: PsychologistsTa
                 </span>
               </div>
               <dl className="mt-6 grid grid-cols-3 border-t border-line pt-5">
-                {[
-                  ['Sesi ditangani', mine.length],
-                  [
-                    'Rata-rata durasi',
-                    measuredDurations.length
-                      ? `${Math.round(measuredDurations.reduce((sum, value) => sum + value, 0) / measuredDurations.length)} mnt`
-                      : '—',
-                  ],
-                  [
-                    'Terakhir aktif',
-                    lastDate,
-                  ],
-                ].map(([k, v]) => (
-                  <div key={k as string}>
-                    <dt className="text-xs text-muted">{k}</dt>
-                    <dd className="mt-1 text-xl font-light">{v}</dd>
+                {metrics.map((metric) => (
+                  <div key={metric.label}>
+                    <dt className="text-xs text-muted">{metric.label}</dt>
+                    <dd className="mt-1 text-xl font-light">{metric.value}</dd>
                   </div>
                 ))}
               </dl>

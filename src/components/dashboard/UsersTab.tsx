@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { HeartPulse, Search, Shield, Trash2, UserCheck, UserPlus } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useUsers, deleteUser } from '../../lib/auth'
 
 interface UsersTabProps {
@@ -30,6 +31,12 @@ export default function UsersTab({ onOpenAddPsy }: UsersTabProps) {
   const countTuli = users.filter((u) => u.kind === 'tuli').length
   const countPsy = users.filter((u) => u.kind === 'psikolog').length
   const countAdmin = users.filter((u) => u.role === 'admin').length
+  const metrics: ReadonlyArray<{ title: string; count: string; icon: LucideIcon; color: string }> = [
+    { title: 'Total Pengguna', count: String(users.length), icon: UserCheck, color: 'text-ink' },
+    { title: 'Teman Tuli', count: String(countTuli), icon: HeartPulse, color: 'text-brand' },
+    { title: 'Psikolog', count: String(countPsy), icon: UserPlus, color: 'text-brand-strong' },
+    { title: 'Admin', count: String(countAdmin), icon: Shield, color: 'text-ink' },
+  ]
 
   const handleDelete = async (id: string, email: string, name: string) => {
     if (window.confirm(`Yakin ingin menghapus akun ${name} (${email})?`)) {
@@ -60,22 +67,18 @@ export default function UsersTab({ onOpenAddPsy }: UsersTabProps) {
 
       {/* Metrics */}
       <div className="mb-6 grid gap-4 sm:grid-cols-4">
-        {([
-          ['Total Pengguna', String(users.length), UserCheck, 'text-ink'],
-          ['Teman Tuli', String(countTuli), HeartPulse, 'text-brand'],
-          ['Psikolog', String(countPsy), UserPlus, 'text-brand-strong'],
-          ['Admin', String(countAdmin), Shield, 'text-ink'],
-        ] as const).map(([title, count, Icon, color]) => (
-          <div key={title} data-dash className="rounded-xl bg-surface p-6 flex items-center justify-between">
+        {metrics.map((metric) => {
+          const Icon = metric.icon
+          return <div key={metric.title} data-dash className="rounded-xl bg-surface p-6 flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-wider text-muted">{title}</p>
-              <p className="mt-2 text-4xl font-light">{count}</p>
+              <p className="text-xs uppercase tracking-wider text-muted">{metric.title}</p>
+              <p className="mt-2 text-4xl font-light">{metric.count}</p>
             </div>
             <div className="rounded-xl bg-paper p-3">
-              <Icon className={`size-6 ${color}`} />
+              <Icon className={`size-6 ${metric.color}`} />
             </div>
           </div>
-        ))}
+        })}
       </div>
 
       {/* Filters */}

@@ -1,7 +1,9 @@
 import type { SessionRecord } from '../../types'
+import type { DashboardStats } from '../../api/client'
 
 interface OverviewTabProps {
   data: SessionRecord[]
+  stats: DashboardStats
   onOpen: (s: SessionRecord) => void
   goHistory: () => void
 }
@@ -13,34 +15,18 @@ const fmtTime = (d: string) =>
 const pct = (n: number) => `${Math.round(n * 100)}%`
 const level = (s: number) => (s <= 13 ? 'Rendah' : s <= 26 ? 'Sedang' : 'Tinggi')
 
-export default function OverviewTab({ data, onOpen, goHistory }: OverviewTabProps) {
-  const done = data.filter((d) => d.status === 'Selesai')
-  const scored = done.filter((item): item is SessionRecord & { score: number } => item.score !== null)
-  const avg = scored.length ? scored.reduce((sum, item) => sum + item.score, 0) / scored.length : null
-  const measuredAccuracy = data.filter(
-    (item): item is SessionRecord & { accuracy: number } => item.accuracy !== null,
-  )
-  const acc = measuredAccuracy.length
-    ? measuredAccuracy.reduce((sum, item) => sum + item.accuracy, 0) / measuredAccuracy.length
+export default function OverviewTab({ data, stats, onOpen, goHistory }: OverviewTabProps) {
+  const avg = stats.averageScore
+  const acc = stats.averageAccuracy
+  const manual = stats.completedSessions
+    ? stats.totalManualCorrections / (stats.completedSessions * 10)
     : null
-  const manual = done.length ? done.reduce((sum, item) => sum + item.manual, 0) / (done.length * 10) : null
-  const dist = ['Rendah', 'Sedang', 'Tinggi'].map(
-    (l) => done.filter((d) => level(d.score ?? 0) === l).length,
-  )
-
-  const weeks = Array.from({ length: 8 }, (_, i) => {
-    const end = new Date()
-    end.setDate(end.getDate() - (7 - i) * 7)
-    const start = new Date(end)
-    start.setDate(start.getDate() - 7)
-    return {
-      label: end.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
-      n: data.filter((d) => {
-        const t = new Date(d.date)
-        return t > start && t <= end
-      }).length,
-    }
-  })
+  const dist = [stats.scoreDistribution.rendah, stats.scoreDistribution.sedang, stats.scoreDistribution.tinggi]
+  const scoredTotal = dist.reduce((sum, count) => sum + count, 0)
+  const weeks = stats.weeklySessions.map((week) => ({
+    label: new Date(week.end).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }),
+    n: week.count,
+  }))
   const maxW = Math.max(...weeks.map((w) => w.n), 1)
 
   return (
@@ -54,7 +40,7 @@ export default function OverviewTab({ data, onOpen, goHistory }: OverviewTabProp
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          ['Sesi selesai', String(done.length), `${data.filter((item) => item.status === 'Dibatalkan').length} dibatalkan`],
+          ['Sesi selesai', String(stats.completedSessions), `${stats.cancelledSessions} dibatalkan`],
           ['Rata-rata skor PSS-10', avg === null ? '—' : avg.toFixed(1), avg === null ? 'Belum ada skor' : `Kategori ${level(avg).toLowerCase()}`],
           ['Akurasi pengenalan isyarat', acc === null ? '—' : pct(acc), acc === null ? 'Belum ada hasil model' : 'Rata-rata keyakinan model'],
           ['Jawaban manual', manual === null ? '—' : pct(manual), manual === null ? 'Belum ada sesi selesai' : 'Dari sepuluh jawaban PSS-10'],
@@ -71,7 +57,7 @@ export default function OverviewTab({ data, onOpen, goHistory }: OverviewTabProp
         <div data-dash className="rounded-xl bg-surface p-6 xl:col-span-2">
           <div className="flex items-baseline justify-between">
             <p className="text-xs uppercase tracking-[0.14em] text-brand">Sesi per minggu</p>
-            <span className="text-xs text-muted">{data.length} total</span>
+            <span className="text-xs text-muted">{stats.totalSessions} total</span>
           </div>
           <div className="mt-8 flex h-52 items-end gap-2 sm:gap-4">
             {weeks.map((w, i) => (
@@ -94,7 +80,7 @@ export default function OverviewTab({ data, onOpen, goHistory }: OverviewTabProp
               <div
                 key={i}
                 className={['bg-brand-soft', 'bg-brand', 'bg-ink'][i]}
-                style={{ width: `${(n / Math.max(1, done.length)) * 100}%` }}
+                style={{ width: `${(n / Math.max(1, scoredTotal)) * 100}%` }}
               />
             ))}
           </div>
@@ -107,7 +93,7 @@ export default function OverviewTab({ data, onOpen, goHistory }: OverviewTabProp
                 </span>
                 <span>
                   {dist[i] ?? 0}{' '}
-                  <span className="text-muted">· {pct((dist[i] ?? 0) / Math.max(1, done.length))}</span>
+                  <span className="text-muted">· {pct((dist[i] ?? 0) / Math.max(1, scoredTotal))}</span>
                 </span>
               </li>
             ))}
@@ -179,9 +165,9 @@ export default function OverviewTab({ data, onOpen, goHistory }: OverviewTabProp
           <p className="mt-2 text-sm text-muted">Ringkasan berdasarkan rekaman sesi dari backend.</p>
           <ul className="mt-4 divide-y divide-line border-t border-line">
             {[
-              ['Sesi dengan skor PSS-10', scored.length],
-              ['Sesi dengan akurasi model', measuredAccuracy.length],
-              ['Sesi tanpa akurasi model', data.filter((item) => item.accuracy === null).length],
+              ['Sesi dengan skor PSS-10', stats.sessionsWithScore],
+              ['Sesi dengan akurasi model', stats.sessionsWithAccuracy],
+              ['Sesi selesai tanpa akurasi model', stats.completedSessions - stats.sessionsWithAccuracy],
             ].map(([label, value]) => (
               <li key={label} className="flex items-center justify-between py-3 text-sm">
                 <span>{label}</span>

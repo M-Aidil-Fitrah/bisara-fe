@@ -3,6 +3,11 @@ import { usePhraseCatalog } from '../../lib/catalog'
 export default function VocabTab() {
   const { phrases, loading, error, refetch } = usePhraseCatalog()
   const ready = phrases.filter((phrase) => phrase.animations.length > 0).length
+  const metrics: ReadonlyArray<{ label: string; value: number }> = [
+    { label: 'Total frasa', value: phrases.length },
+    { label: 'Animasi tersedia', value: ready },
+    { label: 'Tanpa animasi', value: phrases.length - ready },
+  ]
 
   return (
     <>
@@ -15,14 +20,10 @@ export default function VocabTab() {
       </div>
 
       <div className="mb-4 grid gap-4 sm:grid-cols-3">
-        {[
-          ['Total frasa', phrases.length],
-          ['Animasi tersedia', ready],
-          ['Tanpa animasi', phrases.length - ready],
-        ].map(([label, value]) => (
-          <div key={label as string} data-dash className="rounded-xl bg-surface p-6">
-            <p className="text-sm text-muted">{label}</p>
-            <p className="mt-3 text-5xl font-light">{value}</p>
+        {metrics.map((metric) => (
+          <div key={metric.label} data-dash className="rounded-xl bg-surface p-6">
+            <p className="text-sm text-muted">{metric.label}</p>
+            <p className="mt-3 text-5xl font-light">{metric.value}</p>
           </div>
         ))}
       </div>

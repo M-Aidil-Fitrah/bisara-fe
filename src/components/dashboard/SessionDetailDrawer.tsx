@@ -1,7 +1,8 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import gsap from 'gsap'
-import type { SessionRecord } from '../../types'
+import type { SessionDetail, SessionRecord } from '../../types'
+import { api, ApiError } from '../../api/client'
 
 interface SessionDetailDrawerProps {
   session: SessionRecord
@@ -17,11 +18,31 @@ const level = (s: number) => (s <= 13 ? 'Rendah' : s <= 26 ? 'Sedang' : 'Tinggi'
 
 export default function SessionDetailDrawer({ session: s, onClose }: SessionDetailDrawerProps) {
   const ref = useRef<HTMLDivElement>(null)
+  const [detail, setDetail] = useState<SessionDetail | null>(null)
+  const [detailError, setDetailError] = useState<string | null>(null)
 
   useLayoutEffect(() => {
     if (ref.current) {
       gsap.from(ref.current, { x: 60, opacity: 0, duration: 0.45, ease: 'power3.out' })
     }
+  }, [s.id])
+
+  useEffect(() => {
+    let active = true
+    queueMicrotask(() => {
+      if (!active) return
+      void api.history.detail(s.id)
+        .then((value) => {
+          if (!active) return
+          setDetail(value)
+          setDetailError(null)
+        })
+        .catch((cause) => {
+          if (!active) return
+          setDetailError(cause instanceof ApiError ? cause.message : 'Detail sesi gagal dimuat')
+        })
+    })
+    return () => { active = false }
   }, [s.id])
 
   return (
@@ -78,11 +99,15 @@ export default function SessionDetailDrawer({ session: s, onClose }: SessionDeta
           </div>
           <div>
             <p className="text-xs uppercase tracking-[0.14em] text-brand">Transkrip Percakapan</p>
-            {s.lines.length === 0 ? (
+            {detailError ? (
+              <p role="alert" className="mt-3 text-[#b8483e]">{detailError}</p>
+            ) : !detail ? (
+              <p className="mt-3 text-muted">Memuat transkrip dari server…</p>
+            ) : detail.lines.length === 0 ? (
               <p className="mt-3 text-muted">Tidak ada transkrip.</p>
             ) : (
               <ol className="mt-3 space-y-2">
-                {s.lines.map((l, i) => (
+                {detail.lines.map((l, i) => (
                   <li key={i} className={`flex ${l.from === 'tuli' ? 'justify-start' : 'justify-end'}`}>
                     <div
                       className={`max-w-[85%] rounded-xl px-4 py-2.5 text-sm ${
