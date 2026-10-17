@@ -16,7 +16,7 @@ test('public service routes load and preserve accessible navigation', async ({ p
   await expect(page.getByRole('heading', { name: 'Layanan Psikolog bersama Ritz.' })).toBeVisible()
 })
 
-test('USER and ADMIN are paired into an active Ritz room', async ({ browser }) => {
+test('ADMIN can wait safely and pair with the next USER in a Ritz room', async ({ browser }) => {
   const email = process.env.BISARA_SMOKE_ADMIN_EMAIL
   const password = process.env.BISARA_SMOKE_ADMIN_PASSWORD
   if (!email || !password) {
@@ -27,6 +27,14 @@ test('USER and ADMIN are paired into an active Ritz room', async ({ browser }) =
   const userPage = await user.newPage(); const adminPage = await admin.newPage()
   const memberEmail = `smoke-${Date.now()}@example.test`
   try {
+    await adminPage.goto(`${baseUrl}/login`)
+    await adminPage.getByLabel('Email').fill(email)
+    await adminPage.locator('input[type="password"]').fill(password)
+    await adminPage.getByRole('button', { name: 'Masuk' }).click()
+    await adminPage.getByRole('button', { name: 'Masuk antrean layanan' }).click()
+    await expect(adminPage.getByText('Mencari pendamping Ritz…')).toBeVisible()
+    await expect(adminPage.getByRole('alert')).toHaveCount(0)
+
     await userPage.goto(`${baseUrl}/register`)
     await userPage.getByLabel('Nama lengkap').fill('Smoke User')
     await userPage.getByLabel('Email').fill(memberEmail)
@@ -34,14 +42,11 @@ test('USER and ADMIN are paired into an active Ritz room', async ({ browser }) =
     await userPage.getByRole('button', { name: 'Daftar' }).click()
     await userPage.getByRole('button', { name: 'Masuk antrean layanan' }).click()
     await expect(userPage.getByText('Menunggu pendamping Ritz.')).toBeVisible()
-    await adminPage.goto(`${baseUrl}/login`)
-    await adminPage.getByLabel('Email').fill(email)
-    await adminPage.locator('input[type="password"]').fill(password)
-    await adminPage.getByRole('button', { name: 'Masuk' }).click()
-    await adminPage.getByRole('button', { name: 'Masuk antrean layanan' }).click()
     await expect(adminPage.getByText('Pilih jawaban Anda')).toBeVisible({ timeout: 15_000 })
     await expect(userPage.getByText('Pilih jawaban Anda')).toBeVisible({ timeout: 15_000 })
     await expect(userPage.locator('video')).toHaveCount(2)
+    await expect(userPage.getByText('Live Video')).toBeVisible({ timeout: 20_000 })
+    await expect(adminPage.getByText('Live Video')).toBeVisible({ timeout: 20_000 })
     await expect(userPage.getByText('Chat sementara aktif')).toBeVisible({ timeout: 15_000 })
     await expect(adminPage.getByText('Chat sementara aktif')).toBeVisible({ timeout: 15_000 })
     await userPage.getByLabel('Pesan chat').fill('Pesan smoke sementara')
