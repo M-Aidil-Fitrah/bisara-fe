@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import logoFull from '../assets/logo-full.png'
+import AuthHero from '../components/auth/AuthHero'
 import { Button, IMG } from '../components/ui'
 import { login } from '../lib/auth'
 import { usePageMotion } from '../lib/motion'
@@ -57,24 +58,12 @@ export default function Login({ onGoRegister, onGoHome, onSuccess }: LoginProps)
   return (
     <div className="grid h-screen max-h-screen w-full overflow-hidden lg:grid-cols-2">
       {/* Visual branding half */}
-      <div className="relative hidden h-full overflow-hidden bg-ink lg:block">
-        <img
-          src={IMG.hero}
-          alt=""
-          data-hero-bg
-          className="absolute inset-0 size-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/60 to-ink/20" />
-        <div data-hero className="absolute inset-x-0 bottom-0 p-12">
-          <p className="text-xs uppercase tracking-[0.14em] text-brand-soft">BISARA</p>
-          <p className="mt-4 max-w-md text-5xl font-normal leading-[1.05] tracking-tight text-paper">
-            Saling paham, sana sini.
-          </p>
-          <p className="mt-4 max-w-sm text-paper/70">
-            Konsultasi psikolog dalam BISINDO, untuk Teman Tuli dan tenaga profesional.
-          </p>
-        </div>
-      </div>
+      <AuthHero
+        imageSrc={IMG.hero}
+        eyebrow="BISARA"
+        title="Saling paham, sana sini."
+        desc="Konsultasi psikolog dalam BISINDO, untuk Teman Tuli dan tenaga profesional."
+      />
 
       {/* Form half */}
       <div className="flex h-full flex-col justify-between overflow-y-auto px-6 py-6 sm:px-12 sm:py-8">

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import logoFull from '../assets/logo-full.png'
+import AuthHero from '../components/auth/AuthHero'
 import { Button, IMG } from '../components/ui'
 import { register } from '../lib/auth'
 import { usePageMotion } from '../lib/motion'
@@ -59,24 +60,14 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
   return (
     <div className="grid h-screen max-h-screen w-full overflow-hidden lg:grid-cols-2">
       {/* Visual branding half */}
-      <div className="relative hidden h-full overflow-hidden bg-ink lg:block">
-        <img
-          src={IMG.signing}
-          alt="Komunikasi BISINDO"
-          data-hero-bg
-          className="absolute inset-0 size-full object-cover opacity-60"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/65 to-ink/25" />
-        <div data-hero className="absolute inset-x-0 bottom-0 p-12">
-          <p className="text-xs uppercase tracking-[0.14em] text-brand-soft">BISARA · TEMAN TULI</p>
-          <p className="mt-4 max-w-md text-5xl font-normal leading-[1.05] tracking-tight text-paper">
-            Layanan Inklusif, Ruang Aman.
-          </p>
-          <p className="mt-4 max-w-sm text-paper/70">
-            Daftarkan diri Anda untuk konsultasi skrining kesehatan mental berbasis bahasa isyarat BISINDO.
-          </p>
-        </div>
-      </div>
+      <AuthHero
+        imageSrc={IMG.signing}
+        imageAlt="Komunikasi BISINDO"
+        imageOpacityClass="opacity-60"
+        eyebrow="BISARA · TEMAN TULI"
+        title="Layanan Inklusif, Ruang Aman."
+        desc="Daftarkan diri Anda untuk konsultasi skrining kesehatan mental berbasis bahasa isyarat BISINDO."
+      />
 
       {/* Form half */}
       <div className="flex h-full flex-col justify-between overflow-y-auto px-6 py-6 sm:px-12 sm:py-8">
