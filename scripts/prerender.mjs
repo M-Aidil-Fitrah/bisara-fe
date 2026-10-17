@@ -51,8 +51,8 @@ try {
   browser = await chromium.launch({ executablePath, headless: true, args: ['--no-sandbox'] })
   const page = await browser.newPage()
   for (const route of routes) {
-    await page.goto(`${origin}${route}`, { waitUntil: 'domcontentloaded' })
-    await page.waitForTimeout(100)
+    await page.goto(`${origin}${route}`, { waitUntil: 'networkidle' })
+    await page.waitForFunction(() => !document.body.innerText.includes('Memuat layanan…'), { timeout: 10000 }).catch(() => {})
     const target = outputFile(route)
     await mkdir(path.dirname(target), { recursive: true })
     await writeFile(target, await page.content(), 'utf8')
