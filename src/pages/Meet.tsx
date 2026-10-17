@@ -48,13 +48,11 @@ export default function Meet() {
   const [socket, setSocket] = useState<WebSocket | null>(null)
   const chatScrollRef = useRef<HTMLDivElement>(null)
 
-  // Role
   const role: 'USER' | 'ADMIN' = user?.role === 'admin' ? 'ADMIN' : 'USER'
 
   // Video Call integration
   const videoCall = useVideoCall({
     roomId: room?.id ?? '',
-    role,
     socket,
     socketJoined,
   })
@@ -64,9 +62,9 @@ export default function Meet() {
     videoCallRef.current = videoCall
   })
 
-  // Poll matchmaking status until ACTIVE
+  // Poll only while matching. An active room has its own WebSocket lifecycle.
   useEffect(() => {
-    if (!partner || !user) return
+    if (!partner || !user || room?.status === 'ACTIVE') return
     let alive = true
     let fetching = false
 
@@ -81,6 +79,7 @@ export default function Meet() {
           const pssData = await api.pss.get(next.id)
           if (alive) setPss(pssData)
         }
+        setError(null)
       } catch (cause) {
         if (alive) setError(cause instanceof ApiError ? cause.message : 'Antrean tidak tersedia')
       } finally {
@@ -94,7 +93,7 @@ export default function Meet() {
       alive = false
       window.clearInterval(interval)
     }
-  }, [partner, user])
+  }, [partner, user, room?.status])
 
   // Single WebSocket connection for active room
   useEffect(() => {
@@ -335,7 +334,7 @@ export default function Meet() {
                       <MessageBubble
                         key={m.id}
                         m={m}
-                        mine={m.role === role}
+                        mine={m.role === (user.role === 'admin' ? 'ADMIN' : 'USER')}
                         big={big}
                       />
                     ))

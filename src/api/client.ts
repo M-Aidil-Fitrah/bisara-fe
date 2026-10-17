@@ -28,7 +28,9 @@ export type Display = z.infer<typeof DisplaySchema>
 export type PssRoom = z.infer<typeof PssRoomSchema>
 export const WS_BASE_URL = frontendEnv.VITE_WS_URL
 
-async function request<T>(path: string, schema: z.ZodType<T>, init: RequestInit = {}): Promise<T> {
+async function request<T>(path: string, schema: z.ZodType<T>, init?: RequestInit): Promise<T>
+async function request<T>(path: string, schema: z.ZodType<T>, init: RequestInit, allowNoContent: true): Promise<T | undefined>
+async function request<T>(path: string, schema: z.ZodType<T>, init: RequestInit = {}, allowNoContent = false): Promise<T | undefined> {
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), 12_000)
   try {
@@ -37,7 +39,7 @@ async function request<T>(path: string, schema: z.ZodType<T>, init: RequestInit 
       const parsed = ErrorSchema.safeParse(await response.json().catch(() => null))
       throw new ApiError(response.status, parsed.success ? parsed.data.error.code : 'REQUEST_FAILED', parsed.success ? parsed.data.error.message : `Permintaan gagal (${response.status})`)
     }
-    if (response.status === 204) return schema.parse(undefined)
+    if (response.status === 204) return allowNoContent ? undefined : schema.parse(undefined)
     return schema.parse(await response.json())
   } catch (cause) {
     if (cause instanceof ApiError || cause instanceof z.ZodError) throw cause
@@ -64,7 +66,10 @@ export const api = {
     update: async (token: string, editorToken: string, input: { text: string; phraseId: string | null }) => (await request(`/displays/${token}`, Envelope(DisplaySchema), { method: 'PATCH', headers: { 'x-display-editor-token': editorToken }, body: JSON.stringify(input) })).data,
   },
   meetings: {
-    match: async (slug: string): Promise<Meeting | null> => { try { return (await request(`/meetings/partners/${slug}/match`, Envelope(MeetingSchema), { method: 'POST' })).data } catch (cause) { if (cause instanceof ApiError && cause.statusCode === 204) return null; throw cause } },
+    match: async (slug: string): Promise<Meeting | null> => {
+      const response = await request(`/meetings/partners/${slug}/match`, Envelope(MeetingSchema), { method: 'POST' }, true)
+      return response?.data ?? null
+    },
     get: async (id: string) => (await request(`/meetings/${id}`, Envelope(MeetingSchema))).data,
     end: (id: string) => request(`/meetings/${id}/end`, z.undefined(), { method: 'POST' }),
   },
