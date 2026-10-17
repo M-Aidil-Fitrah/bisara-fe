@@ -1,8 +1,10 @@
 import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
+import Peer, { type MediaConnection } from 'peerjs'
 import { api, ApiError, WS_BASE_URL, type Meeting, type PssRoom } from '../api/client'
 import { useAuth } from '../lib/auth'
+import { frontendEnv } from '../config/env'
 
 const Avatar = lazy(() => import('../components/Avatar'))
 const answers = ['Tidak pernah', 'Hampir tidak pernah', 'Kadang-kadang', 'Cukup sering', 'Sangat sering']
@@ -11,8 +13,23 @@ const ChatEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('ERROR'), error: z.object({ message: z.string() }) }),
   z.object({ type: z.literal('MEETING_ENDED'), payload: z.object({ roomId: z.string() }) }),
   z.object({ type: z.literal('MEETING_JOINED'), payload: z.object({ roomId: z.string() }) }),
+  z.object({ type: z.literal('PEER_READY'), payload: z.object({ peerId: z.string().uuid(), role: z.enum(['USER', 'ADMIN']) }) }),
 ])
 type ChatLine = { id: string; text: string; name: string }
+
+function VideoCall({ roomId }: { roomId: string }) {
+  const localVideo = useRef<HTMLVideoElement>(null); const remoteVideo = useRef<HTMLVideoElement>(null)
+  const [status, setStatus] = useState('Menyiapkan kamera…')
+  useEffect(() => {
+    let active = true; let stream: MediaStream | null = null; let call: MediaConnection | null = null; let peer: Peer | null = null; const socket = new WebSocket(WS_BASE_URL); let ownId = ''
+    const attach = (connection: MediaConnection) => { call?.close(); call = connection; connection.on('stream', (remote) => { if (remoteVideo.current) remoteVideo.current.srcObject = remote; setStatus('Panggilan terhubung') }); connection.on('close', () => setStatus('Panggilan berakhir')); connection.on('error', () => setStatus('Panggilan gagal')) }
+    void navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: { echoCancellation: true, noiseSuppression: true } }).then((next) => { if (!active) { next.getTracks().forEach((track) => track.stop()); return } stream = next; if (localVideo.current) localVideo.current.srcObject = next; peer = new Peer(crypto.randomUUID(), { host: frontendEnv.VITE_PEER_HOST, port: frontendEnv.VITE_PEER_PORT, path: frontendEnv.VITE_PEER_PATH, secure: frontendEnv.VITE_PEER_SECURE, config: { iceServers: [{ urls: frontendEnv.VITE_STUN_URL }] } }); peer.on('open', (id) => { ownId = id; if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ type: 'PEER_READY', payload: { roomId, peerId: id } })) }); peer.on('call', (incoming) => { incoming.answer(next); attach(incoming) }); peer.on('error', () => setStatus('Signaling video tidak tersedia')) }).catch(() => setStatus('Izin kamera dan mikrofon diperlukan'))
+    socket.onopen = () => socket.send(JSON.stringify({ type: 'JOIN_MEETING', payload: { roomId } }))
+    socket.onmessage = (event) => { const parsed = ChatEventSchema.safeParse(JSON.parse(String(event.data))); if (!parsed.success || parsed.data.type !== 'PEER_READY' || !peer || !stream || !ownId || parsed.data.payload.peerId === ownId) return; if (ownId < parsed.data.payload.peerId) { const outgoing = peer.call(parsed.data.payload.peerId, stream); if (outgoing) attach(outgoing) } }
+    return () => { active = false; socket.close(); call?.close(); peer?.destroy(); stream?.getTracks().forEach((track) => track.stop()) }
+  }, [roomId])
+  return <section className="rounded-2xl border border-line bg-surface p-5"><div className="flex justify-between"><h2 className="font-semibold">Panggilan video</h2><span className="text-xs text-muted" role="status">{status}</span></div><div className="mt-3 grid gap-3 sm:grid-cols-2"><video ref={localVideo} autoPlay muted playsInline className="aspect-video w-full rounded-xl bg-ink object-cover" /><video ref={remoteVideo} autoPlay playsInline className="aspect-video w-full rounded-xl bg-ink object-cover" /></div></section>
+}
 
 function Chat({ roomId, onEnded }: { roomId: string; onEnded: () => void }) {
   const socket = useRef<WebSocket | null>(null)
@@ -35,7 +52,7 @@ function Chat({ roomId, onEnded }: { roomId: string; onEnded: () => void }) {
     return () => connection.close()
   }, [roomId, onEnded])
   const send = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); const value = text.trim(); if (!value || socket.current?.readyState !== WebSocket.OPEN) return; socket.current.send(JSON.stringify({ type: 'CHAT', payload: { roomId, text: value } })); setText('') }
-  return <section className="rounded-2xl border border-line bg-surface p-5"><div className="flex justify-between gap-3"><h2 className="font-semibold">Chat room</h2><span role="status" className="text-xs text-muted">{status}</span></div><div className="mt-3 h-36 overflow-y-auto rounded-xl bg-paper p-3">{lines.length ? lines.map((line) => <p key={line.id} className="mb-2 text-sm"><strong>{line.name}:</strong> {line.text}</p>) : <p className="text-sm text-muted">Pesan bersifat sementara dan tidak menjadi riwayat.</p>}</div><form onSubmit={send} className="mt-3 flex gap-2"><input value={text} onChange={(event) => setText(event.target.value)} maxLength={2000} className="min-w-0 flex-1 rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-brand" placeholder="Tulis pesan…" /><button className="rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white hover:brightness-95">Kirim</button></form></section>
+  return <><VideoCall roomId={roomId} /><section className="rounded-2xl border border-line bg-surface p-5"><div className="flex justify-between gap-3"><h2 className="font-semibold">Chat room</h2><span role="status" className="text-xs text-muted">{status}</span></div><div className="mt-3 h-36 overflow-y-auto rounded-xl bg-paper p-3">{lines.length ? lines.map((line) => <p key={line.id} className="mb-2 text-sm"><strong>{line.name}:</strong> {line.text}</p>) : <p className="text-sm text-muted">Pesan bersifat sementara dan tidak menjadi riwayat.</p>}</div><form onSubmit={send} className="mt-3 flex gap-2"><input value={text} onChange={(event) => setText(event.target.value)} maxLength={2000} className="min-w-0 flex-1 rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-brand" placeholder="Tulis pesan…" /><button className="rounded-lg bg-brand px-3 py-2 text-sm font-semibold text-white hover:brightness-95">Kirim</button></form></section></>
 }
 
 export default function Meet() {
