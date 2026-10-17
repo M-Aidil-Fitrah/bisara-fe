@@ -12,7 +12,7 @@ const featureCards: ReadonlyArray<{
   callToAction: string
   path: string
 }> = [
-  { image: IMG.light, eyebrow: 'Skrining', title: 'Sepuluh butir PSS-10', description: 'Pertanyaan stres tersaji berurutan, dengan ringkasan skor sebagai bahan pertimbangan psikolog.', callToAction: 'Mulai skrining', path: '/session' },
+  { image: IMG.light, eyebrow: 'Layanan Ritz', title: 'Skrining PSS-10 bersama mitra', description: 'Pertanyaan tersedia di room layanan Ritz dan diproses aman oleh backend.', callToAction: 'Buka layanan', path: '/ritz' },
   { image: IMG.laptop, eyebrow: 'Persiapan', title: 'Siap dalam tiga menit', description: 'Atur cahaya, posisi kamera, dan tampilan berdampingan sebelum sesi dimulai.', callToAction: 'Baca panduan', path: '/guide' },
   { image: IMG.smile, eyebrow: 'Katalog', title: 'Periksa frasa yang tersedia', description: 'Lihat frasa resmi dan status aset animasi yang benar-benar tercatat pada server.', callToAction: 'Buka katalog', path: '/dictionary' },
 ]
@@ -37,7 +37,7 @@ export default function Home({ go }: { go?: (p: string) => void }) {
             Konsultasi video, instrumen PSS-10, dan frasa resmi disatukan dalam ruang sesi yang tersimpan aman di server.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <Button onClick={() => handleNav('/session')}>Mulai sesi</Button>
+            <Button onClick={() => handleNav('/fitur')}>Lihat layanan</Button>
             <Button variant="ghost" className="!text-paper/85 hover:!text-paper" onClick={() => document.getElementById('cara-kerja')?.scrollIntoView({ behavior: 'smooth' })}>Lihat cara kerja</Button>
           </div>
         </div>
@@ -57,7 +57,7 @@ export default function Home({ go }: { go?: (p: string) => void }) {
           eyebrow="Pengguna Tuli ke psikolog"
           title="Jawab dengan pilihan yang jelas"
           body="Teman Tuli memilih jawaban PSS-10 secara langsung. Jawaban disimpan ke backend dan dapat dilihat psikolog dalam sesi yang sama tanpa prediksi isyarat buatan."
-          cta="Mulai sesi" onClick={() => handleNav('/session')}
+          cta="Layanan Ritz" onClick={() => handleNav('/ritz')}
         />
         <Story
           image={IMG.hands} alt="Dua tangan saling menggenggam"

@@ -53,7 +53,7 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
       } else {
         setBusy(false)
         if (onSuccess) onSuccess()
-        else navigate('/session')
+        else navigate('/ritz')
       }
     } catch {
       setError('Terjadi kendala koneksi ke server. Silakan coba sesaat lagi.')

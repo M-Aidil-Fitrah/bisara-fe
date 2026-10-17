@@ -47,10 +47,8 @@ export default function Login({ onGoRegister, onGoHome, onSuccess }: LoginProps)
         setBusy(false)
         if (onSuccess) {
           onSuccess()
-        } else if (user.role === 'admin') {
-          navigate('/dashboard')
         } else {
-          navigate('/session')
+          navigate('/ritz')
         }
       }
     } catch {

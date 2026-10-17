@@ -65,7 +65,7 @@ export default function Guide({ go }: { go?: (p: string) => void }) {
           <p className="max-w-lg text-2xl font-normal leading-snug">
             Tidak ada jawaban yang dikirim tanpa persetujuan Anda.
           </p>
-          <Button arrow onClick={() => handleNav('/session')}>
+          <Button arrow onClick={() => handleNav('/ritz')}>
             Saya siap
           </Button>
         </div>
