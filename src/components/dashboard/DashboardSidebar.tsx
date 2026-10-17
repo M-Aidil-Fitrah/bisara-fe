@@ -74,8 +74,9 @@ export default function DashboardSidebar({
           <p className="text-xs text-paper/50">{user.email}</p>
           <button
             onClick={() => {
-              logout()
-              window.location.href = '/'
+              void logout()
+                .then(() => { window.location.href = '/' })
+                .catch((error) => { window.alert(error instanceof Error ? error.message : 'Gagal keluar dari server') })
             }}
             className="mt-3 text-sm text-brand-soft hover:text-paper"
           >

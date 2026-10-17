@@ -5,7 +5,7 @@ import { IMG } from '../lib/images'
 const PREP = [
   ['Cahaya cukup', 'Hadapkan wajah ke sumber cahaya. Hindari cahaya dari belakang.'],
   ['Kamera setinggi dada', 'Pastikan kepala hingga pinggang dan kedua tangan terlihat.'],
-  ['Ruangan tenang', 'Psikolog bicara jelas dengan tempo wajar agar transkripsi akurat.'],
+  ['Ruangan tenang', 'Kurangi gangguan suara agar percakapan video tetap nyaman.'],
   ['Satu layar, dua tampilan', 'Gunakan mode berdampingan atau dua layar terpisah.'],
 ]
 
@@ -43,9 +43,9 @@ export default function Guide({ go }: { go?: (p: string) => void }) {
           <Role
             title="Untuk psikolog"
             steps={[
-              'Tekan tombol mikrofon, lalu bacakan kalimat yang tampil.',
-              'Tunggu avatar selesai menyampaikan isyarat.',
-              'Jawaban klien masuk sebagai teks dan suara setelah dikonfirmasi.',
+              'Pilih frasa resmi yang tampil sesuai urutan PSS-10.',
+              'Tunggu teks atau animasi yang tersedia selesai ditampilkan.',
+              'Jawaban pilihan klien masuk sebagai teks yang tersimpan di server.',
               'Gunakan ringkasan skor sebagai bahan pertimbangan klinis.',
             ]}
           />
@@ -53,10 +53,10 @@ export default function Guide({ go }: { go?: (p: string) => void }) {
             dark
             title="Untuk pengguna Tuli"
             steps={[
-              'Perhatikan avatar dan teks. Ulangi atau perlambat isyarat bila perlu.',
-              'Tekan “Jawab dengan isyarat”, lalu peragakan jawaban Anda.',
-              'Periksa hasil bacaan. Kirim jika benar, ubah jika keliru.',
-              'Anda selalu bisa memilih jawaban secara manual.',
+              'Perhatikan teks dan avatar bila aset animasinya tersedia.',
+              'Pilih satu jawaban PSS-10 yang paling sesuai.',
+              'Jawaban dikirim langsung ke server setelah dipilih.',
+              'Gunakan video untuk berkomunikasi langsung dengan psikolog.',
             ]}
           />
         </div>

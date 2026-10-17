@@ -1,13 +1,16 @@
 export interface VoiceWaveProps {
   active: boolean
-  seed: number
+  seed: number | string
 }
 
 export default function VoiceWave({ active, seed }: VoiceWaveProps) {
+  const numericSeed = typeof seed === 'number'
+    ? seed
+    : [...seed].reduce((total, char) => total + char.charCodeAt(0), 0)
   return (
     <div className="flex h-7 flex-1 items-center gap-[3px]">
       {Array.from({ length: 28 }).map((_, i) => {
-        const h = 25 + ((i * 37 + seed * 13) % 75)
+        const h = 25 + ((i * 37 + numericSeed * 13) % 75)
         return (
           <span
             key={i}

@@ -19,7 +19,7 @@ export default function DashboardHeader({
         >
           <Menu className="size-5 text-ink" />
         </button>
-        <p className="text-sm font-medium text-muted">Klinik Psikologi Harapan · Banda Aceh</p>
+        <p className="text-sm font-medium text-muted">Konsol Administrator BISARA</p>
       </div>
       <div className="flex items-center gap-4">
         <button
@@ -29,7 +29,7 @@ export default function DashboardHeader({
           <UserPlus className="size-3.5" /> Tambah Psikolog
         </button>
         <p className="hidden text-sm text-muted md:block">
-          {new Date(2026, 9, 28).toLocaleDateString('id-ID', {
+          {new Date().toLocaleDateString('id-ID', {
             weekday: 'long',
             day: 'numeric',
             month: 'long',

@@ -4,6 +4,7 @@ import { LayoutDashboard, LogIn, Menu, X } from 'lucide-react'
 import logoFull from '../../assets/logo-full.png'
 import { Button } from '../ui'
 import { useAuth, logout } from '../../lib/auth'
+import { triggerVisualToast } from '../../lib/a11y'
 
 interface Item {
   path: string
@@ -141,9 +142,10 @@ export default function Navbar() {
                       )}
                       <button
                         onClick={() => {
-                          logout()
                           setOpen(null)
-                          navigate('/')
+                          void logout()
+                            .then(() => navigate('/'))
+                            .catch(() => triggerVisualToast('Gagal keluar', 'Sesi server belum dapat diakhiri. Coba lagi.', 'alert'))
                         }}
                         className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs text-[#b8483e] hover:bg-paper"
                       >
@@ -246,9 +248,10 @@ export default function Navbar() {
                 {user ? (
                   <button
                     onClick={() => {
-                      logout()
                       setMobile(false)
-                      navigate('/')
+                      void logout()
+                        .then(() => navigate('/'))
+                        .catch(() => triggerVisualToast('Gagal keluar', 'Sesi server belum dapat diakhiri. Coba lagi.', 'alert'))
                     }}
                     className="w-full rounded-lg bg-paper px-3 py-2 text-center text-sm font-medium text-[#b8483e]"
                   >

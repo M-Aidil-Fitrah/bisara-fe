@@ -2,12 +2,12 @@ import { PageHeader } from '../components/ui'
 import { IMG } from '../lib/images'
 
 const ITEMS = [
-  ['01', 'Video tidak disimpan', 'Kamera hanya membaca titik gerak tangan, tubuh, dan wajah secara langsung. Rekaman tidak diunggah.'],
-  ['02', 'Persetujuan setiap jawaban', 'Hasil pengenalan isyarat baru diteruskan setelah Anda menekan “Kirim”.'],
-  ['03', 'Akses terbatas', 'Ringkasan sesi hanya dapat dilihat psikolog yang menangani sesi tersebut.'],
-  ['04', 'Hak menghapus data', 'Anda dapat meminta penghapusan data sesi kapan saja.'],
-  ['05', 'Data minimum', 'Kami hanya menyimpan teks jawaban yang telah dikonfirmasi, bukan audio atau video.'],
-  ['06', 'Sesuai UU PDP', 'Pengelolaan data mengacu pada UU Pelindungan Data Pribadi dan prinsip etika AI.'],
+  ['01', 'Video antarpeserta', 'Media konsultasi dikirim melalui koneksi WebRTC dan tidak memiliki endpoint penyimpanan rekaman di backend BISARA.'],
+  ['02', 'Jawaban eksplisit', 'Jawaban baru disimpan setelah pengguna memilih dan mengirimkannya. Tidak ada prediksi isyarat otomatis yang dijadikan jawaban.'],
+  ['03', 'Akses terbatas', 'Detail sesi hanya dapat diakses peserta sesi dan administrator yang terautentikasi.'],
+  ['04', 'Identitas server', 'Cookie sesi bersifat HttpOnly dan WebSocket memverifikasi identitas serta keanggotaan sesi melalui backend.'],
+  ['05', 'Data terukur', 'Backend menyimpan jadwal, teks percakapan, jawaban, catatan psikolog, dan hasil PSS-10; bukan aliran video.'],
+  ['06', 'Peran terpisah', 'Pendaftaran publik hanya membuat akun Teman Tuli. Akun psikolog dibuat administrator dengan data profesi dan SIPP.'],
 ]
 
 export default function About() {

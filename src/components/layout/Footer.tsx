@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { ArrowUpRight } from 'lucide-react'
 import logoFull from '../../assets/logo-full.png'
-import logoMark from '../../assets/logo-mark.png'
 
 const FOOTER_SECTIONS = [
   {
@@ -22,9 +21,9 @@ const FOOTER_SECTIONS = [
   {
     title: 'Teknologi',
     external: [
-      { label: 'Whisper AI', href: 'https://openai.com/research/whisper' },
-      { label: 'MediaPipe', href: 'https://ai.google.dev/edge/mediapipe' },
       { label: 'Three.js WebGL', href: 'https://threejs.org/' },
+      { label: 'WebRTC', href: 'https://webrtc.org/' },
+      { label: 'PeerJS', href: 'https://peerjs.com/' },
     ],
   },
 ]
@@ -72,7 +71,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-16 flex items-end justify-between gap-6 border-t border-line/60 pt-8">
-          <img src={logoMark} alt="" className="h-16 w-auto opacity-20 sm:h-24" />
+          <img src="/favicon.svg" alt="" className="h-16 w-auto opacity-20 sm:h-24" />
           <p className="text-xs text-muted text-right">
             © 2026 BISARA · Sistem Komunikasi Dua Arah BISINDO · Bukan alat diagnosis pengganti tenaga medis.
           </p>

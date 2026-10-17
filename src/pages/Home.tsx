@@ -21,10 +21,10 @@ export default function Home({ go }: { go?: (p: string) => void }) {
             Konsultasi psikolog tanpa hambatan bahasa isyarat
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-lg text-paper/80">
-            Ucapan menjadi avatar BISINDO. Isyarat menjadi teks dan suara. Anda yang memastikan setiap jawaban benar.
+            Konsultasi video, instrumen PSS-10, dan frasa resmi disatukan dalam ruang sesi yang tersimpan aman di server.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <Button onClick={() => handleNav('/session')}>Coba sesi demo</Button>
+            <Button onClick={() => handleNav('/session')}>Mulai sesi</Button>
             <Button variant="ghost" className="!text-paper/85 hover:!text-paper" onClick={() => document.getElementById('cara-kerja')?.scrollIntoView({ behavior: 'smooth' })}>Lihat cara kerja</Button>
           </div>
         </div>
@@ -36,21 +36,21 @@ export default function Home({ go }: { go?: (p: string) => void }) {
           image={IMG.consult} alt="Psikolog berbicara dengan klien di sofa"
           eyebrow="Psikolog ke pengguna Tuli"
           title="Ucapan psikolog, tampil dalam BISINDO"
-          body="Suara psikolog ditranskripsi menjadi teks, dicocokkan dengan sapaan atau butir PSS-10, lalu diperagakan avatar 3D. Teks tetap tampil sebagai pendamping."
+          body="Psikolog memilih frasa resmi PSS-10. Teks selalu tampil, sedangkan avatar 3D hanya digunakan jika aset animasi frasa tersebut tersedia dan tercatat di server."
           cta="Lihat kosakata" onClick={() => handleNav('/dictionary')}
         />
         <Story
           flip image={IMG.signing} alt="Perempuan memperagakan isyarat tangan"
           eyebrow="Pengguna Tuli ke psikolog"
-          title="Jawab dengan bahasa Anda sendiri"
-          body="Kamera membaca gerak tangan, tubuh, dan wajah. Hasilnya muncul sebagai teks untuk Anda periksa, lalu diteruskan kepada psikolog dalam bentuk teks dan suara."
-          cta="Coba di sesi demo" onClick={() => handleNav('/session')}
+          title="Jawab dengan pilihan yang jelas"
+          body="Teman Tuli memilih jawaban PSS-10 secara langsung. Jawaban disimpan ke backend dan dapat dilihat psikolog dalam sesi yang sama tanpa prediksi isyarat buatan."
+          cta="Mulai sesi" onClick={() => handleNav('/session')}
         />
         <Story
           image={IMG.hands} alt="Dua tangan saling menggenggam"
           eyebrow="Konfirmasi pengguna"
-          title="Tidak ada jawaban terkirim tanpa persetujuan Anda"
-          body="Jika hasil bacaan keliru, ubah atau pilih jawaban secara manual. Kendali atas makna tetap di tangan pengguna, bukan di tangan mesin."
+          title="Jawaban berada dalam kendali Anda"
+          body="Tidak ada nilai prediksi yang dikarang di browser. Skor PSS-10 dihitung backend dari sepuluh jawaban yang benar-benar tersimpan."
           cta="Baca soal privasi" onClick={() => handleNav('/about')}
         />
       </section>
@@ -60,7 +60,7 @@ export default function Home({ go }: { go?: (p: string) => void }) {
         {[
           [IMG.light, 'Skrining', 'Sepuluh butir PSS-10', 'Pertanyaan stres tersaji berurutan, dengan ringkasan skor sebagai bahan pertimbangan psikolog.', 'Mulai skrining', '/session'],
           [IMG.laptop, 'Persiapan', 'Siap dalam tiga menit', 'Atur cahaya, posisi kamera, dan tampilan berdampingan sebelum sesi dimulai.', 'Baca panduan', '/guide'],
-          [IMG.smile, 'Kamus', 'Pelajari isyaratnya dulu', 'Lihat kosakata BISINDO yang dikenali sistem, lengkap dengan peragaan avatar.', 'Buka kamus', '/dictionary'],
+          [IMG.smile, 'Katalog', 'Periksa frasa yang tersedia', 'Lihat frasa resmi dan status aset animasi yang benar-benar tercatat pada server.', 'Buka katalog', '/dictionary'],
         ].map(([src, e, t, d, c, p]) => (
           <article data-reveal key={t} className="flex flex-col rounded-xl bg-ink p-3 text-paper">
             <img src={src} alt="" className="aspect-[4/3] w-full rounded-lg object-cover" />
@@ -80,8 +80,8 @@ export default function Home({ go }: { go?: (p: string) => void }) {
           <SectionHeader light align="center" eyebrow="Untuk siapa" title="Satu alat, tiga pihak terbantu" desc="Hambatan komunikasi menjadi tanggung jawab sistem, bukan beban pengguna Tuli." />
           <div className="mt-16 grid gap-5 md:grid-cols-3">
             {[
-              [IMG.group, 'Pengguna Tuli', 'Sampaikan kondisi Anda dalam BISINDO, perlambat atau ulangi isyarat avatar, dan periksa setiap jawaban sebelum dikirim.'],
-              [IMG.psikolog, 'Psikolog', 'Ajukan pertanyaan secara lisan tanpa harus menguasai BISINDO. Jawaban klien diterima sebagai teks dan suara.'],
+              [IMG.group, 'Pengguna Tuli', 'Ikuti butir PSS-10 melalui teks dan aset animasi yang tersedia, lalu pilih jawaban secara langsung.'],
+              [IMG.psikolog, 'Psikolog', 'Pandu frasa resmi, lakukan konsultasi video, dan tinjau jawaban serta riwayat yang tersimpan.'],
               [IMG.clinic, 'Klinik & kampus', 'Sarana komunikasi yang dapat dipakai ulang lintas sesi, klien, dan tenaga profesional.'],
             ].map(([src, t, d]) => (
               <article data-reveal key={t} className="rounded-xl bg-surface p-3">
@@ -96,19 +96,18 @@ export default function Home({ go }: { go?: (p: string) => void }) {
         </div>
       </section>
 
-      {/* NUMBERS */}
+      {/* VERIFIED CAPABILITIES */}
       <section className="mx-auto max-w-6xl px-6 py-28">
-        <SectionHeader align="center" eyebrow="Mengapa ini penting" title="Layanan kesehatan mental belum berbicara dalam bahasa Tuli" />
+        <SectionHeader align="center" eyebrow="Cara sistem bekerja" title="Data operasional berasal dari backend" />
         <dl className="mt-16 grid border-t border-line md:grid-cols-3">
           {[
-            ['77,7%', 'responden Tuli memakai BISINDO, hanya 1,9% memakai SIBI.', 'BRIN & Kemenko PMK, 2026'],
-            ['38%', 'psikolog dan psikiater yang tahu metode komunikasi tepat dengan klien Tuli.', 'Lintuuran et al., 2026'],
-            ['58,3%', 'studi menemukan luaran gangguan mental lebih tinggi pada kelompok Tuli.', 'de Ponti et al., 2026'],
-          ].map(([n, t, s]) => (
-            <div data-reveal key={n} className="border-b border-line py-10 md:border-b-0 md:border-r md:px-8 md:last:border-r-0 md:first:pl-0">
-              <dt data-count={n.replace('%', '')} className="text-6xl font-light tracking-tight text-brand">{n}</dt>
-              <dd className="mt-4 leading-relaxed">{t}</dd>
-              <dd className="mt-3 text-xs text-muted">{s}</dd>
+            ['01', 'Jadwal, pengguna, sesi, pesan, dan riwayat dibaca dari API; browser tidak membuat data klinis pengganti.'],
+            ['02', 'Skor PSS-10 dihitung backend dari sepuluh jawaban tersimpan dan aturan pembalikan butir resmi.'],
+            ['03', 'Animasi hanya tampil ketika katalog backend menunjuk aset dan nama klip yang benar-benar tersedia.'],
+          ].map(([number, text]) => (
+            <div data-reveal key={number} className="border-b border-line py-10 md:border-b-0 md:border-r md:px-8 md:last:border-r-0 md:first:pl-0">
+              <dt className="text-6xl font-light tracking-tight text-brand">{number}</dt>
+              <dd className="mt-4 leading-relaxed">{text}</dd>
             </div>
           ))}
         </dl>
@@ -122,8 +121,8 @@ export default function Home({ go }: { go?: (p: string) => void }) {
             <Eyebrow>Cakupan prototipe</Eyebrow>
             <h2 className="mt-4 text-3xl font-normal leading-tight sm:text-4xl">Jelas apa yang bisa, dan yang belum</h2>
             <div className="mt-8 grid gap-8 sm:grid-cols-2">
-              <Scope title="Didukung" items={['Sapaan dan percakapan pembuka', '10 butir skrining PSS-10', '5 pilihan jawaban dalam isyarat', 'Input manual sebagai cadangan']} />
-              <Scope muted title="Belum didukung" items={['Percakapan bebas', 'Seluruh variasi BISINDO', 'Diagnosis klinis', 'Pengganti juru bahasa']} />
+              <Scope title="Didukung" items={['Sapaan dan percakapan pembuka', '10 butir skrining PSS-10', '5 pilihan jawaban eksplisit', 'Konsultasi video dengan TURN']} />
+              <Scope muted title="Belum didukung" items={['Pengenalan isyarat otomatis', 'Seluruh variasi BISINDO', 'Diagnosis klinis', 'Pengganti juru bahasa']} />
             </div>
           </div>
         </div>
@@ -170,8 +169,8 @@ function Scope({ title, items, muted }: { title: string; items: string[]; muted?
 const FAQ = [
   ['Apakah BISARA bisa mendiagnosis?', 'Tidak. BISARA adalah alat bantu komunikasi. Skor PSS-10 hanya bahan pertimbangan; interpretasi dan keputusan klinis tetap pada psikolog.'],
   ['Perangkat apa yang dibutuhkan?', 'Laptop atau tablet dengan kamera, mikrofon, dan browser modern. Tidak perlu instalasi aplikasi.'],
-  ['Bagaimana jika isyarat saya salah terbaca?', 'Anda selalu melihat hasil bacaan sebelum dikirim. Pilih “Ubah jawaban” atau jawab lewat pilihan manual.'],
-  ['Apakah video saya disimpan?', 'Tidak. Kamera hanya membaca titik gerak secara langsung. Rekaman video tidak diunggah ke server.'],
+  ['Bagaimana jawaban saya dicatat?', 'Anda memilih jawaban PSS-10 yang tampil. Backend menyimpan pilihan tersebut dan menghitung skor setelah sepuluh butir selesai.'],
+  ['Apakah video saya disimpan?', 'Backend BISARA tidak menyediakan endpoint penyimpanan rekaman. Media dikirim antarpeserta melalui WebRTC.'],
   ['Apakah menggantikan juru bahasa isyarat?', 'Tidak. BISARA membantu pada sesi awal dan skrining. Untuk konseling mendalam, juru bahasa bersertifikat tetap disarankan.'],
 ]
 
