@@ -1,5 +1,4 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Clock, ShieldCheck, Users } from 'lucide-react'
 import ritzLogo from '../assets/logo_ritz.png'
 import { useAuth } from '../lib/auth'
 
@@ -8,73 +7,30 @@ export default function Ritz() {
   const navigate = useNavigate()
 
   return (
-    <section className="mx-auto max-w-3xl px-6 pb-24 pt-36">
-      {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="mb-8 flex items-center gap-2 text-xs text-muted">
-        <Link to="/two-way" className="hover:text-brand transition">Two-way Service</Link>
-        <span>/</span>
-        <Link to="/two-way/layanan-psikolog" className="hover:text-brand transition">Layanan Psikolog</Link>
-        <span>/</span>
-        <span className="text-ink font-medium">Ritz</span>
-      </nav>
-
-      <div className="flex items-center justify-between">
-        <img src={ritzLogo} alt="Ritz Konsultan Psikologi" className="h-16 w-auto object-contain" />
-        <Link
-          to="/two-way/layanan-psikolog"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted hover:text-ink transition"
-        >
-          <ArrowLeft className="size-3.5" />
-          <span>Kembali ke info mitra</span>
-        </Link>
-      </div>
-
-      <p className="mt-8 text-sm font-semibold text-brand">Mitra layanan</p>
-      <h1 className="mt-3 text-4xl font-semibold tracking-tight">Layanan Psikolog bersama Ritz.</h1>
-      <p className="mt-5 leading-relaxed text-muted">
-        Setelah masuk, pengguna akan ditempatkan pada antrean privat. Admin Ritz mengambil pengguna yang menunggu
-        paling lama; percakapan dan sinyal panggilan tidak disimpan sebagai riwayat klinis.
-      </p>
-
-      {/* Highlights */}
-      <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="rounded-xl border border-line bg-surface p-4">
-          <Clock className="size-5 text-brand" />
-          <h4 className="mt-2 text-sm font-semibold">Matchmaking Otomatis</h4>
-          <p className="mt-1 text-xs text-muted">Antrean antarpengguna dan admin dipasangkan secara instan.</p>
-        </div>
-        <div className="rounded-xl border border-line bg-surface p-4">
-          <Users className="size-5 text-brand" />
-          <h4 className="mt-2 text-sm font-semibold">Tatap Muka HD</h4>
-          <p className="mt-1 text-xs text-muted">Video P2P WebRTC langsung dengan pendamping.</p>
-        </div>
-        <div className="rounded-xl border border-line bg-surface p-4">
-          <ShieldCheck className="size-5 text-brand" />
-          <h4 className="mt-2 text-sm font-semibold">Privasi Terjamin</h4>
-          <p className="mt-1 text-xs text-muted">Sesi berakhir menghapus seluruh data pertukaran.</p>
+    <section className="mx-auto max-w-6xl px-6 pb-24 pt-36">
+      <div className="border-b border-line pb-10">
+        <p className="text-sm font-medium text-brand">Mitra layanan</p>
+        <div className="mt-8 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <img src={ritzLogo} alt="Ritz Konsultan Psikologi" className="h-16 w-auto object-contain" />
+            <h1 className="mt-8 text-4xl font-semibold tracking-tight sm:text-5xl">Layanan psikolog bersama Ritz.</h1>
+            <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted">
+              Ritz adalah salah satu mitra dalam layanan dua arah BISARA. Pengguna dan pendamping dipasangkan ke room privat untuk komunikasi video, chat sementara, dan alur PSS-10.
+            </p>
+          </div>
+          {user === undefined ? <p className="text-sm text-muted" role="status">Memeriksa sesi Anda…</p> : user ? (
+            <button onClick={() => navigate('/meet/ritz-konsultan-psikologi')} className="shrink-0 rounded-lg bg-brand px-6 py-3 text-sm font-semibold text-white transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand">Masuk layanan</button>
+          ) : (
+            <Link to="/login" state={{ returnTo: '/two-way/layanan-psikolog/ritz' }} className="shrink-0 rounded-lg bg-brand px-6 py-3 text-sm font-semibold text-white transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand">Masuk untuk melanjutkan</Link>
+          )}
         </div>
       </div>
-
-      {user === undefined ? (
-        <p className="mt-8 rounded-xl bg-paper p-4 text-sm text-muted" role="status">
-          Memeriksa sesi Anda…
-        </p>
-      ) : user ? (
-        <button
-          onClick={() => navigate('/meet/ritz-konsultan-psikologi')}
-          className="mt-8 rounded-lg bg-brand px-6 py-3 font-semibold text-white transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand shadow-sm"
-        >
-          Masuk antrean layanan
-        </button>
-      ) : (
-        <Link
-          to="/login"
-          state={{ returnTo: '/two-way/layanan-psikolog/ritz' }}
-          className="mt-8 inline-block rounded-lg bg-brand px-6 py-3 font-semibold text-white transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand shadow-sm"
-        >
-          Masuk untuk melanjutkan
-        </Link>
-      )}
+      <div className="grid gap-8 py-10 md:grid-cols-3">
+        <div><h2 className="text-base font-semibold">Room privat</h2><p className="mt-2 text-sm leading-relaxed text-muted">Akses diberikan hanya kepada pasangan USER dan ADMIN yang sah.</p></div>
+        <div><h2 className="text-base font-semibold">Komunikasi langsung</h2><p className="mt-2 text-sm leading-relaxed text-muted">Video dan chat dipakai selama room aktif; chat tidak menjadi riwayat.</p></div>
+        <div><h2 className="text-base font-semibold">Sesi yang jelas</h2><p className="mt-2 text-sm leading-relaxed text-muted">Akhiri layanan untuk menutup room dan menghapus jawaban PSS sementara.</p></div>
+      </div>
+      <Link to="/two-way/layanan-psikolog" className="border-b border-ink pb-1 text-sm font-medium hover:text-brand">Kembali ke informasi layanan psikolog</Link>
     </section>
   )
 }

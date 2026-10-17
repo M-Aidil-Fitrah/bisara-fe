@@ -21,10 +21,10 @@ export default function Guide({ go }: { go?: (p: string) => void }) {
         image={IMG.laptop}
         eyebrow="Panduan"
         title="Siap dalam tiga menit"
-        desc="Persiapan singkat agar sesi nyaman dan akurat bagi kedua pihak."
+        desc="Cara memakai layar informasi dan layanan dua arah BISARA dengan jelas dan nyaman."
       />
       <div className="mx-auto max-w-6xl px-6 py-24">
-        <Eyebrow>Sebelum sesi</Eyebrow>
+        <Eyebrow>Sebelum menggunakan layanan</Eyebrow>
         <ol className="mt-6 grid border-t border-ink/80 sm:grid-cols-2 lg:grid-cols-4">
           {PREP.map(([t, d], i) => (
             <li
@@ -41,22 +41,22 @@ export default function Guide({ go }: { go?: (p: string) => void }) {
 
         <div className="mt-24 grid gap-5 md:grid-cols-2">
           <Role
-            title="Untuk admin Ritz"
+            title="Untuk layar informasi"
             steps={[
-              'Masuk ke Ritz untuk mengambil pengguna yang menunggu paling lama.',
-              'Gunakan chat dan video hanya di room yang telah dipasangkan.',
-              'Dampingi alur PSS-10 yang dijawab pengguna.',
-              'Tinjau skor selama room masih aktif.',
+              'Buka One-way Service tanpa login.',
+              'Tulis pesan dan pilih frasa katalog bila asetnya tersedia.',
+              'Bagikan link display privat ke layar tujuan.',
+              'Gunakan mode layar penuh pada perangkat display.',
             ]}
           />
           <Role
             dark
-            title="Untuk pengguna Tuli"
+            title="Untuk layanan dua arah"
             steps={[
-              'Perhatikan teks dan avatar bila aset animasinya tersedia.',
-              'Pilih satu jawaban PSS-10 yang paling sesuai.',
-              'Jawaban dikirim langsung ke server setelah dipilih.',
-              'Gunakan video untuk berkomunikasi langsung dengan pendamping Ritz.',
+              'Pilih layanan atau mitra yang tersedia dari menu Fitur.',
+              'Masuk untuk bergabung ke antrean layanan.',
+              'Izinkan kamera dan mikrofon ketika room sudah aktif.',
+              'Akhiri layanan saat percakapan selesai agar room ditutup.',
             ]}
           />
         </div>
@@ -65,8 +65,8 @@ export default function Guide({ go }: { go?: (p: string) => void }) {
           <p className="max-w-lg text-2xl font-normal leading-snug">
             Tidak ada jawaban yang dikirim tanpa persetujuan Anda.
           </p>
-          <Button arrow onClick={() => handleNav('/ritz')}>
-            Saya siap
+          <Button arrow onClick={() => handleNav('/two-way')}>
+            Lihat layanan
           </Button>
         </div>
       </div>

@@ -12,9 +12,9 @@ const featureCards: ReadonlyArray<{
   callToAction: string
   path: string
 }> = [
-  { image: IMG.light, eyebrow: 'Layanan Ritz', title: 'Skrining PSS-10 bersama mitra', description: 'Pertanyaan tersedia di room layanan Ritz dan diproses aman oleh backend.', callToAction: 'Buka layanan', path: '/ritz' },
-  { image: IMG.laptop, eyebrow: 'Persiapan', title: 'Siap dalam tiga menit', description: 'Atur cahaya, posisi kamera, dan tampilan berdampingan sebelum sesi dimulai.', callToAction: 'Baca panduan', path: '/guide' },
-  { image: IMG.smile, eyebrow: 'Katalog', title: 'Periksa frasa yang tersedia', description: 'Lihat frasa resmi dan status aset animasi yang benar-benar tercatat pada server.', callToAction: 'Buka katalog', path: '/dictionary' },
+  { image: IMG.light, eyebrow: 'One-way Service', title: 'Pesan untuk layar lain', description: 'Buat tampilan privat untuk monitor atau televisi dengan teks yang selalu terbaca.', callToAction: 'Buka editor', path: '/one-way' },
+  { image: IMG.laptop, eyebrow: 'Two-way Service', title: 'Layanan yang terhubung', description: 'Pilih layanan dua arah dari mitra dan modul publik yang tersedia.', callToAction: 'Lihat layanan', path: '/two-way' },
+  { image: IMG.smile, eyebrow: 'Kamus', title: 'Frasa dan aset yang jelas', description: 'Lihat frasa resmi serta status aset animasi yang tercatat di server.', callToAction: 'Buka kamus', path: '/dictionary' },
 ]
 
 export default function Home({ go }: { go?: (p: string) => void }) {
@@ -34,7 +34,7 @@ export default function Home({ go }: { go?: (p: string) => void }) {
             Layanan publik visual yang lebih mudah diakses
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-lg text-paper/80">
-            One-way Service untuk layar publik privat dan layanan Ritz untuk komunikasi dua arah serta PSS-10.
+            Satu tempat untuk membuat layar informasi privat, menemukan frasa, dan mengakses layanan dua arah dari mitra yang tersedia.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
             <Button onClick={() => handleNav('/fitur')}>Lihat layanan</Button>
@@ -46,7 +46,7 @@ export default function Home({ go }: { go?: (p: string) => void }) {
       {/* STORY BLOCKS */}
       <section id="cara-kerja" className="mx-auto max-w-6xl space-y-24 px-6 py-24 md:space-y-32 md:py-32">
         <Story
-          image={IMG.consult} alt="Psikolog berbicara dengan klien di sofa"
+          image={IMG.consult} alt="Dua orang berkomunikasi di ruang layanan"
           eyebrow="Layanan publik"
           title="Pesan teks yang dapat dibagikan ke layar"
           body="One-way Service membuat layar privat untuk monitor lain. Teks selalu tampil; avatar 3D hanya digunakan bila katalog backend memiliki asset yang cocok."
@@ -54,10 +54,10 @@ export default function Home({ go }: { go?: (p: string) => void }) {
         />
         <Story
           flip image={IMG.signing} alt="Perempuan memperagakan isyarat tangan"
-          eyebrow="Pengguna ke Ritz"
-          title="Jawab dengan pilihan yang jelas"
-          body="Pengguna memilih jawaban PSS-10 di room Ritz aktif. Backend menghitung skor dan tidak membuat riwayat chat atau video."
-          cta="Layanan Ritz" onClick={() => handleNav('/ritz')}
+          eyebrow="Layanan dua arah"
+          title="Ruang privat untuk layanan yang membutuhkan percakapan"
+          body="Setiap mitra memiliki alur layanan sendiri. Ritz adalah mitra psikologi yang saat ini tersedia dengan room privat, PSS-10, chat sementara, dan video langsung."
+          cta="Lihat layanan dua arah" onClick={() => handleNav('/two-way')}
         />
         <Story
           image={IMG.hands} alt="Dua tangan saling menggenggam"
@@ -89,9 +89,9 @@ export default function Home({ go }: { go?: (p: string) => void }) {
           <SectionHeader light align="center" eyebrow="Untuk siapa" title="Satu alat, tiga pihak terbantu" desc="Hambatan komunikasi menjadi tanggung jawab sistem, bukan beban pengguna Tuli." />
           <div className="mt-16 grid gap-5 md:grid-cols-3">
             {[
-              [IMG.group, 'Pengguna Tuli', 'Ikuti butir PSS-10 melalui teks dan aset animasi yang tersedia, lalu pilih jawaban secara langsung.'],
-              [IMG.psikolog, 'Psikolog', 'Pandu frasa resmi, lakukan konsultasi video, dan tinjau jawaban serta riwayat yang tersimpan.'],
-              [IMG.clinic, 'Klinik & kampus', 'Sarana komunikasi yang dapat dipakai ulang lintas sesi, klien, dan tenaga profesional.'],
+              [IMG.group, 'Pengguna layanan', 'Gunakan teks, tampilan privat, dan layanan dua arah sesuai kebutuhan.'],
+              [IMG.psikolog, 'Mitra layanan', 'Sediakan pendamping dan alur layanan yang terhubung ke room privat BISARA.'],
+              [IMG.clinic, 'Instansi publik', 'Siapkan komunikasi visual untuk kebutuhan informasi, resepsionis, dan layanan berikutnya.'],
             ].map(([src, t, d]) => (
               <article data-reveal key={t} className="rounded-xl bg-surface p-3">
                 <img src={src} alt="" className="aspect-[16/11] w-full rounded-lg object-cover" />
@@ -110,8 +110,8 @@ export default function Home({ go }: { go?: (p: string) => void }) {
         <SectionHeader align="center" eyebrow="Cara sistem bekerja" title="Data operasional berasal dari backend" />
         <dl className="mt-16 grid border-t border-line md:grid-cols-3">
           {[
-            ['01', 'Jadwal, pengguna, sesi, pesan, dan riwayat dibaca dari API; browser tidak membuat data klinis pengganti.'],
-            ['02', 'Skor PSS-10 dihitung backend dari sepuluh jawaban tersimpan dan aturan pembalikan butir resmi.'],
+            ['01', 'Display privat, katalog, partner, dan room layanan berasal dari API; browser tidak membuat data pengganti.'],
+            ['02', 'Layanan psikolog Ritz menghitung PSS-10 dari jawaban room aktif dan menghapusnya saat sesi selesai.'],
             ['03', 'Animasi hanya tampil ketika katalog backend menunjuk aset dan nama klip yang benar-benar tersedia.'],
           ].map(([number, text]) => (
             <div data-reveal key={number} className="border-b border-line py-10 md:border-b-0 md:border-r md:px-8 md:last:border-r-0 md:first:pl-0">
@@ -130,8 +130,8 @@ export default function Home({ go }: { go?: (p: string) => void }) {
             <Eyebrow>Cakupan prototipe</Eyebrow>
             <h2 className="mt-4 text-3xl font-normal leading-tight sm:text-4xl">Jelas apa yang bisa, dan yang belum</h2>
             <div className="mt-8 grid gap-8 sm:grid-cols-2">
-              <Scope title="Didukung" items={['Sapaan dan percakapan pembuka', '10 butir skrining PSS-10', '5 pilihan jawaban eksplisit', 'Konsultasi video WebRTC P2P']} />
-              <Scope muted title="Belum didukung" items={['Pengenalan isyarat otomatis', 'Seluruh variasi BISINDO', 'Diagnosis klinis', 'Pengganti juru bahasa']} />
+              <Scope title="Tersedia saat ini" items={['Layar informasi privat One-way', 'Kamus frasa dan status aset', 'Layanan psikolog Ritz', 'Video WebRTC P2P di room aktif']} />
+              <Scope muted title="Dalam persiapan" items={['Layanan resepsionis', 'Layanan publik lain', 'Pengenalan isyarat otomatis', 'Seluruh variasi BISINDO']} />
             </div>
           </div>
         </div>
@@ -176,11 +176,11 @@ function Scope({ title, items, muted }: { title: string; items: string[]; muted?
 }
 
 const FAQ = [
-  ['Apakah BISARA bisa mendiagnosis?', 'Tidak. BISARA adalah alat bantu komunikasi. Skor PSS-10 hanya bahan pertimbangan; interpretasi dan keputusan klinis tetap pada psikolog.'],
+  ['Apa itu BISARA?', 'BISARA adalah platform layanan publik berbasis komunikasi visual. Layanan psikolog Ritz adalah salah satu layanan dua arah yang tersedia saat ini.'],
   ['Perangkat apa yang dibutuhkan?', 'Laptop atau tablet dengan kamera, mikrofon, dan browser modern. Tidak perlu instalasi aplikasi.'],
-  ['Bagaimana jawaban saya dicatat?', 'Anda memilih jawaban PSS-10 yang tampil. Backend menyimpan pilihan tersebut dan menghitung skor setelah sepuluh butir selesai.'],
+  ['Bagaimana data layanan dikelola?', 'Display One-way memakai token privat. Pada layanan Ritz, jawaban PSS hanya tersedia selama room aktif lalu dihapus saat sesi berakhir atau kedaluwarsa.'],
   ['Apakah video saya disimpan?', 'Backend BISARA tidak menyediakan endpoint penyimpanan rekaman. Media dikirim antarpeserta melalui WebRTC.'],
-  ['Apakah menggantikan juru bahasa isyarat?', 'Tidak. BISARA membantu pada sesi awal dan skrining. Untuk konseling mendalam, juru bahasa bersertifikat tetap disarankan.'],
+  ['Apakah semua layanan sudah tersedia?', 'Belum. Layanan resepsionis dan layanan publik lainnya memiliki halaman persiapan yang dapat diakses dari menu Fitur.'],
 ]
 
 function Faq() {
