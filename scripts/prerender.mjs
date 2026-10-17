@@ -12,6 +12,8 @@ const routes = [
   '/two-way',
   '/two-way/layanan-psikolog',
   '/two-way/layanan-psikolog/ritz',
+  '/two-way/resepsionis',
+  '/two-way/layanan-lainnya',
   '/fitur',
   '/ritz',
   '/dictionary',
