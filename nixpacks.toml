@@ -1,8 +1,10 @@
+providers = ["node"]
+
 [variables]
 NIXPACKS_SPA_OUTPUT_DIR = "dist"
 
 [phases.setup]
-nixPkgs = ["chromium"]
+nixPkgs = ["...", "chromium"]
 
 [phases.install]
 cmds = [
