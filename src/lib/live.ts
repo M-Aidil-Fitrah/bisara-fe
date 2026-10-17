@@ -4,11 +4,11 @@ import type { Kind, Msg } from '../types'
 import {
   api,
   ApiError,
-  BackendSessionMessageSchema,
   WS_BASE_URL,
   type BackendPss10Item,
   type BackendSessionMessage,
 } from '../api/client'
+import { WebSocketServerEventSchema } from '../schemas/websocket'
 
 export interface SessionStep {
   text: string
@@ -105,18 +105,20 @@ export function useLiveSession(me: Kind, sessionId: string) {
     ws.onopen = () => ws.send(JSON.stringify({ type: 'JOIN_ROOM', payload: { sessionId } }))
     ws.onmessage = (event) => {
       try {
-        const data = JSON.parse(String(event.data)) as { type?: string; payload?: unknown; error?: { message?: string } }
+        const parsed = WebSocketServerEventSchema.safeParse(JSON.parse(String(event.data)))
+        if (!parsed.success) {
+          setError('Server realtime mengirim data tidak valid')
+          return
+        }
+        const data = parsed.data
         if (data.type === 'ROOM_JOINED') {
-          const payload = data.payload as { memberCount?: number }
-          setPartnerOnline((payload.memberCount ?? 0) > 1)
+          setPartnerOnline(data.payload.memberCount > 1)
         } else if (data.type === 'MEMBER_JOINED' || data.type === 'MEMBER_LEFT') {
-          const payload = data.payload as { memberCount?: number }
-          setPartnerOnline((payload.memberCount ?? 0) > 1)
+          setPartnerOnline(data.payload.memberCount > 1)
         } else if (data.type === 'MESSAGE_SENT') {
-          const parsed = BackendSessionMessageSchema.safeParse(data.payload)
-          if (parsed.success) append(mapMessage(parsed.data))
+          append(mapMessage(data.payload))
         } else if (data.type === 'ERROR') {
-          setError(data.error?.message ?? 'Koneksi realtime ditolak')
+          setError(data.error.message)
         }
       } catch {
         setError('Server realtime mengirim data tidak valid')
@@ -146,7 +148,7 @@ export function useLiveSession(me: Kind, sessionId: string) {
     const persisted = await api.sessions.addMessage(sessionId, {
       text: message.text,
       step: message.step,
-      phraseId,
+      ...(phraseId ? { phraseId } : {}),
     })
     append(mapMessage(persisted))
     if (wsRef.current?.readyState === WebSocket.OPEN) {

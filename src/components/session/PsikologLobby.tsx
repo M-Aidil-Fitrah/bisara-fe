@@ -31,9 +31,13 @@ function ClientPanel({
           <p className="mt-3 text-4xl font-normal">{appt.klien}</p>
           <p className="mt-1 text-muted">{appt.note} · Teman Tuli, BISINDO</p>
         </div>
-        <Button arrow onClick={onStart}>
-          {appt.status === 'waiting' ? 'Mulai sesi' : 'Mulai lebih awal'}
-        </Button>
+        {appt.status === 'waiting' || (appt.status === 'live' && appt.sessionId) ? (
+          <Button arrow onClick={onStart}>
+            {appt.status === 'waiting' ? 'Mulai sesi' : 'Masuk sesi'}
+          </Button>
+        ) : (
+          <p className="text-sm text-muted">Menunggu klien masuk ruang tunggu</p>
+        )}
       </div>
 
       <dl className="mt-8 grid grid-cols-3 border-y border-line py-5">
@@ -100,8 +104,8 @@ export default function PsikologLobby({ name, onStart }: PsikologLobbyProps) {
     )
   const [sel, setSel] = useState<string | null>(null)
   const current = queue.find((a) => a.id === sel) ?? queue[0]
-  const clientHist = current ? all.filter((h) => h.klien === current.klien) : []
-  const mine = all.filter((h) => h.psikolog === name).slice(0, 8)
+  const clientHist = current ? all.filter((h) => h.clientId === current.clientId) : []
+  const mine = all.slice(0, 8)
   const waiting = queue.filter((a) => a.status === 'waiting').length
   const hour = new Date().getHours()
   const greet = hour < 11 ? 'Selamat pagi' : hour < 15 ? 'Selamat siang' : 'Selamat sore'

@@ -27,7 +27,9 @@ export default function Session() {
     setJoining(true)
     setJoinError(null)
     try {
-      const session = await api.sessions.create(appointment.id)
+      const session = appointment.sessionId
+        ? await api.sessions.get(appointment.sessionId)
+        : await api.sessions.create(appointment.id)
       setAppt({ ...appointment, sessionId: session.id, status: 'live' })
       window.scrollTo({ top: 0 })
     } catch (cause) {

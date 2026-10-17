@@ -13,7 +13,7 @@ export interface TuliLobbyProps {
 
 export default function TuliLobby({ name, onJoin }: TuliLobbyProps) {
   const { list: psychologists, loading: psychologistsLoading, error: psychologistsError } = usePsychologists()
-  const { list, request, cancel, error } = useAppointments()
+  const { list, request, setStatus, cancel, refetch, error } = useAppointments({ refreshIntervalMs: 5_000 })
   const { history, loading: historyLoading, error: historyError } = useSessionHistory()
   const [actionError, setActionError] = useState<string | null>(null)
   const active = list.find((a) => a.status !== 'done' && a.status !== 'cancelled')
@@ -41,10 +41,24 @@ export default function TuliLobby({ name, onJoin }: TuliLobbyProps) {
                   <span className="size-1.5 animate-pulse rounded-full bg-[#d79a2b]" /> Ruang tunggu · {active.time}
                 </p>
                 <p className="mt-3 text-3xl font-normal">{active.psikolog}</p>
-                <p className="mt-2 text-muted">Psikolog sudah diberi tahu. Masuk ke ruang sesi dan siapkan kamera Anda.</p>
+                <p className="mt-2 text-muted">
+                  {active.status === 'scheduled'
+                    ? 'Masuk ke ruang tunggu agar psikolog dapat memulai sesi.'
+                    : active.status === 'waiting'
+                      ? 'Psikolog sudah diberi tahu. Sesi akan terbuka setelah psikolog memulainya.'
+                      : 'Sesi sudah dimulai. Anda dapat masuk sekarang.'}
+                </p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <Button arrow onClick={() => onJoin(active)}>Masuk ruang sesi</Button>
+                {active.status === 'scheduled' ? (
+                  <Button arrow onClick={() => void setStatus(active.id, 'waiting').catch((cause) => setActionError(cause instanceof Error ? cause.message : 'Gagal masuk ruang tunggu'))}>
+                    Masuk ruang tunggu
+                  </Button>
+                ) : active.status === 'waiting' ? (
+                  <Button onClick={() => void refetch()}>Perbarui status</Button>
+                ) : active.sessionId ? (
+                  <Button arrow onClick={() => onJoin(active)}>Masuk ruang sesi</Button>
+                ) : null}
                 <button onClick={() => void cancel(active.id).catch((cause) => setActionError(cause instanceof Error ? cause.message : 'Gagal membatalkan'))} className="px-2 text-sm text-muted hover:text-ink">Batalkan</button>
               </div>
             </div>

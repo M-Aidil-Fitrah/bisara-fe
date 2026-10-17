@@ -45,6 +45,7 @@ export default function TuliConsultationView({ appt, onLeave }: TuliConsultation
       )
       return () => clearTimeout(timer)
     }
+    return undefined
   }, [phase, speed, s.currentStep?.animation?.durationMs])
 
   useLayoutEffect(() => {
@@ -92,7 +93,7 @@ export default function TuliConsultationView({ appt, onLeave }: TuliConsultation
             sessionId={appt.sessionId}
             role="tuli"
             partnerName={appt.psikolog}
-            partnerPhoto={psi?.photo ?? undefined}
+            {...(psi?.photo ? { partnerPhoto: psi.photo } : {})}
           />
 
           <div className="flex min-h-[280px] flex-1 flex-col rounded-xl bg-surface">
@@ -113,13 +114,17 @@ export default function TuliConsultationView({ appt, onLeave }: TuliConsultation
           <AvatarStage
             className="aspect-[4/5] sm:aspect-[4/3] lg:aspect-auto lg:min-h-[440px] lg:flex-1"
             signing={phase === 'signing'}
-            modelUrl={curStep?.animation?.glbUrl}
-            actionName={curStep?.animation?.animationName}
+            {...(curStep?.animation ? {
+              modelUrl: curStep.animation.glbUrl,
+              actionName: curStep.animation.animationName,
+            } : {})}
             speed={speed}
             setSpeed={setSpeed}
             big={big}
             setBig={setBig}
-            onReplay={q && curStep?.animation && phase !== 'signing' ? () => setPhase('signing') : undefined}
+            {...(q && curStep?.animation && phase !== 'signing'
+              ? { onReplay: () => setPhase('signing') }
+              : {})}
             caption={
               s.done ? (
                 'Sesi selesai. Terima kasih.'

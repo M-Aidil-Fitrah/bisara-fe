@@ -47,7 +47,7 @@ export function usePsychologists(): { list: Psychologist[]; loading: boolean; er
   return { list, loading, error }
 }
 
-export function useAppointments() {
+export function useAppointments(options?: { refreshIntervalMs?: number }) {
   const [list, setList] = useState<Appt[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -68,8 +68,14 @@ export function useAppointments() {
   useEffect(() => {
     let active = true
     queueMicrotask(() => { if (active) void refetch() })
-    return () => { active = false }
-  }, [refetch])
+    const intervalId = options?.refreshIntervalMs
+      ? window.setInterval(() => { if (active) void refetch() }, options.refreshIntervalMs)
+      : null
+    return () => {
+      active = false
+      if (intervalId !== null) window.clearInterval(intervalId)
+    }
+  }, [options?.refreshIntervalMs, refetch])
 
   const request = useCallback(async (psychologistUserId: string): Promise<Appt> => {
     const created = await api.appointments.create(

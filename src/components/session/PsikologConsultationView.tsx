@@ -113,9 +113,7 @@ export default function PsikologConsultationView({
   const save = useCallback(async () => {
     setActionError(null)
     try {
-      await api.sessions.complete(appt.sessionId, {
-        notes: notes || undefined,
-      })
+      await api.sessions.complete(appt.sessionId, notes ? { notes } : {})
       setSaved(true)
       onSaved()
     } catch (error) {
@@ -188,8 +186,10 @@ export default function PsikologConsultationView({
               <AvatarStage
                 className="aspect-[4/3] lg:aspect-auto lg:min-h-[460px] lg:flex-1"
                 signing={signing}
-                modelUrl={curStep?.animation?.glbUrl}
-                actionName={curStep?.animation?.animationName}
+                {...(curStep?.animation ? {
+                  modelUrl: curStep.animation.glbUrl,
+                  actionName: curStep.animation.animationName,
+                } : {})}
                 caption={
                   lastQ ? lastQ.text : <span className="text-paper/50">Avatar akan memperagakan ucapan Anda.</span>
                 }

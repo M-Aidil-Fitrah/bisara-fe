@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Peer, { type MediaConnection } from 'peerjs'
 import { WS_BASE_URL } from '../api/client'
+import { frontendEnv } from '../config/env'
+import { WebSocketServerEventSchema } from '../schemas/websocket'
 
 export type CallStatus = 'initializing' | 'waiting' | 'calling' | 'connected' | 'error'
 
@@ -68,17 +70,6 @@ export function useVideoCall({
 
   useEffect(() => {
     let mounted = true
-    const peerHost = import.meta.env.VITE_PEER_HOST
-    const stunUrl = import.meta.env.VITE_STUN_URL
-    if (!peerHost || !stunUrl) {
-      queueMicrotask(() => {
-        if (!mounted) return
-        setCallStatus('error')
-        setErrorMsg('Video dinonaktifkan: PeerServer dan STUN belum dikonfigurasi.')
-      })
-      return () => { mounted = false }
-    }
-
     const coordination = new WebSocket(WS_BASE_URL)
     let joined = false
     let ownPeerId: string | null = null
@@ -106,13 +97,13 @@ export function useVideoCall({
         }
 
         const peer = new Peer(crypto.randomUUID(), {
-          host: peerHost,
-          port: Number(import.meta.env.VITE_PEER_PORT || 443),
-          path: import.meta.env.VITE_PEER_PATH || '/',
-          secure: import.meta.env.VITE_PEER_SECURE !== 'false',
+          host: frontendEnv.VITE_PEER_HOST,
+          port: frontendEnv.VITE_PEER_PORT,
+          path: frontendEnv.VITE_PEER_PATH,
+          secure: frontendEnv.VITE_PEER_SECURE,
           config: {
             iceServers: [{
-              urls: stunUrl,
+              urls: frontendEnv.VITE_STUN_URL,
             }],
             iceTransportPolicy: 'all',
           },
@@ -143,15 +134,17 @@ export function useVideoCall({
     }
     coordination.onmessage = (event) => {
       try {
-        const message = JSON.parse(String(event.data)) as {
-          type?: string
-          payload?: { peerId?: string; role?: 'TULI' | 'PSIKOLOG' }
+        const parsed = WebSocketServerEventSchema.safeParse(JSON.parse(String(event.data)))
+        if (!parsed.success) {
+          setErrorMsg('Koordinasi video mengirim data tidak valid.')
+          return
         }
+        const message = parsed.data
         const partnerRole = role === 'psikolog' ? 'TULI' : 'PSIKOLOG'
         if (message.type === 'ROOM_JOINED') {
           joined = true
           announcePeer()
-        } else if (message.type === 'PEER_READY' && message.payload?.role === partnerRole && message.payload.peerId) {
+        } else if (message.type === 'PEER_READY' && message.payload.role === partnerRole) {
           targetPeerRef.current = message.payload.peerId
           if (role === 'psikolog') callPartner()
         }
