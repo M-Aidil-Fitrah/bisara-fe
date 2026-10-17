@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,6 +13,7 @@
       overflow: hidden;
       width: 100vw;
       height: 100vh;
+      user-select: none;
     }
     #canvas-container {
       width: 100%;
@@ -26,14 +27,14 @@
       top: 20px;
       left: 20px;
       background: rgba(24, 26, 30, 0.88);
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(14px);
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 12px;
       padding: 16px 20px;
-      width: 360px;
+      width: 370px;
       max-width: 90vw;
       z-index: 10;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
     }
     h1 {
       font-size: 15px;
@@ -46,7 +47,7 @@
     p.desc {
       font-size: 12px;
       color: #9ba3af;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       line-height: 1.4;
     }
     .badge {
@@ -71,7 +72,7 @@
       flex-wrap: wrap;
       gap: 6px;
     }
-    button {
+    button, .file-btn {
       background: #2a2d34;
       color: #f3f4f6;
       border: 1px solid rgba(255, 255, 255, 0.15);
@@ -80,8 +81,12 @@
       font-size: 11px;
       cursor: pointer;
       transition: all 0.2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
     }
-    button:hover {
+    button:hover, .file-btn:hover {
       background: #3a3f4a;
       border-color: #7fd1a8;
     }
@@ -91,11 +96,22 @@
       border-color: #7fd1a8;
       font-weight: 600;
     }
+    .file-btn-primary {
+      background: #1e3a5f;
+      border-color: #3b82f6;
+      color: #93c5fd;
+      font-weight: 600;
+    }
+    .file-btn-primary:hover {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #60a5fa;
+    }
     #details {
       font-size: 11px;
       font-family: monospace;
       color: #cbd5e1;
-      max-height: 190px;
+      max-height: 180px;
       overflow-y: auto;
       border-top: 1px solid rgba(255, 255, 255, 0.1);
       padding-top: 8px;
@@ -107,11 +123,31 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      font-size: 16px;
-      color: #7fd1a8;
-      background: rgba(0, 0, 0, 0.7);
-      padding: 12px 24px;
-      border-radius: 8px;
+      font-size: 14px;
+      color: #e2e8f0;
+      background: rgba(15, 17, 21, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 20px 28px;
+      border-radius: 12px;
+      max-width: 480px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+      z-index: 20;
+    }
+    #drop-zone-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(30, 58, 95, 0.85);
+      border: 4px dashed #60a5fa;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 600;
+      color: #ffffff;
+      z-index: 99;
       pointer-events: none;
     }
   </style>
@@ -126,12 +162,26 @@
 </head>
 <body>
   <div id="canvas-container"></div>
-  <div id="loading-indicator">Memuat /models/avatar.glb...</div>
+  <div id="drop-zone-overlay">Lepaskan file .glb / .gltf di sini</div>
+
+  <div id="loading-indicator">
+    <div id="loading-text" style="color: #7fd1a8; font-weight: 600; margin-bottom: 6px;">Sedang mencari avatar.glb...</div>
+    <div id="loading-subtext" style="font-size: 12px; color: #94a3b8;">Mencoba path relatif & server...</div>
+  </div>
 
   <div id="ui-panel">
     <h1>Raw GLB Model Inspector</h1>
-    <p class="desc">Pratinjau murni file <code>avatar.glb</code> tanpa modifikasi shader aplikasi. Material & warna 100% bawaan file Blender.</p>
-    <div class="badge">Generator: Khronos glTF Blender 5.1</div>
+    <p class="desc">Pratinjau murni file <code>avatar.glb</code>. Material & warna 100% bawaan Blender.</p>
+    <div class="badge" id="source-badge">Mendeteksi sumber...</div>
+
+    <div class="section-label">Buka File .GLB:</div>
+    <div class="btn-group">
+      <label for="file-input" class="file-btn file-btn-primary">
+        📁 Pilih File .glb Manual
+      </label>
+      <input type="file" id="file-input" accept=".glb,.gltf" style="display: none;">
+      <button id="btn-reload-auto">🔄 Coba Path Otomatis</button>
+    </div>
 
     <div class="section-label">Sudut Pandang Kamera:</div>
     <div class="btn-group">
@@ -149,14 +199,14 @@
     </div>
 
     <div class="section-label">Animasi BISINDO Tersemat:</div>
-    <div class="btn-group">
+    <div class="btn-group" id="anim-btn-group">
       <button id="btn-anim-idle" class="active">Idle (Standby)</button>
       <button id="btn-anim-air">Isyarat: Air</button>
       <button id="btn-anim-terima">Isyarat: Terima Kasih</button>
     </div>
 
     <div class="section-label">Metadata Internal:</div>
-    <div id="details">Menganalisis node & material...</div>
+    <div id="details">Menganalisis model...</div>
   </div>
 
   <script type="module">
@@ -166,20 +216,25 @@
 
     const container = document.getElementById('canvas-container');
     const loading = document.getElementById('loading-indicator');
+    const loadingText = document.getElementById('loading-text');
+    const loadingSubtext = document.getElementById('loading-subtext');
     const details = document.getElementById('details');
+    const sourceBadge = document.getElementById('source-badge');
+    const fileInput = document.getElementById('file-input');
+    const dropOverlay = document.getElementById('drop-zone-overlay');
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a1d22);
+    scene.background = new THREE.Color(0x181a1e);
 
     const camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.1, 100);
-    // Initial camera position for full body
     camera.position.set(0, 0.9, 3.2);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.0;
+    renderer.toneMappingExposure = 1.15;
     container.appendChild(renderer.domElement);
 
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -219,111 +274,232 @@
     let originalMaterials = new Map();
 
     const loader = new GLTFLoader();
-    loader.load(
-      '/models/avatar.glb',
-      (gltf) => {
-        loading.style.display = 'none';
-        model = gltf.scene;
-        scene.add(model);
 
-        // Normalize model bounding box (standard human scale ~1.8m height, feet on grid Y=0)
-        const box = new THREE.Box3().setFromObject(model);
-        const size = box.getSize(new THREE.Vector3());
-        const center = box.getCenter(new THREE.Vector3());
+    // List of candidate paths to handle Vite (:5173), Live Server (:5500), file:// or subdir
+    const candidatePaths = [
+      './models/avatar.glb',                       // Relative to raw-viewer.html inside public/
+      'models/avatar.glb',
+      '/models/avatar.glb',                        // Vite root
+      '../public/models/avatar.glb',
+      './public/models/avatar.glb',
+      '/public/models/avatar.glb',
+      '/bisara-tes-fe/public/models/avatar.glb',
+      'http://localhost:5173/models/avatar.glb'    // Direct Vite dev server fallback
+    ];
 
-        const scale = size.y > 0 ? 1.8 / size.y : 1;
-        model.scale.setScalar(scale);
-        model.position.x = -center.x * scale;
-        model.position.y = -box.min.y * scale;
-        model.position.z = -center.z * scale;
+    function onModelLoaded(gltf, sourceName = 'Otomatis') {
+      loading.style.display = 'none';
 
-        controls.target.set(0, 0.9, 0);
-        camera.position.set(0, 0.9, 3.2);
-        controls.update();
-
-        // Skeleton helper
-        model.traverse((child) => {
-          if (child.isSkinnedMesh && !skeletonHelper) {
-            skeletonHelper = new THREE.SkeletonHelper(child.skeleton.bones[0]);
-            skeletonHelper.visible = false;
-            scene.add(skeletonHelper);
-          }
-          if (child.isMesh && child.material) {
-            // Save original materials
-            originalMaterials.set(child, child.material);
-          }
-        });
-
-        // Inspect metadata
-        let infoText = `<strong>Model Dimensions:</strong><br>`;
-        infoText += `• Raw Blender Size: ${size.x.toFixed(2)}m × ${size.y.toFixed(2)}m × ${size.z.toFixed(2)}m<br>`;
-        infoText += `• Normalized Height: 1.80m (feet at ground)<br><br>`;
-
-        infoText += `<strong>Meshes & Raw Materials:</strong><br>`;
-        model.traverse((child) => {
-          if (child.isMesh) {
-            const mat = child.material;
-            const matName = Array.isArray(mat) ? mat.map(m => m.name).join(', ') : mat.name;
-            const matCol = mat.color ? `#${mat.color.getHexString()}` : 'None (default white)';
-            infoText += `• <b>${child.name || 'Unnamed'}</b><br>&nbsp;&nbsp;Mat: "${matName}" (${matCol})<br>`;
-          }
-        });
-
-        // Find head bone position
-        let headBone = null;
-        model.traverse((child) => {
-          if (child.isBone && child.name.toLowerCase().includes('head')) {
-            headBone = child;
-          }
-        });
-
-        // Setup animations
-        animations = gltf.animations;
-        if (animations.length > 0) {
-          mixer = new THREE.AnimationMixer(model);
-          animations.forEach((clip) => {
-            const action = mixer.clipAction(clip);
-            actions[clip.name] = action;
-          });
-
-          const defaultClip = animations.find(a => /idle/i.test(a.name)) || animations[0];
-          if (defaultClip) {
-            activeAction = actions[defaultClip.name];
-            activeAction.play();
-          }
-        }
-
-        // Force one frame update so bone matrices are computed
-        if (mixer) mixer.update(0.01);
-        model.updateMatrixWorld(true);
-
-        const headWorld = new THREE.Vector3();
-        if (headBone) {
-          headBone.getWorldPosition(headWorld);
-        } else {
-          headWorld.set(0, 1.6, 0);
-        }
-
-        infoText += `<br><strong>Tracked Bones:</strong><br>`;
-        infoText += `• Head World Pos: (${headWorld.x.toFixed(2)}, ${headWorld.y.toFixed(2)}, ${headWorld.z.toFixed(2)})<br>`;
-        details.innerHTML = infoText;
-
-        window.headWorldY = headWorld.y;
-
-        // Start with Upper Body view so face and chest are immediately visible
-        setView(0, headWorld.y + 0.1, 0, 0, headWorld.y + 0.1, 2.1);
-      },
-      undefined,
-      (err) => {
-        loading.textContent = 'Gagal memuat GLB: ' + err.message;
-        loading.style.color = '#ef4444';
+      // Remove existing model if any
+      if (model) {
+        scene.remove(model);
+        if (skeletonHelper) scene.remove(skeletonHelper);
+        skeletonHelper = null;
+        originalMaterials.clear();
       }
-    );
+
+      model = gltf.scene;
+      scene.add(model);
+      sourceBadge.textContent = `Sumber: ${sourceName}`;
+
+      // Normalize model bounding box (1.8m height, feet on grid Y=0)
+      const box = new THREE.Box3().setFromObject(model);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+
+      const scale = size.y > 0 ? 1.8 / size.y : 1;
+      model.scale.setScalar(scale);
+      model.position.x = -center.x * scale;
+      model.position.y = -box.min.y * scale;
+      model.position.z = -center.z * scale;
+
+      controls.target.set(0, 0.9, 0);
+      camera.position.set(0, 0.9, 3.2);
+      controls.update();
+
+      // Skeleton helper & save original materials
+      model.traverse((child) => {
+        if (child.isSkinnedMesh && !skeletonHelper) {
+          skeletonHelper = new THREE.SkeletonHelper(child.skeleton.bones[0]);
+          skeletonHelper.visible = false;
+          scene.add(skeletonHelper);
+        }
+        if (child.isMesh && child.material) {
+          originalMaterials.set(child, Array.isArray(child.material) ? child.material.slice() : child.material);
+        }
+      });
+
+      // Inspect metadata
+      let infoText = `<strong>Dimensi Model:</strong><br>`;
+      infoText += `• Ukuran Asli Blender: ${size.x.toFixed(2)}m × ${size.y.toFixed(2)}m × ${size.z.toFixed(2)}m<br>`;
+      infoText += `• Tinggi Normalisasi: 1.80m (kaki di grid)<br><br>`;
+
+      infoText += `<strong>Mesh & Material GLB Bawaan:</strong><br>`;
+      model.traverse((child) => {
+        if (child.isMesh) {
+          const mat = child.material;
+          const matName = Array.isArray(mat) ? mat.map(m => m.name).join(', ') : (mat.name || 'Tanpa Nama');
+          const matCol = mat.color ? `#${mat.color.getHexString()}` : 'Default (Putih)';
+          infoText += `• <b>${child.name || 'Mesh'}</b><br>&nbsp;&nbsp;Mat: "${matName}" (${matCol})<br>`;
+        }
+      });
+
+      // Find head bone
+      let headBone = null;
+      model.traverse((child) => {
+        if (child.isBone && child.name.toLowerCase().includes('head')) {
+          headBone = child;
+        }
+      });
+
+      // Setup animations
+      animations = gltf.animations || [];
+      actions = {};
+      if (animations.length > 0) {
+        mixer = new THREE.AnimationMixer(model);
+        animations.forEach((clip) => {
+          const action = mixer.clipAction(clip);
+          actions[clip.name] = action;
+        });
+
+        const defaultClip = animations.find(a => /idle/i.test(a.name)) || animations[0];
+        if (defaultClip) {
+          activeAction = actions[defaultClip.name];
+          activeAction.play();
+        }
+      }
+
+      if (mixer) mixer.update(0.01);
+      model.updateMatrixWorld(true);
+
+      const headWorld = new THREE.Vector3();
+      if (headBone) {
+        headBone.getWorldPosition(headWorld);
+      } else {
+        headWorld.set(0, 1.6, 0);
+      }
+
+      infoText += `<br><strong>Tulang Utama:</strong><br>`;
+      infoText += `• Head World Pos: (${headWorld.x.toFixed(2)}, ${headWorld.y.toFixed(2)}, ${headWorld.z.toFixed(2)})<br>`;
+      infoText += `• Jumlah Animasi: ${animations.length} action(s)<br>`;
+      details.innerHTML = infoText;
+
+      window.headWorldY = headWorld.y;
+
+      // Reset material mode to Raw
+      setActiveBtn(['btn-mat-raw', 'btn-mat-app'], document.getElementById('btn-mat-raw'));
+    }
+
+    function tryLoadCandidates(index = 0) {
+      if (index >= candidatePaths.length) {
+        // All candidate paths failed
+        loadingText.textContent = 'Tidak dapat memuat avatar.glb otomatis';
+        loadingText.style.color = '#ef4444';
+        loadingSubtext.innerHTML = `
+          File tidak ditemukan di server saat ini (404 Not Found).<br><br>
+          <div style="background: rgba(255,255,255,0.06); padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; line-height: 1.5;">
+            <strong>2 Cara Mudah Membuka:</strong><br>
+            1. <strong>Buka via Server Vite:</strong> <a href="http://localhost:5173/raw-viewer.html" style="color: #7fd1a8; text-decoration: underline; font-weight: 600;">http://localhost:5173/raw-viewer.html</a><br>
+            2. <strong>Buka Manual:</strong> Klik tombol biru <em>"Pilih File .glb Manual"</em> di panel kiri atau <em>drag & drop</em> file .glb ke jendela ini.
+          </div>
+          <button id="btn-modal-pick" style="background: #2563eb; color: #fff; padding: 8px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; border: none;">
+            📁 Pilih File avatar.glb dari Komputer
+          </button>
+        `;
+        document.getElementById('btn-modal-pick')?.addEventListener('click', () => {
+          fileInput.click();
+        });
+        return;
+      }
+
+      const path = candidatePaths[index];
+      loadingText.textContent = 'Memuat avatar.glb...';
+      loadingText.style.color = '#7fd1a8';
+      loadingSubtext.textContent = `Mencoba path [${index + 1}/${candidatePaths.length}]: ${path}`;
+
+      loader.load(
+        path,
+        (gltf) => {
+          onModelLoaded(gltf, path);
+        },
+        undefined,
+        (err) => {
+          tryLoadCandidates(index + 1);
+        }
+      );
+    }
+
+    // Start auto load
+    tryLoadCandidates(0);
+
+    // Handle manual file input
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) {
+        loadFile(file);
+      }
+    });
+
+    document.getElementById('btn-reload-auto').addEventListener('click', () => {
+      loading.style.display = 'block';
+      tryLoadCandidates(0);
+    });
+
+    // Handle drag and drop
+    window.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropOverlay.style.display = 'flex';
+    });
+    window.addEventListener('dragleave', (e) => {
+      if (e.relatedTarget === null) {
+        dropOverlay.style.display = 'none';
+      }
+    });
+    window.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropOverlay.style.display = 'none';
+      const file = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (file) {
+        loadFile(file);
+      }
+    });
+
+    function loadFile(file) {
+      loading.style.display = 'block';
+      loadingText.textContent = `Membaca ${file.name}...`;
+      loadingText.style.color = '#7fd1a8';
+      loadingSubtext.textContent = `Ukuran: ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const buffer = evt.target.result;
+        loader.parse(
+          buffer,
+          '',
+          (gltf) => {
+            onModelLoaded(gltf, file.name);
+          },
+          (err) => {
+            loadingText.textContent = 'Gagal mem-parsing file GLB: ' + err.message;
+            loadingText.style.color = '#ef4444';
+          }
+        );
+      };
+      reader.readAsArrayBuffer(file);
+    }
 
     function setView(tx, ty, tz, cx, cy, cz) {
       controls.target.set(tx, ty, tz);
       camera.position.set(cx, cy, cz);
       controls.update();
+    }
+
+    function setActiveBtn(groupClassOrIds, activeEl) {
+      groupClassOrIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+      });
+      if (activeEl) activeEl.classList.add('active');
     }
 
     // Camera presets
@@ -345,7 +521,7 @@
       setView(0, hy + 0.38, 0.05, 0, hy + 0.38, 0.95);
     });
 
-    // Material mode toggle: Raw vs App Shader
+    // Material mode toggle: Raw vs App Shader (Complete Blender Reconstruction)
     document.getElementById('btn-mat-raw').addEventListener('click', (e) => {
       setActiveBtn(['btn-mat-raw', 'btn-mat-app'], e.target);
       if (model) {
@@ -364,48 +540,73 @@
         model.traverse((child) => {
           if (child.isMesh) {
             if (child.name === 'stickman') {
-              const skinIndices = child.geometry.attributes.skinIndex;
-              const skinWeights = child.geometry.attributes.skinWeight;
-              if (skinIndices && skinWeights) {
-                const count = child.geometry.attributes.position.count;
-                const colors = new Float32Array(count * 3);
-                const skinBones = new Set([3, 4, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40]);
+              const geo = child.geometry;
+              const posAttr = geo.attributes.position;
+              const skinIndices = geo.attributes.skinIndex;
+              const skinWeights = geo.attributes.skinWeight;
 
-                const skinCol = new THREE.Color('#dfbca2');
+              if (posAttr) {
+                const count = posAttr.count;
+                const colors = new Float32Array(count * 3);
+
+                const shoesCol = new THREE.Color('#222426');
+                const pantsCol = new THREE.Color('#3b5773');
                 const shirtCol = new THREE.Color('#5ea6a0');
+                const skinCol = new THREE.Color('#deb89b');
+
+                // Bones mapping (forearm, hand, fingers L & R)
+                const handJoints = new Set([
+                  7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+                  25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40
+                ]);
 
                 for (let i = 0; i < count; i++) {
-                  let skinW = 0;
-                  for (let s = 0; s < 4; s++) {
-                    const bone = skinIndices.getComponent(i, s);
-                    const weight = skinWeights.getComponent(i, s);
-                    if (skinBones.has(bone)) skinW += weight;
+                  const y = posAttr.getY(i);
+                  let handWeight = 0;
+
+                  if (skinIndices && skinWeights) {
+                    for (let s = 0; s < 4; s++) {
+                      const joint = skinIndices.getComponent(i, s);
+                      const weight = skinWeights.getComponent(i, s);
+                      if (handJoints.has(joint)) handWeight += weight;
+                    }
                   }
-                  const col = skinW > 0.35 ? skinCol : shirtCol;
-                  colors[i * 3] = col.r;
-                  colors[i * 3 + 1] = col.g;
-                  colors[i * 3 + 2] = col.b;
+
+                  let chosenCol = shirtCol;
+                  if (handWeight > 0.35) {
+                    chosenCol = skinCol;
+                  } else if (y < 0.25) {
+                    chosenCol = shoesCol;
+                  } else if (y < 1.72) {
+                    chosenCol = pantsCol;
+                  } else if (y < 3.40) {
+                    chosenCol = shirtCol;
+                  } else {
+                    chosenCol = skinCol;
+                  }
+
+                  colors[i * 3] = chosenCol.r;
+                  colors[i * 3 + 1] = chosenCol.g;
+                  colors[i * 3 + 2] = chosenCol.b;
                 }
 
-                child.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+                geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
                 child.material.vertexColors = true;
                 child.material.color.setHex(0xffffff);
-                child.material.roughness = 0.5;
+                child.material.roughness = 0.55;
                 child.material.needsUpdate = true;
               }
             } else if (child.name && child.name.toLowerCase().includes('face')) {
-              // Warm natural skin tone
               if (Array.isArray(child.material)) {
                 child.material.forEach(m => {
-                  if (m.name.includes('Skin')) m.color.set('#dfbca2');
+                  if (m.name.includes('Skin')) m.color.set('#deb89b');
                 });
               } else if (child.material && child.material.name.includes('Skin')) {
-                child.material.color.set('#dfbca2');
+                child.material.color.set('#deb89b');
               }
             } else if (child.name && child.name.toLowerCase().includes('hair')) {
-              // Rich warm brown hair matching Blender
               if (child.material) {
-                child.material.color.set('#4a3728');
+                child.material.color.set('#38241b');
                 child.material.needsUpdate = true;
               }
             }
@@ -443,46 +644,46 @@
       }
     });
 
-    // Animation switches
-    function switchAnimation(name) {
-      if (!mixer || !actions[name]) return;
-      if (activeAction) activeAction.fadeOut(0.3);
-      activeAction = actions[name];
-      activeAction.reset().fadeIn(0.3).play();
+    // Animation buttons
+    function playAction(nameRegex, btnId) {
+      if (!mixer || animations.length === 0) return;
+      const clip = animations.find(a => nameRegex.test(a.name));
+      if (!clip) return;
+
+      const newAction = actions[clip.name];
+      if (newAction && newAction !== activeAction) {
+        if (activeAction) activeAction.fadeOut(0.2);
+        newAction.reset().fadeIn(0.2).play();
+        activeAction = newAction;
+      }
+      setActiveBtn(['btn-anim-idle', 'btn-anim-air', 'btn-anim-terima'], document.getElementById(btnId));
     }
 
-    document.getElementById('btn-anim-idle').addEventListener('click', (e) => {
-      setActiveBtn(['btn-anim-idle', 'btn-anim-air', 'btn-anim-terima'], e.target);
-      switchAnimation('idle_ready');
+    document.getElementById('btn-anim-idle').addEventListener('click', () => {
+      playAction(/idle/i, 'btn-anim-idle');
     });
 
-    document.getElementById('btn-anim-air').addEventListener('click', (e) => {
-      setActiveBtn(['btn-anim-idle', 'btn-anim-air', 'btn-anim-terima'], e.target);
-      switchAnimation('air');
+    document.getElementById('btn-anim-air').addEventListener('click', () => {
+      playAction(/air/i, 'btn-anim-air');
     });
 
-    document.getElementById('btn-anim-terima').addEventListener('click', (e) => {
-      setActiveBtn(['btn-anim-idle', 'btn-anim-air', 'btn-anim-terima'], e.target);
-      switchAnimation('terima_kasih');
+    document.getElementById('btn-anim-terima').addEventListener('click', () => {
+      playAction(/terima/i, 'btn-anim-terima');
     });
 
-    function setActiveBtn(group, target) {
-      group.forEach(id => document.getElementById(id).classList.remove('active'));
-      target.classList.add('active');
-    }
-
+    // Resize handler
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
+    // Animation Loop
     const clock = new THREE.Clock();
     function animate() {
       requestAnimationFrame(animate);
       const delta = clock.getDelta();
       if (mixer) mixer.update(delta);
-      if (skeletonHelper && skeletonHelper.visible) skeletonHelper.update();
       controls.update();
       renderer.render(scene, camera);
     }
