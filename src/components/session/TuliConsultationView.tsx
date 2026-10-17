@@ -7,7 +7,8 @@ import {
   Volume2,
   Sparkles,
 } from 'lucide-react'
-import { Button, img } from '../ui'
+import { Button } from '../ui'
+import { img } from '../../lib/images'
 import { usePsychologists } from '../../lib/appointments'
 import { useLiveSession, STEPS, SIGN_MS } from '../../lib/live'
 import type { Appt } from '../../types'
@@ -36,18 +37,18 @@ export default function TuliConsultationView({ appt, onLeave }: TuliConsultation
   const chat = useScrollBottom(s.msgs.length)
   const resp = useRef<HTMLDivElement>(null)
 
-  const play = () => {
-    clearTimeout(t.current)
-    setPhase('signing')
-    t.current = window.setTimeout(() => setPhase('ready'), SIGN_MS / speed)
+  const [prevQId, setPrevQId] = useState<number | undefined>(s.pendingQuestion?.id)
+  if (prevQId !== s.pendingQuestion?.id) {
+    setPrevQId(s.pendingQuestion?.id)
+    setPhase(s.pendingQuestion ? 'signing' : 'wait')
   }
 
   useEffect(() => {
-    if (s.pendingQuestion) play()
-    else setPhase('wait')
-  }, [s.pendingQuestion?.id])
-
-  useEffect(() => () => clearTimeout(t.current), [])
+    if (phase === 'signing') {
+      const timer = window.setTimeout(() => setPhase('ready'), SIGN_MS / speed)
+      return () => clearTimeout(timer)
+    }
+  }, [phase, speed])
 
   useLayoutEffect(() => {
     if (resp.current?.children.length) {
@@ -129,7 +130,7 @@ export default function TuliConsultationView({ appt, onLeave }: TuliConsultation
             setSpeed={setSpeed}
             big={big}
             setBig={setBig}
-            onReplay={q && phase !== 'signing' ? play : undefined}
+            onReplay={q && phase !== 'signing' ? () => setPhase('signing') : undefined}
             caption={
               s.done ? (
                 'Sesi selesai. Terima kasih.'

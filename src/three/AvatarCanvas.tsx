@@ -20,9 +20,12 @@ export default function AvatarCanvas({
   const [hasGLB, setHasGLB] = useState<boolean | null>(null)
 
   const signingRef = useRef(signing)
-  signingRef.current = signing
   const actionNameRef = useRef(actionName)
-  actionNameRef.current = actionName
+
+  useEffect(() => {
+    signingRef.current = signing
+    actionNameRef.current = actionName
+  }, [signing, actionName])
 
   useEffect(() => {
     const mount = mountRef.current
@@ -170,7 +173,7 @@ export default function AvatarCanvas({
                         }
                       }
 
-                      let chosenCol = shirtCol
+                      let chosenCol: THREE.Color
                       if (handWeight > 0.35) {
                         chosenCol = skinCol
                       } else if (y < 0.25) {

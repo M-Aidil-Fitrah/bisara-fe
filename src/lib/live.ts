@@ -19,7 +19,9 @@ export function speak(text: string) {
     u.lang = 'id-ID'
     window.speechSynthesis.cancel()
     window.speechSynthesis.speak(u)
-  } catch {}
+  } catch {
+    // Ignore speech synthesis failures in unsupported environments
+  }
 }
 
 /**
@@ -40,7 +42,7 @@ export function useLiveSession(me: Kind, id: string) {
 
   const [msgs, setMsgs] = useState<Msg[]>(load)
   const [partnerAt, setPartnerAt] = useState(0)
-  const [now, setNow] = useState(Date.now())
+  const [now, setNow] = useState(() => Date.now())
   const ch = useRef<BroadcastChannel | null>(null)
   const sim = useRef<number | null>(null)
 
@@ -116,7 +118,7 @@ export function useLiveSession(me: Kind, id: string) {
     return () => {
       if (sim.current !== null) clearTimeout(sim.current)
     }
-  }, [me, partnerOnline, pendingQuestion?.id, step, done, msgs.length, push, currentStep])
+  }, [me, partnerOnline, pendingQuestion, step, done, msgs.length, push, currentStep])
 
   return { msgs, push, reset, step, done, pendingQuestion, options, partnerOnline, answers }
 }

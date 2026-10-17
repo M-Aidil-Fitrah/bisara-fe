@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Minus } from 'lucide-react'
-import { Button, Eyebrow, SectionHeader, IMG } from '../components/ui'
+import { Button, Eyebrow, SectionHeader } from '../components/ui'
+import { IMG } from '../lib/images'
 
 export default function Home({ go }: { go?: (p: string) => void }) {
   const navigate = useNavigate()

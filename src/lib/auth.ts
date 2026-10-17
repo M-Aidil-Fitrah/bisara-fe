@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import type { Account, Kind, Role } from '../types'
+import type { Account } from '../types'
 import { addPsychologistToRoster } from './appointments'
 
 export interface RegisteredAccount extends Account {
   password: string
   createdAt?: string
 }
+
 
 // Akun bawaan sistem untuk pengujian berbagai role
 export const INITIAL_ACCOUNTS: RegisteredAccount[] = [
@@ -90,11 +91,18 @@ export function login(email: string, password: string): Account | null {
     (a) => a.email.trim().toLowerCase() === email.trim().toLowerCase() && a.password === password,
   )
   if (!hit) return null
-  const { password: _, ...acc } = hit
+  const acc: Account = {
+    email: hit.email,
+    name: hit.name,
+    role: hit.role,
+    kind: hit.kind,
+    title: hit.title,
+  }
   localStorage.setItem(KEY_AUTH, JSON.stringify(acc))
   listeners.forEach((l) => l(acc))
   return acc
 }
+
 
 /**
  * Register khusus untuk Teman Tuli (klien).
@@ -127,11 +135,18 @@ export function register(params: {
   localStorage.setItem(KEY_USERS, JSON.stringify([...custom, newAcc]))
   window.dispatchEvent(new Event('bisara-users-changed'))
 
-  const { password: _, ...cleanAcc } = newAcc
+  const cleanAcc: Account = {
+    email: newAcc.email,
+    name: newAcc.name,
+    role: newAcc.role,
+    kind: newAcc.kind,
+    title: newAcc.title,
+  }
   localStorage.setItem(KEY_AUTH, JSON.stringify(cleanAcc))
   listeners.forEach((l) => l(cleanAcc))
   return cleanAcc
 }
+
 
 /**
  * Tambah akun Psikolog / Dokter dari Panel Dashboard Admin.
@@ -176,8 +191,15 @@ export function addPsychologistAccount(params: {
 
   window.dispatchEvent(new Event('bisara-users-changed'))
 
-  const { password: _, ...cleanAcc } = newAcc
+  const cleanAcc: Account = {
+    email: newAcc.email,
+    name: newAcc.name,
+    role: newAcc.role,
+    kind: newAcc.kind,
+    title: newAcc.title,
+  }
   return { success: true, user: cleanAcc }
+
 }
 
 export function deleteUser(email: string): boolean {

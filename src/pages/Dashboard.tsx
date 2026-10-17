@@ -26,28 +26,17 @@ export default function Dashboard({ user: propUser }: DashboardProps) {
   const [searchParams, setSearchParams] = useSearchParams()
 
   const tabParam = (searchParams.get('tab') as TabKey) || 'overview'
-  const [tab, setTabState] = useState<TabKey>(
-    ['overview', 'history', 'users', 'psikolog', 'vocab'].includes(tabParam)
-      ? tabParam
-      : 'overview',
-  )
+  const tab: TabKey = ['overview', 'history', 'users', 'psikolog', 'vocab'].includes(tabParam)
+    ? tabParam
+    : 'overview'
   const [navOpen, setNavOpen] = useState(false)
   const [openSession, setOpenSession] = useState<SessionRecord | null>(null)
   const [showAddPsy, setShowAddPsy] = useState(false)
   const mainRef = useRef<HTMLElement>(null)
 
   const setTab = (t: TabKey) => {
-    setTabState(t)
     setSearchParams({ tab: t })
   }
-
-  // Keep state in sync if URL query parameter changes
-  useEffect(() => {
-    const qTab = searchParams.get('tab') as TabKey
-    if (qTab && ['overview', 'history', 'users', 'psikolog', 'vocab'].includes(qTab)) {
-      setTabState(qTab)
-    }
-  }, [searchParams])
 
   useEffect(() => {
     if (mainRef.current) {

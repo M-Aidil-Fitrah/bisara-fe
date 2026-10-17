@@ -61,7 +61,9 @@ export function getHistory(): SessionRecord[] {
   try {
     const raw = localStorage.getItem(KEY)
     if (raw) saved = JSON.parse(raw) as SessionRecord[]
-  } catch {}
+  } catch {
+    // Fallback to default seed on corrupted localStorage
+  }
   return [...saved, ...seed()].sort((a, b) => b.date.localeCompare(a.date))
 }
 
@@ -70,6 +72,9 @@ export function saveSession(rec: SessionRecord) {
   try {
     const raw = localStorage.getItem(KEY)
     if (raw) saved = JSON.parse(raw) as SessionRecord[]
-  } catch {}
+  } catch {
+    // Ignore parse error and overwrite
+  }
   localStorage.setItem(KEY, JSON.stringify([rec, ...saved]))
 }
+

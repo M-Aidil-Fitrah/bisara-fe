@@ -44,10 +44,12 @@ export default function Navbar() {
   }, [])
 
   // Close menus on path change
-  useEffect(() => {
+  const [prevPath, setPrevPath] = useState(currentPath)
+  if (prevPath !== currentPath) {
+    setPrevPath(currentPath)
     setOpen(null)
     setMobile(false)
-  }, [currentPath])
+  }
 
   const initialLetter = user ? user.name.replace(/^dr\. /, '')[0] ?? 'B' : 'B'
 

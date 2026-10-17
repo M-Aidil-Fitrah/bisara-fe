@@ -24,15 +24,13 @@ import {
 
 export default function AccessibilityWidget() {
   const [isOpen, setIsOpen] = useState(false)
-  const [settings, setSettings] = useState<A11ySettings>(DEFAULT_A11Y_SETTINGS)
+  const [settings, setSettings] = useState<A11ySettings>(() => getStoredA11ySettings())
   const panelRef = useRef<HTMLDivElement>(null)
 
-  // Initialize settings from localStorage on mount
+  // Synchronize DOM with accessibility settings
   useEffect(() => {
-    const loaded = getStoredA11ySettings()
-    setSettings(loaded)
-    applyA11yToDOM(loaded)
-  }, [])
+    applyA11yToDOM(settings)
+  }, [settings])
 
   // Handle escape key to close
   useEffect(() => {

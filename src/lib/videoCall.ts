@@ -28,6 +28,13 @@ export function useVideoCall({
   const [isMicOn, setIsMicOn] = useState(true)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
+  const onConnectedRef = useRef(onPartnerConnected)
+  const onDisconnectedRef = useRef(onPartnerDisconnected)
+  useEffect(() => {
+    onConnectedRef.current = onPartnerConnected
+    onDisconnectedRef.current = onPartnerDisconnected
+  }, [onPartnerConnected, onPartnerDisconnected])
+
   const localStreamRef = useRef<MediaStream | null>(null)
   const remoteStreamRef = useRef<MediaStream | null>(null)
   const peerRef = useRef<Peer | null>(null)
@@ -37,7 +44,7 @@ export function useVideoCall({
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null)
 
   // Normalisasi room ID agar Laptop dan Smartphone selalu terhubung ke ruang konsultasi yang sama persis
-  const sId = 'bisara_consultation'
+  const sId = cleanId(sessionId || 'bisara_consultation')
   const myPeerId = role === 'psikolog' ? `bsr-psi-${sId}` : `bsr-tuli-${sId}`
   const targetPeerId = role === 'psikolog' ? `bsr-tuli-${sId}` : `bsr-psi-${sId}`
 
@@ -71,7 +78,7 @@ export function useVideoCall({
         remoteVideoRef.current.play().catch(() => {})
       }
       setCallStatus('connected')
-      onPartnerConnected?.()
+      onConnectedRef.current?.()
     })
 
     call.on('close', () => {
@@ -79,7 +86,7 @@ export function useVideoCall({
       remoteStreamRef.current = null
       if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null
       setCallStatus('waiting')
-      onPartnerDisconnected?.()
+      onDisconnectedRef.current?.()
     })
 
     call.on('error', (err) => {
@@ -87,7 +94,7 @@ export function useVideoCall({
       currentCallRef.current = null
       setCallStatus('waiting')
     })
-  }, [targetPeerId, onPartnerConnected, onPartnerDisconnected])
+  }, [targetPeerId])
 
   useEffect(() => {
     let mounted = true
@@ -112,7 +119,7 @@ export function useVideoCall({
             video: { facingMode: 'user' },
             audio: false,
           })
-        } catch (err2) {
+        } catch {
           try {
             stream = await navigator.mediaDevices.getUserMedia({ video: true })
           } catch (err3) {
@@ -190,7 +197,7 @@ export function useVideoCall({
               remoteVideoRef.current.play().catch(() => {})
             }
             setCallStatus('connected')
-            onPartnerConnected?.()
+            onConnectedRef.current?.()
           })
 
           incomingCall.on('close', () => {
@@ -198,7 +205,7 @@ export function useVideoCall({
             setCallStatus('waiting')
             remoteStreamRef.current = null
             if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null
-            onPartnerDisconnected?.()
+            onDisconnectedRef.current?.()
           })
         })
 

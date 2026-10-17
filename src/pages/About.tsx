@@ -1,4 +1,5 @@
-import { PageHeader, IMG } from '../components/ui'
+import { PageHeader } from '../components/ui'
+import { IMG } from '../lib/images'
 
 const ITEMS = [
   ['01', 'Video tidak disimpan', 'Kamera hanya membaca titik gerak tangan, tubuh, dan wajah secara langsung. Rekaman tidak diunggah.'],

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { ArrowUpRight, X } from 'lucide-react'
 import Avatar from '../components/Avatar'
-import { PageHeader, IMG } from '../components/ui'
+import { PageHeader } from '../components/ui'
+import { IMG } from '../lib/images'
 import { SIGNS } from '../data'
 import type { Sign } from '../types'
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Mic,
   Play,
@@ -9,7 +9,6 @@ import {
   AlertCircle,
   RotateCcw,
   Send,
-  Edit3,
   ShieldCheck,
 } from 'lucide-react'
 import { Button } from '../ui'
@@ -21,7 +20,7 @@ import SessionHeader from './SessionHeader'
 import AvatarStage from './AvatarStage'
 import VideoCallStage from './VideoCallStage'
 import VoiceWave from './VoiceWave'
-import { formatMsgTime } from './MessageBubble'
+import { formatMsgTime } from '../../lib/time'
 import { useScrollBottom } from './useScrollBottom'
 
 export interface PsikologConsultationViewProps {
@@ -123,21 +122,23 @@ export default function PsikologConsultationView({
   const score = scorePss(pssAns)
   const canSpeak = reviewState === 'idle' && !s.pendingQuestion && !s.done
 
-  const save = () => {
+  const save = useCallback(() => {
+    const now = Date.now()
+    const firstAt = s.msgs[0]?.at ?? now
+    const lastAt = s.msgs.at(-1)?.at ?? now
+    const durationMin = Math.max(1, Math.round((lastAt - firstAt) / 60000))
+    const randomSuffix = Math.floor(Math.random() * 400)
     const confAnswers = s.answers.filter((a) => typeof a.conf === 'number')
     const avgAccuracy = confAnswers.length
       ? confAnswers.reduce((x, a) => x + (a.conf ?? 0), 0) / confAnswers.length
       : 0.82
 
     saveSession({
-      id: `BSR-${String(461 + Math.floor(Math.random() * 400)).padStart(4, '0')}`,
-      date: new Date().toISOString(),
+      id: `BSR-${String(461 + randomSuffix).padStart(4, '0')}`,
+      date: new Date(now).toISOString(),
       psikolog: appt.psikolog,
       klien: appt.klien,
-      durationMin: Math.max(
-        1,
-        Math.round(((s.msgs.at(-1)?.at ?? Date.now()) - (s.msgs[0]?.at ?? Date.now())) / 60000)
-      ),
+      durationMin,
       score: pssAns.length ? score : null,
       accuracy: avgAccuracy,
       manual: s.answers.filter((a) => a.manual).length,
@@ -147,7 +148,8 @@ export default function PsikologConsultationView({
     })
     setSaved(true)
     onSaved()
-  }
+  }, [s.answers, s.msgs, s.done, appt.psikolog, appt.klien, pssAns.length, score, notes, onSaved])
+
 
   const playVoice = (m: Msg) => {
     setPlaying(m.id)

@@ -4,7 +4,8 @@ import { Button } from '../ui'
 import { useAppointments } from '../../lib/appointments'
 import { getHistory } from '../../lib/history'
 import type { Appt, SessionRecord } from '../../types'
-import { LobbyHero, LobbyLabel, ScoreTag, fmtDate } from './LobbyShared'
+import { LobbyHero, LobbyLabel, ScoreTag } from './LobbyShared'
+import { fmtDate } from '../../lib/format'
 
 export interface PsikologLobbyProps {
   name: string
@@ -90,7 +91,7 @@ function ClientPanel({
 
 export default function PsikologLobby({ name, onStart }: PsikologLobbyProps) {
   const { list, resetToDefault } = useAppointments()
-  const all = useMemo(getHistory, [list])
+  const all = useMemo(() => getHistory(), [])
   const queue = list
     .filter((a) => a.psikolog === name && a.status !== 'done')
     .sort(

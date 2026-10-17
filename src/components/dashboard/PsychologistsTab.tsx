@@ -1,5 +1,5 @@
 import { Plus } from 'lucide-react'
-import { img } from '../ui'
+import { img } from '../../lib/images'
 import { usePsychologists } from '../../lib/appointments'
 import type { SessionRecord } from '../../types'
 

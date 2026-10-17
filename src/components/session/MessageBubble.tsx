@@ -1,8 +1,6 @@
 import { CheckCircle2 } from 'lucide-react'
 import type { Msg } from '../../types'
-
-export const formatMsgTime = (t: number) =>
-  new Date(t).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+import { formatMsgTime } from '../../lib/time'
 
 export interface MessageBubbleProps {
   m: Msg

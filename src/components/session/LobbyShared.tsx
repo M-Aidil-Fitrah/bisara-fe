@@ -2,14 +2,6 @@ import React from 'react'
 import type { SessionRecord } from '../../types'
 import { level } from '../../lib/history'
 
-export const shortName = (n: string) => {
-  const [a, b] = n.split(' ')
-  return b ? `${a} ${b[0]}.` : (a ?? n)
-}
-
-export const fmtDate = (d: string) =>
-  new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
-
 export function LobbyHero({ eyebrow, title, desc }: { eyebrow: string; title: string; desc: string }) {
   return (
     <div className="bg-ink pb-14 pt-32 text-paper">

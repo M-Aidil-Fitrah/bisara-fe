@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
-import { PageHeader, Button, Eyebrow, IMG } from '../components/ui'
+import { PageHeader, Button, Eyebrow } from '../components/ui'
+import { IMG } from '../lib/images'
 
 const PREP = [
   ['Cahaya cukup', 'Hadapkan wajah ke sumber cahaya. Hindari cahaya dari belakang.'],

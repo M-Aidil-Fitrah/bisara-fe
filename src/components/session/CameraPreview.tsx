@@ -34,9 +34,10 @@ export default function CameraPreview({ active, small }: CameraPreviewProps) {
   }
 
   useEffect(() => {
+    const videoEl = videoRef.current
     return () => {
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream
+      if (videoEl && videoEl.srcObject) {
+        const stream = videoEl.srcObject as MediaStream
         stream.getTracks().forEach((track) => track.stop())
       }
     }

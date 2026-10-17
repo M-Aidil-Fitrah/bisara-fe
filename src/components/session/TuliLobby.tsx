@@ -1,9 +1,11 @@
 import { useMemo } from 'react'
-import { Button, img } from '../ui'
+import { Button } from '../ui'
+import { img } from '../../lib/images'
 import { useAppointments, usePsychologists } from '../../lib/appointments'
 import { getHistory } from '../../lib/history'
 import type { Appt } from '../../types'
-import { LobbyHero, LobbyLabel, fmtDate, shortName } from './LobbyShared'
+import { LobbyHero, LobbyLabel } from './LobbyShared'
+import { fmtDate, shortName } from '../../lib/format'
 
 export interface TuliLobbyProps {
   name: string
@@ -15,7 +17,7 @@ export default function TuliLobby({ name, onJoin }: TuliLobbyProps) {
   const psychologists = usePsychologists()
   const { list, request, cancel } = useAppointments()
   const active = list.find((a) => a.klien === klien && a.status !== 'done')
-  const history = useMemo(() => getHistory().filter((h) => h.klien === klien), [klien, list])
+  const history = useMemo(() => getHistory().filter((h) => h.klien === klien), [klien])
 
   return (
     <>
