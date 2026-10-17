@@ -1,11 +1,14 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Plus, Minus } from 'lucide-react'
 import { Button, Eyebrow, SectionHeader, IMG } from '../components/ui'
-import type { Page } from '../App'
 
-type Go = (p: Page) => void
-
-export default function Home({ go }: { go: Go }) {
+export default function Home({ go }: { go?: (p: string) => void }) {
+  const navigate = useNavigate()
+  const handleNav = (path: string) => {
+    if (go) go(path)
+    else navigate(path.startsWith('/') ? path : `/${path === 'home' ? '' : path}`)
+  }
   return (
     <>
       {/* HERO */}
@@ -20,7 +23,7 @@ export default function Home({ go }: { go: Go }) {
             Ucapan menjadi avatar BISINDO. Isyarat menjadi teks dan suara. Anda yang memastikan setiap jawaban benar.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <Button onClick={() => go('session')}>Coba sesi demo</Button>
+            <Button onClick={() => handleNav('/session')}>Coba sesi demo</Button>
             <Button variant="ghost" className="!text-paper/85 hover:!text-paper" onClick={() => document.getElementById('cara-kerja')?.scrollIntoView({ behavior: 'smooth' })}>Lihat cara kerja</Button>
           </div>
         </div>
@@ -33,30 +36,30 @@ export default function Home({ go }: { go: Go }) {
           eyebrow="Psikolog ke pengguna Tuli"
           title="Ucapan psikolog, tampil dalam BISINDO"
           body="Suara psikolog ditranskripsi menjadi teks, dicocokkan dengan sapaan atau butir PSS-10, lalu diperagakan avatar 3D. Teks tetap tampil sebagai pendamping."
-          cta="Lihat kosakata" onClick={() => go('dictionary')}
+          cta="Lihat kosakata" onClick={() => handleNav('/dictionary')}
         />
         <Story
           flip image={IMG.signing} alt="Perempuan memperagakan isyarat tangan"
           eyebrow="Pengguna Tuli ke psikolog"
           title="Jawab dengan bahasa Anda sendiri"
           body="Kamera membaca gerak tangan, tubuh, dan wajah. Hasilnya muncul sebagai teks untuk Anda periksa, lalu diteruskan kepada psikolog dalam bentuk teks dan suara."
-          cta="Coba di sesi demo" onClick={() => go('session')}
+          cta="Coba di sesi demo" onClick={() => handleNav('/session')}
         />
         <Story
           image={IMG.hands} alt="Dua tangan saling menggenggam"
           eyebrow="Konfirmasi pengguna"
           title="Tidak ada jawaban terkirim tanpa persetujuan Anda"
           body="Jika hasil bacaan keliru, ubah atau pilih jawaban secara manual. Kendali atas makna tetap di tangan pengguna, bukan di tangan mesin."
-          cta="Baca soal privasi" onClick={() => go('about')}
+          cta="Baca soal privasi" onClick={() => handleNav('/about')}
         />
       </section>
 
       {/* CARDS */}
       <section className="mx-auto grid max-w-6xl gap-5 px-6 pb-28 md:grid-cols-3">
         {[
-          [IMG.light, 'Skrining', 'Sepuluh butir PSS-10', 'Pertanyaan stres tersaji berurutan, dengan ringkasan skor sebagai bahan pertimbangan psikolog.', 'Mulai skrining', 'session'],
-          [IMG.laptop, 'Persiapan', 'Siap dalam tiga menit', 'Atur cahaya, posisi kamera, dan tampilan berdampingan sebelum sesi dimulai.', 'Baca panduan', 'guide'],
-          [IMG.smile, 'Kamus', 'Pelajari isyaratnya dulu', 'Lihat kosakata BISINDO yang dikenali sistem, lengkap dengan peragaan avatar.', 'Buka kamus', 'dictionary'],
+          [IMG.light, 'Skrining', 'Sepuluh butir PSS-10', 'Pertanyaan stres tersaji berurutan, dengan ringkasan skor sebagai bahan pertimbangan psikolog.', 'Mulai skrining', '/session'],
+          [IMG.laptop, 'Persiapan', 'Siap dalam tiga menit', 'Atur cahaya, posisi kamera, dan tampilan berdampingan sebelum sesi dimulai.', 'Baca panduan', '/guide'],
+          [IMG.smile, 'Kamus', 'Pelajari isyaratnya dulu', 'Lihat kosakata BISINDO yang dikenali sistem, lengkap dengan peragaan avatar.', 'Buka kamus', '/dictionary'],
         ].map(([src, e, t, d, c, p]) => (
           <article data-reveal key={t} className="flex flex-col rounded-xl bg-ink p-3 text-paper">
             <img src={src} alt="" className="aspect-[4/3] w-full rounded-lg object-cover" />
@@ -64,7 +67,7 @@ export default function Home({ go }: { go: Go }) {
               <Eyebrow light>{e}</Eyebrow>
               <h3 className="mt-3 text-2xl font-normal leading-tight">{t}</h3>
               <p className="mt-3 flex-1 text-sm leading-relaxed text-paper/70">{d}</p>
-              <Button variant="light" arrow className="mt-6 self-start" onClick={() => go(p as Page)}>{c}</Button>
+              <Button variant="light" arrow className="mt-6 self-start" onClick={() => handleNav(p)}>{c}</Button>
             </div>
           </article>
         ))}

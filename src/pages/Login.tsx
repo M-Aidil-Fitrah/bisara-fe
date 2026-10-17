@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import logoFull from '../assets/logo-full.png'
 import { Button, IMG } from '../components/ui'
@@ -6,18 +7,29 @@ import { login } from '../lib/auth'
 import { usePageMotion } from '../lib/motion'
 
 interface LoginProps {
-  onGoRegister: () => void
-  onGoHome: () => void
+  onGoRegister?: () => void
+  onGoHome?: () => void
   onSuccess?: () => void
 }
 
 export default function Login({ onGoRegister, onGoHome, onSuccess }: LoginProps) {
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [show, setShow] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   usePageMotion('login')
+
+  const handleGoRegister = () => {
+    if (onGoRegister) onGoRegister()
+    else navigate('/register')
+  }
+
+  const handleGoHome = () => {
+    if (onGoHome) onGoHome()
+    else navigate('/')
+  }
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -31,8 +43,13 @@ export default function Login({ onGoRegister, onGoHome, onSuccess }: LoginProps)
         setBusy(false)
       } else {
         setBusy(false)
-        if (onSuccess) onSuccess()
-        else onGoHome()
+        if (onSuccess) {
+          onSuccess()
+        } else if (user.role === 'admin') {
+          navigate('/dashboard')
+        } else {
+          navigate('/session')
+        }
       }
     }, 400)
   }
@@ -63,14 +80,14 @@ export default function Login({ onGoRegister, onGoHome, onSuccess }: LoginProps)
       <div className="flex h-full flex-col justify-between overflow-y-auto px-6 py-6 sm:px-12 sm:py-8">
         <div className="flex items-center justify-between">
           <button
-            onClick={onGoHome}
+            onClick={handleGoHome}
             aria-label="Kembali ke Beranda"
             className="h-9 w-[100px] overflow-hidden"
           >
             <img src={logoFull} alt="Bisara" className="size-full scale-[1.9] object-contain" />
           </button>
           <button
-            onClick={onGoHome}
+            onClick={handleGoHome}
             className="flex items-center gap-1.5 text-xs text-muted transition hover:text-ink"
           >
             <ArrowLeft className="size-3.5" /> Beranda
@@ -128,7 +145,7 @@ export default function Login({ onGoRegister, onGoHome, onSuccess }: LoginProps)
           <div className="mt-8 border-t border-line pt-5 text-center text-sm">
             <span className="text-muted">Belum memiliki akun? </span>
             <button
-              onClick={onGoRegister}
+              onClick={handleGoRegister}
               className="font-medium text-brand hover:underline"
             >
               Daftar sekarang

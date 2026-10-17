@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import logoFull from '../assets/logo-full.png'
 import { Button, IMG } from '../components/ui'
@@ -6,12 +7,13 @@ import { register } from '../lib/auth'
 import { usePageMotion } from '../lib/motion'
 
 interface RegisterProps {
-  onGoLogin: () => void
-  onGoHome: () => void
+  onGoLogin?: () => void
+  onGoHome?: () => void
   onSuccess?: () => void
 }
 
 export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterProps) {
+  const navigate = useNavigate()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -19,6 +21,16 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   usePageMotion('register')
+
+  const handleGoLogin = () => {
+    if (onGoLogin) onGoLogin()
+    else navigate('/login')
+  }
+
+  const handleGoHome = () => {
+    if (onGoHome) onGoHome()
+    else navigate('/')
+  }
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -39,7 +51,7 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
       } else {
         setBusy(false)
         if (onSuccess) onSuccess()
-        else onGoHome()
+        else navigate('/session')
       }
     }, 400)
   }
@@ -70,14 +82,14 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
       <div className="flex h-full flex-col justify-between overflow-y-auto px-6 py-6 sm:px-12 sm:py-8">
         <div className="flex items-center justify-between">
           <button
-            onClick={onGoHome}
+            onClick={handleGoHome}
             aria-label="Kembali ke Beranda"
             className="h-9 w-[100px] overflow-hidden"
           >
             <img src={logoFull} alt="Bisara" className="size-full scale-[1.9] object-contain" />
           </button>
           <button
-            onClick={onGoHome}
+            onClick={handleGoHome}
             className="flex items-center gap-1.5 text-xs text-muted transition hover:text-ink"
           >
             <ArrowLeft className="size-3.5" /> Beranda
@@ -153,7 +165,7 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
           <div className="mt-6 border-t border-line pt-4 text-center text-sm">
             <span className="text-muted">Sudah memiliki akun? </span>
             <button
-              onClick={onGoLogin}
+              onClick={handleGoLogin}
               className="font-medium text-brand hover:underline"
             >
               Masuk di sini

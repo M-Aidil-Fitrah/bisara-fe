@@ -10,12 +10,13 @@ import { useAuth } from '../lib/auth'
 import { useLiveSession, STEPS, SIGN_MS, speak } from '../lib/live'
 import { saveSession, scorePss, level } from '../lib/history'
 import type { Appt, Msg } from '../types'
+import SessionLoginPrompt from '../components/session/SessionLoginPrompt'
 
 export default function Session() {
   const user = useAuth()
   const { setStatus, release } = useAppointments()
   const [appt, setAppt] = useState<Appt | null>(null)
-  if (!user?.kind) return null
+  if (!user?.kind) return <SessionLoginPrompt />
   const leave = () => {
     if (appt && user.kind === 'psikolog') release(appt.id)
     setAppt(null)

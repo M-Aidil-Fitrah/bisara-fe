@@ -1,4 +1,4 @@
-import type { Page } from '../App'
+import { useNavigate } from 'react-router-dom'
 import { PageHeader, Button, Eyebrow, IMG } from '../components/ui'
 
 const PREP = [
@@ -8,7 +8,12 @@ const PREP = [
   ['Satu layar, dua tampilan', 'Gunakan mode berdampingan atau dua layar terpisah.'],
 ]
 
-export default function Guide({ go }: { go: (p: Page) => void }) {
+export default function Guide({ go }: { go?: (p: string) => void }) {
+  const navigate = useNavigate()
+  const handleNav = (p: string) => {
+    if (go) go(p)
+    else navigate(p.startsWith('/') ? p : `/${p}`)
+  }
   return (
     <>
       <PageHeader
@@ -59,7 +64,7 @@ export default function Guide({ go }: { go: (p: Page) => void }) {
           <p className="max-w-lg text-2xl font-normal leading-snug">
             Tidak ada jawaban yang dikirim tanpa persetujuan Anda.
           </p>
-          <Button arrow onClick={() => go('session')}>
+          <Button arrow onClick={() => handleNav('/session')}>
             Saya siap
           </Button>
         </div>
