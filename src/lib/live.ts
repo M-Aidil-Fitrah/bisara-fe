@@ -100,7 +100,7 @@ export function useLiveSession(me: Kind, id: string) {
 
     if (me === 'tuli' && !pendingQuestion) {
       sim.current = window.setTimeout(
-        () => push({ from: 'psikolog', text: currentStep.t, step }),
+        () => push({ from: 'psikolog', text: currentStep.t, step, status: 'CONFIRMED', phraseMatched: true }),
         msgs.length ? 2200 : 1200,
       )
     }
@@ -109,7 +109,7 @@ export function useLiveSession(me: Kind, id: string) {
         const opts = currentStep.opening ? ['Saya mengerti'] : ANSWERS
         const a = opts[Math.floor(Math.random() * opts.length)] ?? opts[0]
         const conf = 0.7 + Math.random() * 0.28
-        push({ from: 'tuli', text: a, step, conf })
+        push({ from: 'tuli', text: a, step, status: 'CONFIRMED', conf })
         speak(a)
       }, SIGN_MS + 2600)
     }
