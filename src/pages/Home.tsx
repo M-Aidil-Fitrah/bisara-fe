@@ -121,7 +121,7 @@ export default function Home({ go }: { go?: (p: string) => void }) {
             <Eyebrow>Cakupan prototipe</Eyebrow>
             <h2 className="mt-4 text-3xl font-normal leading-tight sm:text-4xl">Jelas apa yang bisa, dan yang belum</h2>
             <div className="mt-8 grid gap-8 sm:grid-cols-2">
-              <Scope title="Didukung" items={['Sapaan dan percakapan pembuka', '10 butir skrining PSS-10', '5 pilihan jawaban eksplisit', 'Konsultasi video dengan TURN']} />
+              <Scope title="Didukung" items={['Sapaan dan percakapan pembuka', '10 butir skrining PSS-10', '5 pilihan jawaban eksplisit', 'Konsultasi video WebRTC P2P']} />
               <Scope muted title="Belum didukung" items={['Pengenalan isyarat otomatis', 'Seluruh variasi BISINDO', 'Diagnosis klinis', 'Pengganti juru bahasa']} />
             </div>
           </div>

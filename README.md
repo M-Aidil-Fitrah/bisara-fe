@@ -9,7 +9,7 @@ Frontend React/TypeScript untuk portal BISARA. Data pengguna, psikolog, jadwal, 
 - Pesan disimpan melalui REST sebelum ID pesan disiarkan melalui WebSocket.
 - UI tidak membuat partner, skor, akurasi, antrean, atau riwayat simulasi.
 - Avatar hanya memutar aset dan nama klip yang diberikan katalog backend. Jika aset tidak ada, UI menyatakannya sebagai teks saja.
-- Video memerlukan PeerServer aman dan TURN relay; tidak ada mode offline atau stream sintetis.
+- Video menggunakan PeerServer dan STUN untuk koneksi WebRTC P2P; tidak ada mode offline atau stream sintetis.
 - Halaman dipisah menjadi lazy-loaded chunks agar bundle awal lebih kecil.
 
 ## Menjalankan lokal
@@ -20,7 +20,7 @@ pnpm install
 pnpm dev
 ```
 
-Lengkapi `VITE_API_URL`, `VITE_WS_URL`, PeerJS, dan seluruh variabel TURN. Tanpa konfigurasi PeerServer/TURN, fitur video dinonaktifkan dengan pesan eksplisit.
+Lengkapi `VITE_API_URL`, `VITE_WS_URL`, konfigurasi PeerJS, dan `VITE_STUN_URL`. Tanpa konfigurasi PeerServer/STUN, fitur video dinonaktifkan dengan pesan eksplisit.
 
 ## Verifikasi
 

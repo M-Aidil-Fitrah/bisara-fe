@@ -32,7 +32,7 @@ export default function HistoryTab({ data, onOpen }: HistoryTabProps) {
         <div>
           <h1 className="text-4xl font-normal tracking-tight">Riwayat Sesi</h1>
           <p className="mt-2 text-muted">
-            Seluruh sesi yang tercatat, termasuk transkrip dan catatan psikolog.
+            Hingga 50 sesi terbaru yang tercatat, termasuk transkrip dan catatan psikolog.
           </p>
         </div>
       </div>

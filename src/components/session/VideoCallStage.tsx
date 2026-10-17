@@ -69,7 +69,7 @@ export default function VideoCallStage({
         }`}
       />
 
-      {/* 2. Fallback when Partner is not yet connected */}
+      {/* 2. Waiting state before the authenticated partner connects */}
       {!isConnected && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-ink/90 via-ink to-ink-2 p-6 text-center">
           {partnerPhoto ? (

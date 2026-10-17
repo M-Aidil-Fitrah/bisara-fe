@@ -69,14 +69,12 @@ export function useVideoCall({
   useEffect(() => {
     let mounted = true
     const peerHost = import.meta.env.VITE_PEER_HOST
-    const turnUrl = import.meta.env.VITE_TURN_URL
-    const turnUsername = import.meta.env.VITE_TURN_USERNAME
-    const turnCredential = import.meta.env.VITE_TURN_CREDENTIAL
-    if (!peerHost || !turnUrl || !turnUsername || !turnCredential) {
+    const stunUrl = import.meta.env.VITE_STUN_URL
+    if (!peerHost || !stunUrl) {
       queueMicrotask(() => {
         if (!mounted) return
         setCallStatus('error')
-        setErrorMsg('Video dinonaktifkan: PeerServer dan TURN aman belum dikonfigurasi.')
+        setErrorMsg('Video dinonaktifkan: PeerServer dan STUN belum dikonfigurasi.')
       })
       return () => { mounted = false }
     }
@@ -114,11 +112,9 @@ export function useVideoCall({
           secure: import.meta.env.VITE_PEER_SECURE !== 'false',
           config: {
             iceServers: [{
-              urls: turnUrl,
-              username: turnUsername,
-              credential: turnCredential,
+              urls: stunUrl,
             }],
-            iceTransportPolicy: 'relay',
+            iceTransportPolicy: 'all',
           },
         })
         peerRef.current = peer
