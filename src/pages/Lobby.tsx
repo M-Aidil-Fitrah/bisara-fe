@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Button, img } from '../components/ui'
-import { PSYCHOLOGISTS, useAppointments } from '../lib/appointments'
+import { useAppointments, usePsychologists } from '../lib/appointments'
 import { getHistory, level } from '../lib/history'
 import type { Appt, SessionRecord } from '../types'
 
@@ -31,6 +31,7 @@ const Label = ({ children }: { children: React.ReactNode }) => (
 
 export function TuliLobby({ name, onJoin }: { name: string; onJoin: (a: Appt) => void }) {
   const klien = shortName(name)
+  const psychologists = usePsychologists()
   const { list, request, cancel } = useAppointments()
   const active = list.find((a) => a.klien === klien && a.status !== 'done')
   const history = useMemo(() => getHistory().filter((h) => h.klien === klien), [klien, list])
@@ -46,7 +47,7 @@ export function TuliLobby({ name, onJoin }: { name: string; onJoin: (a: Appt) =>
         {active && (
           <div data-reveal className="grid overflow-hidden rounded-xl bg-surface md:grid-cols-[280px_1fr]">
             <img
-              src={img(PSYCHOLOGISTS.find((p) => p.name === active.psikolog)?.photo ?? '', 600)}
+              src={img(psychologists.find((p) => p.name === active.psikolog)?.photo ?? '', 600)}
               alt=""
               className="h-full min-h-[200px] w-full object-cover"
             />
@@ -69,10 +70,10 @@ export function TuliLobby({ name, onJoin }: { name: string; onJoin: (a: Appt) =>
         <section>
           <div data-reveal className="flex items-end justify-between gap-4">
             <div><Label>Psikolog</Label><h2 className="mt-3 text-3xl font-normal">Pilih yang paling sesuai</h2></div>
-            <p className="hidden text-sm text-muted sm:block">{PSYCHOLOGISTS.length} psikolog di klinik Anda</p>
+            <p className="hidden text-sm text-muted sm:block">{psychologists.length} psikolog di klinik Anda</p>
           </div>
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {PSYCHOLOGISTS.map((p, i) => {
+            {psychologists.map((p, i) => {
               const available = i < 3
               const chosen = active?.psikolog === p.name
               return (

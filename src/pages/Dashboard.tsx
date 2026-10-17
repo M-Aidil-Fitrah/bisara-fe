@@ -1,16 +1,19 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import gsap from 'gsap'
-import { X, Menu } from 'lucide-react'
+import { X, Menu, UserPlus, Search, Shield, HeartPulse, UserCheck, Plus, Trash2 } from 'lucide-react'
 import logoMark from '../assets/logo-mark.png'
 import { SIGNS } from '../data'
-import { logout } from '../lib/auth'
+import { logout, useUsers, addPsychologistAccount, deleteUser, type RegisteredAccount } from '../lib/auth'
+import { usePsychologists, type Psychologist } from '../lib/appointments'
 import { getHistory, level } from '../lib/history'
+import { Button, img } from '../components/ui'
 import type { Account, SessionRecord } from '../types'
 
-type Tab = 'overview' | 'history' | 'psikolog' | 'vocab'
+type Tab = 'overview' | 'history' | 'users' | 'psikolog' | 'vocab'
 const TABS: [Tab, string][] = [
   ['overview', 'Ringkasan'],
   ['history', 'Riwayat sesi'],
+  ['users', 'Pengguna'],
   ['psikolog', 'Psikolog'],
   ['vocab', 'Kosakata'],
 ]
@@ -25,6 +28,7 @@ export default function Dashboard({ user, onGoHome }: { user: Account; onGoHome?
   const [tab, setTab] = useState<Tab>('overview')
   const [nav, setNav] = useState(false)
   const [open, setOpen] = useState<SessionRecord | null>(null)
+  const [showAddPsy, setShowAddPsy] = useState(false)
   const data = useMemo(getHistory, [])
   const main = useRef<HTMLDivElement>(null)
 
@@ -87,7 +91,7 @@ export default function Dashboard({ user, onGoHome }: { user: Account; onGoHome?
           ))}
         </nav>
         <div className="mt-auto rounded-lg bg-ink-2 p-4">
-          <p className="text-sm">{user.name}</p>
+          <p className="text-sm font-medium">{user.name}</p>
           <p className="text-xs text-paper/50">{user.email}</p>
           <button onClick={logout} className="mt-3 text-sm text-brand-soft hover:text-paper">
             Keluar
@@ -108,32 +112,45 @@ export default function Dashboard({ user, onGoHome }: { user: Account; onGoHome?
           </button>
           <p className="text-sm text-muted">Klinik Psikologi Harapan · Banda Aceh</p>
         </div>
-        <p className="hidden text-sm text-muted sm:block">
-          {new Date(2026, 9, 28).toLocaleDateString('id-ID', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-          })}
-        </p>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setShowAddPsy(true)}
+            className="hidden items-center gap-2 rounded-lg bg-brand px-3.5 py-1.5 text-xs font-medium text-white transition hover:bg-brand-strong sm:flex"
+          >
+            <UserPlus className="size-3.5" /> Tambah Psikolog
+          </button>
+          <p className="hidden text-sm text-muted md:block">
+            {new Date(2026, 9, 28).toLocaleDateString('id-ID', {
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+            })}
+          </p>
+        </div>
       </header>
 
       <main ref={main} className="px-4 py-8 sm:px-8 sm:py-10">
         {tab === 'overview' && <Overview data={data} onOpen={setOpen} goHistory={() => setTab('history')} />}
         {tab === 'history' && <History data={data} onOpen={setOpen} />}
-        {tab === 'psikolog' && <Psychologists data={data} />}
+        {tab === 'users' && <Users onOpenAddPsy={() => setShowAddPsy(true)} />}
+        {tab === 'psikolog' && <Psychologists data={data} onOpenAddPsy={() => setShowAddPsy(true)} />}
         {tab === 'vocab' && <Vocab />}
       </main>
 
       {open && <Drawer s={open} onClose={() => setOpen(null)} />}
+      {showAddPsy && <AddPsychologistModal onClose={() => setShowAddPsy(false)} />}
     </div>
   )
 }
 
-function Title({ t, d }: { t: string; d: string }) {
+function Title({ t, d, action }: { t: string; d: string; action?: React.ReactNode }) {
   return (
-    <div data-dash className="mb-8">
-      <h1 className="text-4xl font-normal tracking-tight">{t}</h1>
-      <p className="mt-2 text-muted">{d}</p>
+    <div data-dash className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <h1 className="text-4xl font-normal tracking-tight">{t}</h1>
+        <p className="mt-2 text-muted">{d}</p>
+      </div>
+      {action && <div>{action}</div>}
     </div>
   )
 }
@@ -302,19 +319,187 @@ function History({
     <>
       <Title t="Riwayat sesi" d="Seluruh sesi yang tercatat, termasuk transkrip dan catatan psikolog." />
       <div data-dash className="mb-4 flex flex-col gap-3 md:flex-row md:items-center">
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Cari ID, klien, atau psikolog"
-          aria-label="Cari sesi"
-          className="h-11 flex-1 rounded-lg bg-surface px-4 outline-none placeholder:text-muted/70 focus:ring-2 focus:ring-brand"
-        />
+        <div className="relative flex-1">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Cari ID, klien, atau psikolog"
+            aria-label="Cari sesi"
+            className="h-11 w-full rounded-lg bg-surface pl-10 pr-4 outline-none placeholder:text-muted/70 focus:ring-2 focus:ring-brand"
+          />
+          <Search className="absolute left-3.5 top-3.5 size-4 text-muted" />
+        </div>
         <Seg value={status} set={setStatus} opts={['Semua', 'Selesai', 'Dibatalkan']} />
         <Seg value={lvl} set={setLvl} opts={['Semua', 'Rendah', 'Sedang', 'Tinggi']} />
       </div>
       <Card className="!p-0 sm:!p-2">
         <SessionTable rows={rows} onOpen={onOpen} />
         {rows.length === 0 && <p className="p-10 text-center text-muted">Tidak ada sesi yang cocok.</p>}
+      </Card>
+    </>
+  )
+}
+
+/* ------------------------------ Users ------------------------------ */
+
+function Users({ onOpenAddPsy }: { onOpenAddPsy: () => void }) {
+  const users = useUsers()
+  const [q, setQ] = useState('')
+  const [roleFilter, setRoleFilter] = useState('Semua')
+
+  const filtered = users.filter((u) => {
+    const matchSearch =
+      u.name.toLowerCase().includes(q.toLowerCase()) ||
+      u.email.toLowerCase().includes(q.toLowerCase())
+    if (!matchSearch) return false
+
+    if (roleFilter === 'Semua') return true
+    if (roleFilter === 'Teman Tuli') return u.kind === 'tuli'
+    if (roleFilter === 'Psikolog') return u.kind === 'psikolog'
+    if (roleFilter === 'Admin') return u.role === 'admin'
+    return true
+  })
+
+  const countTuli = users.filter((u) => u.kind === 'tuli').length
+  const countPsy = users.filter((u) => u.kind === 'psikolog').length
+  const countAdmin = users.filter((u) => u.role === 'admin').length
+
+  const handleDelete = (email: string, name: string) => {
+    if (window.confirm(`Yakin ingin menghapus akun ${name} (${email})?`)) {
+      const ok = deleteUser(email)
+      if (!ok) alert('Tidak dapat menghapus akun yang sedang aktif digunakan.')
+    }
+  }
+
+  return (
+    <>
+      <Title
+        t="Manajemen Pengguna"
+        d="Daftar akun Teman Tuli, Psikolog, dan Administrator terdaftar di sistem."
+        action={
+          <button
+            onClick={onOpenAddPsy}
+            className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-strong"
+          >
+            <UserPlus className="size-4" /> Tambah Psikolog Baru
+          </button>
+        }
+      />
+
+      {/* Metrics */}
+      <div className="mb-6 grid gap-4 sm:grid-cols-4">
+        {([
+          ['Total Pengguna', String(users.length), UserCheck, 'text-ink'],
+          ['Teman Tuli', String(countTuli), HeartPulse, 'text-brand'],
+          ['Psikolog', String(countPsy), UserPlus, 'text-brand-strong'],
+          ['Admin', String(countAdmin), Shield, 'text-ink'],
+        ] as const).map(([title, count, Icon, color]) => (
+          <Card key={title} className="flex items-center justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted">{title}</p>
+              <p className="mt-2 text-4xl font-light">{count}</p>
+            </div>
+            <div className="rounded-xl bg-paper p-3">
+              <Icon className={`size-6 ${color}`} />
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div data-dash className="mb-4 flex flex-col gap-3 md:flex-row md:items-center">
+        <div className="relative flex-1">
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Cari nama atau email pengguna..."
+            aria-label="Cari pengguna"
+            className="h-11 w-full rounded-lg bg-surface pl-10 pr-4 outline-none placeholder:text-muted/70 focus:ring-2 focus:ring-brand"
+          />
+          <Search className="absolute left-3.5 top-3.5 size-4 text-muted" />
+        </div>
+        <Seg
+          value={roleFilter}
+          set={setRoleFilter}
+          opts={['Semua', 'Teman Tuli', 'Psikolog', 'Admin']}
+        />
+      </div>
+
+      <Card className="!p-0 sm:!p-2">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead className="text-xs text-muted">
+              <tr className="border-b border-line">
+                <th className="px-4 py-3 font-normal">Nama Pengguna</th>
+                <th className="px-4 py-3 font-normal">Peran</th>
+                <th className="px-4 py-3 font-normal">Kategori</th>
+                <th className="px-4 py-3 font-normal">Tanggal Terdaftar</th>
+                <th className="px-4 py-3 text-right font-normal">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((u) => {
+                const isCustom = !['tuli@bisara.id', 'psikolog@bisara.id', 'admin@bisara.id'].includes(u.email)
+                const initials = u.name
+                  .replace(/^dr\. /, '')
+                  .split(' ')
+                  .slice(0, 2)
+                  .map((w) => w[0] ?? '')
+                  .join('')
+                return (
+                  <tr key={u.email} className="border-b border-line last:border-0 hover:bg-paper/60">
+                    <td className="px-4 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <div className="grid size-9 place-items-center rounded-full bg-ink text-xs text-paper">
+                          {initials}
+                        </div>
+                        <div>
+                          <p className="font-medium text-ink">{u.name}</p>
+                          <p className="text-xs text-muted">{u.email}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5">
+                      {u.role === 'admin' ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-ink px-2.5 py-1 text-xs text-paper">
+                          <Shield className="size-3" /> Administrator
+                        </span>
+                      ) : u.kind === 'psikolog' ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-brand px-2.5 py-1 text-xs text-white">
+                          <UserPlus className="size-3" /> Psikolog
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-brand-tint px-2.5 py-1 text-xs font-medium text-brand">
+                          <HeartPulse className="size-3" /> Teman Tuli
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3.5 text-muted">{u.title ?? '-'}</td>
+                    <td className="px-4 py-3.5 text-muted">
+                      {u.createdAt ? fmtDate(u.createdAt) : 'Bawaan sistem'}
+                    </td>
+                    <td className="px-4 py-3.5 text-right">
+                      {isCustom ? (
+                        <button
+                          onClick={() => handleDelete(u.email, u.name)}
+                          title="Hapus Pengguna"
+                          className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-[#b8483e]"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      ) : (
+                        <span className="text-xs text-muted/60">Akun inti</span>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          {filtered.length === 0 && (
+            <p className="p-10 text-center text-muted">Tidak ada pengguna yang cocok dengan filter.</p>
+          )}
+        </div>
       </Card>
     </>
   )
@@ -499,46 +684,85 @@ function Drawer({ s, onClose }: { s: SessionRecord; onClose: () => void }) {
 
 /* --------------------------- Psychologists --------------------------- */
 
-function Psychologists({ data }: { data: SessionRecord[] }) {
-  const names = Array.from(new Set(data.map((d) => d.psikolog)))
+function Psychologists({
+  data,
+  onOpenAddPsy,
+}: {
+  data: SessionRecord[]
+  onOpenAddPsy: () => void
+}) {
+  const psychologists = usePsychologists()
+
   return (
     <>
-      <Title t="Psikolog" d="Tenaga profesional yang memakai BISARA di klinik ini." />
+      <Title
+        t="Psikolog"
+        d="Tenaga profesional yang terdaftar untuk mendampingi klien di klinik ini."
+        action={
+          <button
+            onClick={onOpenAddPsy}
+            className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-strong"
+          >
+            <Plus className="size-4" /> Tambah Psikolog / Dokter
+          </button>
+        }
+      />
       <div className="grid gap-4 md:grid-cols-2">
-        {names.map((n) => {
-          const mine = data.filter((d) => d.psikolog === n)
+        {psychologists.map((p) => {
+          const mine = data.filter((d) => d.psikolog === p.name)
           const done = mine.filter((d) => d.status === 'Selesai')
-          const initials = n
+          const initials = p.name
             .replace(/^dr\. /, '')
             .split(' ')
             .slice(0, 2)
             .map((w) => w[0] ?? '')
             .join('')
-          const lastDate = mine[0]?.date ? fmtDate(mine[0].date) : '-'
+          const lastDate = mine[0]?.date ? fmtDate(mine[0].date) : 'Baru'
+
           return (
-            <Card key={n}>
-              <div className="flex items-center gap-4">
-                <div className="grid size-12 place-items-center rounded-full bg-ink text-paper">{initials}</div>
-                <div>
-                  <p className="text-lg">{n}</p>
-                  <p className="text-sm text-muted">Aktif · terakhir {lastDate}</p>
+            <Card key={p.name}>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  {p.photo ? (
+                    <img
+                      src={img(p.photo, 200)}
+                      alt={p.name}
+                      className="size-14 rounded-full object-cover ring-2 ring-line"
+                    />
+                  ) : (
+                    <div className="grid size-14 place-items-center rounded-full bg-ink text-paper text-lg font-light">
+                      {initials}
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-lg font-medium">{p.name}</p>
+                    <p className="text-xs text-muted">
+                      {p.focus} · BISINDO {p.bisindo}
+                    </p>
+                    {p.email && <p className="text-xs text-brand mt-0.5">{p.email}</p>}
+                  </div>
                 </div>
+                <span className="rounded-full bg-brand-tint px-2.5 py-1 text-xs font-medium text-brand">
+                  Aktif
+                </span>
               </div>
               <dl className="mt-6 grid grid-cols-3 border-t border-line pt-5">
                 {[
-                  ['Sesi', mine.length],
+                  ['Sesi ditangani', mine.length],
                   [
                     'Rata-rata durasi',
-                    `${Math.round(mine.reduce((s, d) => s + d.durationMin, 0) / Math.max(1, mine.length))} mnt`,
+                    mine.length
+                      ? `${Math.round(mine.reduce((s, d) => s + d.durationMin, 0) / mine.length)} mnt`
+                      : '—',
                   ],
                   [
-                    'Rata-rata skor',
-                    (done.reduce((s, d) => s + (d.score ?? 0), 0) / Math.max(1, done.length)).toFixed(1),
+                    'Terakhir aktif',
+                    lastDate,
                   ],
                 ].map(([k, v]) => (
                   <div key={k as string}>
                     <dt className="text-xs text-muted">{k}</dt>
-                    <dd className="mt-1 text-2xl font-light">{v}</dd>
+                    <dd className="mt-1 text-xl font-light">{v}</dd>
                   </div>
                 ))}
               </dl>
@@ -547,6 +771,167 @@ function Psychologists({ data }: { data: SessionRecord[] }) {
         })}
       </div>
     </>
+  )
+}
+
+/* ------------------------ Add Psychologist Modal ------------------------ */
+
+function AddPsychologistModal({ onClose }: { onClose: () => void }) {
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('bisara123')
+  const [focus, setFocus] = useState('Stres & kecemasan')
+  const [bisindo, setBisindo] = useState('Dasar')
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault()
+    setError('')
+
+    if (!name.trim() || !email.trim() || !password) {
+      return setError('Nama, email, dan kata sandi wajib diisi.')
+    }
+
+    const res = addPsychologistAccount({
+      name: name.trim(),
+      email: email.trim(),
+      password,
+      focus: focus.trim(),
+      bisindo,
+      photo: 'photo-1573495804664-b1c0849525af',
+    })
+
+    if ('error' in res) {
+      setError(res.error)
+    } else {
+      setSuccess(true)
+      setTimeout(() => {
+        onClose()
+      }, 1000)
+    }
+  }
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+      className="fixed inset-0 z-[70] grid place-items-center bg-ink/50 p-4"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-lg overflow-hidden rounded-2xl bg-surface p-6 shadow-2xl ring-1 ring-line sm:p-8"
+      >
+        <div className="flex items-start justify-between">
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">
+              Panel Admin
+            </span>
+            <h2 className="mt-1 text-2xl font-normal text-ink">Tambah Psikolog / Dokter</h2>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Tutup"
+            className="grid size-9 place-items-center rounded-lg hover:bg-paper"
+          >
+            <X className="size-5" />
+          </button>
+        </div>
+
+        {success ? (
+          <div className="py-12 text-center">
+            <div className="mx-auto grid size-12 place-items-center rounded-full bg-[#2c6e4f]/15 text-[#2c6e4f]">
+              <UserCheck className="size-6" />
+            </div>
+            <p className="mt-4 text-xl font-normal text-ink">Psikolog Berhasil Didaftarkan!</p>
+            <p className="mt-1 text-sm text-muted">
+              Akun aktif dan otomatis muncul pada daftar psikolog klinik.
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={submit} className="mt-6 space-y-4">
+            <label className="block">
+              <span className="text-sm font-medium">Nama Lengkap & Gelar</span>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="mis. dr. Aisyah Rahma, M.Psi"
+                className="mt-1 h-11 w-full rounded-lg bg-paper px-3.5 text-sm outline-none focus:ring-2 focus:ring-brand"
+              />
+            </label>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="text-sm font-medium">Email Akun</span>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="nama@bisara.id"
+                  className="mt-1 h-11 w-full rounded-lg bg-paper px-3.5 text-sm outline-none focus:ring-2 focus:ring-brand"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-medium">Kata Sandi Default</span>
+                <input
+                  type="text"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="bisara123"
+                  className="mt-1 h-11 w-full rounded-lg bg-paper px-3.5 text-sm outline-none focus:ring-2 focus:ring-brand"
+                />
+              </label>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block">
+                <span className="text-sm font-medium">Fokus Konseling</span>
+                <input
+                  type="text"
+                  value={focus}
+                  onChange={(e) => setFocus(e.target.value)}
+                  placeholder="mis. Stres & kecemasan"
+                  className="mt-1 h-11 w-full rounded-lg bg-paper px-3.5 text-sm outline-none focus:ring-2 focus:ring-brand"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-medium">Kemampuan BISINDO</span>
+                <select
+                  value={bisindo}
+                  onChange={(e) => setBisindo(e.target.value)}
+                  className="mt-1 h-11 w-full rounded-lg bg-paper px-3 text-sm outline-none focus:ring-2 focus:ring-brand"
+                >
+                  <option value="Dasar">Dasar</option>
+                  <option value="Menengah">Menengah</option>
+                  <option value="Mahir">Mahir</option>
+                  <option value="Belum">Belum menguasai</option>
+                </select>
+              </label>
+            </div>
+
+            {error && <p className="text-sm text-[#b8483e]">{error}</p>}
+
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-line">
+              <button
+                type="button"
+                onClick={onClose}
+                className="h-10 rounded-lg px-4 text-sm text-muted hover:text-ink"
+              >
+                Batal
+              </button>
+              <Button type="submit">Simpan & Daftarkan</Button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
   )
 }
 

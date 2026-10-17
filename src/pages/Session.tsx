@@ -3,7 +3,7 @@ import gsap from 'gsap'
 import { Mic, Play, Pause, PhoneOff, Camera, VideoOff } from 'lucide-react'
 import Avatar from '../components/Avatar'
 import { Button, img } from '../components/ui'
-import { PSYCHOLOGISTS, useAppointments } from '../lib/appointments'
+import { useAppointments, usePsychologists } from '../lib/appointments'
 import { TuliLobby, PsikologLobby } from './Lobby'
 import { ANSWERS, OPENING } from '../data'
 import { useAuth } from '../lib/auth'
@@ -201,7 +201,8 @@ type TPhase = 'wait' | 'signing' | 'ready' | 'detecting' | 'confirm' | 'manual'
 
 function TuliView({ appt, onLeave }: { appt: Appt; onLeave: () => void }) {
   const s = useLiveSession('tuli', appt.id)
-  const psi = PSYCHOLOGISTS.find((p) => p.name === appt.psikolog)
+  const psychologists = usePsychologists()
+  const psi = psychologists.find((p) => p.name === appt.psikolog)
   const [phase, setPhase] = useState<TPhase>('wait')
   const [speed, setSpeed] = useState(1)
   const [big, setBig] = useState(false)

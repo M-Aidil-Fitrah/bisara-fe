@@ -4,7 +4,6 @@ import logoFull from '../assets/logo-full.png'
 import { Button, IMG } from '../components/ui'
 import { register } from '../lib/auth'
 import { usePageMotion } from '../lib/motion'
-import type { Kind } from '../types'
 
 interface RegisterProps {
   onGoLogin: () => void
@@ -16,7 +15,6 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [kind, setKind] = useState<Kind>('tuli')
   const [show, setShow] = useState(false)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
@@ -34,7 +32,7 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
 
     setBusy(true)
     setTimeout(() => {
-      const res = register({ name, email, password, kind })
+      const res = register({ name, email, password })
       if ('error' in res) {
         setError(res.error)
         setBusy(false)
@@ -52,13 +50,13 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
       <div className="relative hidden h-full overflow-hidden bg-ink lg:block">
         <img
           src={IMG.signing}
-          alt=""
+          alt="Komunikasi BISINDO"
           data-hero-bg
           className="absolute inset-0 size-full object-cover opacity-60"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/65 to-ink/25" />
         <div data-hero className="absolute inset-x-0 bottom-0 p-12">
-          <p className="text-xs uppercase tracking-[0.14em] text-brand-soft">BISARA</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-brand-soft">BISARA · TEMAN TULI</p>
           <p className="mt-4 max-w-md text-5xl font-normal leading-[1.05] tracking-tight text-paper">
             Layanan Inklusif, Ruang Aman.
           </p>
@@ -86,39 +84,16 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
           </button>
         </div>
 
-        <div className="mx-auto my-auto w-full max-w-sm py-3">
-          <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Buat Akun</h1>
-          <p className="mt-1.5 text-sm text-muted">Lengkapi data untuk bergabung ke BISARA.</p>
+        <div className="mx-auto my-auto w-full max-w-sm py-4">
+          <div className="inline-flex items-center gap-2 rounded-full bg-brand/10 px-3 py-1 text-xs font-semibold text-brand mb-3">
+            Pendaftaran Teman Tuli
+          </div>
+          <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Daftar Akun</h1>
+          <p className="mt-2 text-sm text-muted">
+            Buat akun untuk memulai sesi skrining dan konsultasi dengan psikolog.
+          </p>
 
           <form onSubmit={submit} className="mt-6 space-y-4" noValidate>
-            <div>
-              <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted">Peran Anda</span>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setKind('tuli')}
-                  className={`h-10 rounded-lg text-xs font-medium transition ${
-                    kind === 'tuli'
-                      ? 'bg-brand text-white shadow-sm'
-                      : 'bg-paper text-ink hover:bg-surface ring-1 ring-line'
-                  }`}
-                >
-                  Teman Tuli
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setKind('psikolog')}
-                  className={`h-10 rounded-lg text-xs font-medium transition ${
-                    kind === 'psikolog'
-                      ? 'bg-brand text-white shadow-sm'
-                      : 'bg-paper text-ink hover:bg-surface ring-1 ring-line'
-                  }`}
-                >
-                  Psikolog
-                </button>
-              </div>
-            </div>
-
             <label className="block">
               <span className="text-sm font-medium">Nama Lengkap</span>
               <input
@@ -126,8 +101,8 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
                 autoComplete="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder={kind === 'psikolog' ? 'dr. Nama Lengkap, M.Psi' : 'Nama Lengkap Anda'}
-                className="mt-1 h-11 w-full border-b border-ink/30 bg-transparent text-sm outline-none transition placeholder:text-muted/50 focus:border-brand"
+                placeholder="Nama Lengkap Anda"
+                className="mt-1 h-12 w-full border-b border-ink/30 bg-transparent text-base outline-none transition placeholder:text-muted/50 focus:border-brand"
               />
             </label>
 
@@ -139,7 +114,7 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nama@email.com"
-                className="mt-1 h-11 w-full border-b border-ink/30 bg-transparent text-sm outline-none transition placeholder:text-muted/50 focus:border-brand"
+                className="mt-1 h-12 w-full border-b border-ink/30 bg-transparent text-base outline-none transition placeholder:text-muted/50 focus:border-brand"
               />
             </label>
 
@@ -160,7 +135,7 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Minimal 6 karakter"
-                className="mt-1 h-11 w-full border-b border-ink/30 bg-transparent text-sm outline-none transition placeholder:text-muted/50 focus:border-brand"
+                className="mt-1 h-12 w-full border-b border-ink/30 bg-transparent text-base outline-none transition placeholder:text-muted/50 focus:border-brand"
               />
             </label>
 
@@ -170,7 +145,7 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
               </p>
             )}
 
-            <Button type="submit" arrow disabled={busy} className="w-full !h-11 !rounded-lg mt-3">
+            <Button type="submit" arrow disabled={busy} className="w-full !h-12 !rounded-lg mt-3">
               {busy ? 'Mendaftarkan…' : 'Daftar Sekarang'}
             </Button>
           </form>
@@ -188,7 +163,7 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
 
         <div className="text-center sm:text-left">
           <p className="text-xs text-muted">
-            Data pribadi dilindungi dan hanya digunakan untuk pendampingan kesehatan mental.
+            Akun psikolog & dokter didaftarkan oleh administrator klinik.
           </p>
         </div>
       </div>
