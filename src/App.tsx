@@ -10,6 +10,7 @@ const Guide = lazy(() => import('./pages/Guide'))
 const About = lazy(() => import('./pages/About'))
 const Services = lazy(() => import('./pages/Services'))
 const LayananPsikolog = lazy(() => import('./pages/LayananPsikolog'))
+const ComingSoon = lazy(() => import('./pages/ComingSoon'))
 const OneWay = lazy(() => import('./pages/OneWay'))
 const Ritz = lazy(() => import('./pages/Ritz'))
 const Display = lazy(() => import('./pages/Display'))
@@ -47,6 +48,7 @@ export default function App() {
             <Route path="/two-way" element={<Services />} />
             <Route path="/two-way/layanan-psikolog" element={<LayananPsikolog />} />
             <Route path="/two-way/layanan-psikolog/ritz" element={<Ritz />} />
+            <Route path="/two-way/:service" element={<ComingSoon />} />
             <Route path="/ritz" element={<Ritz />} />
             <Route path="/session" element={<Navigate to="/ritz" replace />} />
             <Route path="/fitur" element={<Navigate to="/two-way" replace />} />
