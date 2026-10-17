@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import ritzLogo from '../assets/logo_ritz.png'
+import Breadcrumb from '../components/common/Breadcrumb'
 import { useAuth } from '../lib/auth'
 
 export default function Ritz() {
@@ -8,6 +9,7 @@ export default function Ritz() {
 
   return (
     <section className="mx-auto max-w-6xl px-6 pb-24 pt-36">
+      <Breadcrumb items={[{ label: 'Fitur', to: '/two-way' }, { label: 'Two-way Service', to: '/two-way' }, { label: 'Layanan Psikolog', to: '/two-way/layanan-psikolog' }, { label: 'Ritz' }]} />
       <div className="border-b border-line pb-10">
         <p className="text-sm font-medium text-brand">Mitra layanan</p>
         <div className="mt-8 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
