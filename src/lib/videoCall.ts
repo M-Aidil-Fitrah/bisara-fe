@@ -6,12 +6,15 @@ export type CallStatus = 'initializing' | 'waiting' | 'calling' | 'connected' | 
 
 interface UseVideoCallOptions {
   roomId: string
-  role: 'USER' | 'ADMIN'
   socket: WebSocket | null
   socketJoined: boolean
 }
 
-export function useVideoCall({ roomId, role, socket, socketJoined }: UseVideoCallOptions) {
+export function shouldInitiateCall(ownPeerId: string, remotePeerId: string): boolean {
+  return ownPeerId.localeCompare(remotePeerId) < 0
+}
+
+export function useVideoCall({ roomId, socket, socketJoined }: UseVideoCallOptions) {
   const [callStatus, setCallStatus] = useState<CallStatus>('initializing')
   const [isCameraOn, setIsCameraOn] = useState(true)
   const [isMicOn, setIsMicOn] = useState(true)
@@ -25,17 +28,16 @@ export function useVideoCall({ roomId, role, socket, socketJoined }: UseVideoCal
   const currentCallRef = useRef<MediaConnection | null>(null)
   const targetPeerRef = useRef<string | null>(null)
   const ownPeerIdRef = useRef<string | null>(null)
+  const connectTimerRef = useRef<number | null>(null)
 
   const socketRef = useRef<WebSocket | null>(socket)
   const socketJoinedRef = useRef(socketJoined)
-  const roleRef = useRef(role)
   const callStatusRef = useRef<CallStatus>('initializing')
 
   // Keep references updated on every render to eliminate stale closures
   useEffect(() => {
     socketRef.current = socket
     socketJoinedRef.current = socketJoined
-    roleRef.current = role
     callStatusRef.current = callStatus
   })
 
@@ -58,22 +60,40 @@ export function useVideoCall({ roomId, role, socket, socketJoined }: UseVideoCal
     }
   }, [remoteStream])
 
-  // Bind a MediaConnection and manage stream events without dropping active streams
+  const cancelPendingCall = useCallback(() => {
+    if (connectTimerRef.current !== null) {
+      window.clearTimeout(connectTimerRef.current)
+      connectTimerRef.current = null
+    }
+  }, [])
+
+  // A media connection is exclusive. Duplicate signaling must never replace a live call.
   const bindCall = useCallback((call: MediaConnection) => {
     if (currentCallRef.current && currentCallRef.current !== call) {
-      currentCallRef.current.close()
+      call.close()
+      return false
     }
     currentCallRef.current = call
 
     call.on('stream', (stream) => {
       remoteStreamRef.current = stream
       setRemoteStream(stream)
+      cancelPendingCall()
       callStatusRef.current = 'connected'
       setCallStatus('connected')
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = stream
         void remoteVideoRef.current.play().catch(() => {})
       }
+      stream.getTracks().forEach((track) => {
+        track.addEventListener('ended', () => {
+          if (currentCallRef.current !== call) return
+          remoteStreamRef.current = null
+          setRemoteStream(null)
+          callStatusRef.current = 'waiting'
+          setCallStatus('waiting')
+        }, { once: true })
+      })
     })
 
     call.on('close', () => {
@@ -91,12 +111,16 @@ export function useVideoCall({ roomId, role, socket, socketJoined }: UseVideoCal
 
     call.on('error', () => {
       if (currentCallRef.current === call) {
+        currentCallRef.current = null
+        remoteStreamRef.current = null
+        setRemoteStream(null)
         callStatusRef.current = 'error'
         setCallStatus('error')
         setErrorMsg('Panggilan video terputus atau gagal tersambung.')
       }
     })
-  }, [])
+    return true
+  }, [cancelPendingCall])
 
   // Call partner with active-connection protection
   const callPartner = useCallback(() => {
@@ -108,8 +132,8 @@ export function useVideoCall({ roomId, role, socket, socketJoined }: UseVideoCal
       return
     }
 
-    // Guard: Never place a redundant call if we already have a functioning connection
-    if (callStatusRef.current === 'connected' && currentCallRef.current?.open && remoteStreamRef.current) {
+    // A pending or live connection owns the call slot until it explicitly closes.
+    if (currentCallRef.current?.open) {
       return
     }
 
@@ -118,7 +142,7 @@ export function useVideoCall({ roomId, role, socket, socketJoined }: UseVideoCal
     try {
       const outgoing = peer.call(target, stream)
       if (outgoing) {
-        bindCall(outgoing)
+        if (!bindCall(outgoing)) outgoing.close()
       }
     } catch {
       callStatusRef.current = 'error'
@@ -126,6 +150,17 @@ export function useVideoCall({ roomId, role, socket, socketJoined }: UseVideoCal
       setErrorMsg('Gagal melakukan panggilan ke lawan bicara.')
     }
   }, [bindCall])
+
+  const scheduleCall = useCallback(() => {
+    const ownPeerId = ownPeerIdRef.current
+    const targetPeerId = targetPeerRef.current
+    if (!ownPeerId || !targetPeerId || !shouldInitiateCall(ownPeerId, targetPeerId) || currentCallRef.current?.open) return
+    cancelPendingCall()
+    connectTimerRef.current = window.setTimeout(() => {
+      connectTimerRef.current = null
+      callPartner()
+    }, 300)
+  }, [callPartner, cancelPendingCall])
 
   // Announce peer ID over WebSocket without re-triggering component lifecycle
   const announcePeer = useCallback(() => {
@@ -203,17 +238,13 @@ export function useVideoCall({ roomId, role, socket, socketJoined }: UseVideoCal
           callStatusRef.current = 'waiting'
           setCallStatus('waiting')
           announcePeer()
+          scheduleCall()
         })
 
         peer.on('call', (incoming) => {
           if (!mounted) return
-          // If already connected with active stream, answer gently without closing
-          if (currentCallRef.current?.open && remoteStreamRef.current) {
-            incoming.answer(localStreamRef.current ?? stream)
-            return
-          }
+          if (!bindCall(incoming)) return
           incoming.answer(localStreamRef.current ?? stream)
-          bindCall(incoming)
         })
 
         peer.on('error', (err) => {
@@ -234,6 +265,7 @@ export function useVideoCall({ roomId, role, socket, socketJoined }: UseVideoCal
 
     return () => {
       mounted = false
+      cancelPendingCall()
       currentCallRef.current?.close()
       currentCallRef.current = null
       peerRef.current?.destroy()
@@ -244,40 +276,20 @@ export function useVideoCall({ roomId, role, socket, socketJoined }: UseVideoCal
       setLocalStream(null)
       setRemoteStream(null)
     }
-  }, [roomId, announcePeer, bindCall])
+  }, [roomId, announcePeer, bindCall, cancelPendingCall, scheduleCall])
 
   const handleRemotePeerReady = useCallback(
     (remotePeerId: string) => {
       if (!remotePeerId || remotePeerId === ownPeerIdRef.current) return
       targetPeerRef.current = remotePeerId
 
-      // Guard: If already connected, ignore duplicate PEER_READY
-      if (callStatusRef.current === 'connected' && currentCallRef.current?.open && remoteStreamRef.current) {
-        return
-      }
-
-      // ADMIN automatically calls USER after short delay for peer readiness
-      if (roleRef.current === 'ADMIN') {
-        const timer = window.setTimeout(() => {
-          if (callStatusRef.current !== 'connected') {
-            callPartner()
-          }
-        }, 500)
-        return () => window.clearTimeout(timer)
-      } else {
-        // Fallback for USER: Only call if ADMIN hasn't called after 6 seconds and still not connected
-        const timer = window.setTimeout(() => {
-          if (callStatusRef.current !== 'connected' && !currentCallRef.current?.open && !remoteStreamRef.current) {
-            callPartner()
-          }
-        }, 6000)
-        return () => window.clearTimeout(timer)
-      }
+      scheduleCall()
     },
-    [callPartner]
+    [scheduleCall]
   )
 
   const handleRemotePeerLeft = useCallback(() => {
+    cancelPendingCall()
     targetPeerRef.current = null
     currentCallRef.current?.close()
     currentCallRef.current = null
@@ -288,7 +300,7 @@ export function useVideoCall({ roomId, role, socket, socketJoined }: UseVideoCal
     if (remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = null
     }
-  }, [])
+  }, [cancelPendingCall])
 
   const toggleCamera = useCallback(() => {
     const tracks = localStreamRef.current?.getVideoTracks() ?? []
