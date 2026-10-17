@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { ArrowUpRight, X } from 'lucide-react'
-import Avatar from '../components/Avatar'
 import { PageHeader } from '../components/ui'
 import { IMG } from '../lib/images'
 import { usePhraseCatalog } from '../lib/catalog'
 import type { CatalogPhrase } from '../api/client'
+
+const AvatarPreview = lazy(() => import('../components/Avatar'))
 
 export default function Dictionary() {
   const { phrases, loading, error, refetch } = usePhraseCatalog()
@@ -68,7 +69,7 @@ export default function Dictionary() {
           <div role="dialog" aria-modal="true" aria-label={open.text} onClick={() => setOpen(null)} className="fixed inset-0 z-[60] grid place-items-center bg-ink/50 p-4">
             <div onClick={(event) => event.stopPropagation()} className="grid w-full max-w-2xl overflow-hidden rounded-xl bg-surface sm:grid-cols-2">
               <div className="min-h-[300px] bg-brand-tint p-6">
-                {animation ? <Avatar signing modelUrl={animation.glbUrl} actionName={animation.animationName} className="mx-auto size-full max-w-[240px]" /> : <div className="grid h-full min-h-[250px] place-items-center px-6 text-center text-sm text-muted">Aset animasi tervalidasi belum tersedia.</div>}
+                {animation ? <Suspense fallback={<p className="grid h-full min-h-[250px] place-items-center text-sm text-muted">Memuat avatar…</p>}><AvatarPreview signing modelUrl={animation.glbUrl} actionName={animation.animationName} className="mx-auto size-full max-w-[240px]" /></Suspense> : <div className="grid h-full min-h-[250px] place-items-center px-6 text-center text-sm text-muted">Aset animasi tervalidasi belum tersedia.</div>}
               </div>
               <div className="relative flex flex-col p-8">
                 <button onClick={() => setOpen(null)} aria-label="Tutup" className="absolute right-4 top-4 grid size-9 place-items-center rounded-md hover:bg-paper"><X className="size-4" /></button>
