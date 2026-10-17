@@ -37,11 +37,23 @@ export const ApptSchema = z.object({
 })
 export type Appt = z.infer<typeof ApptSchema>
 
+export const MessageStatusEnum = z.enum([
+  'PROCESSING',
+  'REVIEW_REQUIRED',
+  'CORRECTION_REQUIRED',
+  'CONFIRMED',
+  'SENT',
+  'FAILED',
+])
+export type MessageStatus = z.infer<typeof MessageStatusEnum>
+
 export const MessageSchema = z.object({
   id: z.number(),
   from: KindSchema,
   text: z.string(),
   step: z.number(),
+  status: MessageStatusEnum.optional(),
+  phraseMatched: z.boolean().optional(),
   conf: z.number().optional(),
   manual: z.boolean().optional(),
   at: z.number(),

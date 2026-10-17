@@ -3,6 +3,7 @@ export type {
   Appt,
   ApptStatus,
   Kind,
+  MessageStatus,
   Msg,
   Role,
   SessionRecord,
@@ -11,3 +12,4 @@ export type {
   SignLabel,
   SignPredictionResponse,
 } from '../schemas'
+export { MessageStatusEnum } from '../schemas'
