@@ -4,10 +4,10 @@ import { IMG } from '../lib/images'
 const ITEMS = [
   ['01', 'Video antarpeserta', 'Media konsultasi dikirim melalui koneksi WebRTC dan tidak memiliki endpoint penyimpanan rekaman di backend BISARA.'],
   ['02', 'Jawaban eksplisit', 'Jawaban baru disimpan setelah pengguna memilih dan mengirimkannya. Tidak ada prediksi isyarat otomatis yang dijadikan jawaban.'],
-  ['03', 'Akses terbatas', 'Detail sesi hanya dapat diakses peserta sesi dan administrator yang terautentikasi.'],
-  ['04', 'Identitas server', 'Cookie sesi bersifat HttpOnly dan WebSocket memverifikasi identitas serta keanggotaan sesi melalui backend.'],
-  ['05', 'Data terukur', 'Backend menyimpan jadwal, teks percakapan, jawaban, catatan psikolog, dan hasil PSS-10; bukan aliran video.'],
-  ['06', 'Peran terpisah', 'Pendaftaran publik hanya membuat akun Teman Tuli. Akun psikolog dibuat administrator dengan data profesi dan SIPP.'],
+  ['03', 'Akses terbatas', 'Room Ritz hanya dapat diakses pengguna dan admin yang telah dipasangkan oleh backend.'],
+  ['04', 'Identitas server', 'Cookie sesi bersifat HttpOnly dan WebSocket memverifikasi identitas serta keanggotaan room melalui backend.'],
+  ['05', 'Data sementara', 'Chat tidak disimpan. Jawaban PSS hanya tersedia dalam room aktif dan dihapus saat room berakhir atau kedaluwarsa.'],
+  ['06', 'Peran sederhana', 'Pendaftaran publik membuat akun pengguna. Admin Ritz dibuat dari environment deployment dan bertugas mendampingi room.'],
 ]
 
 export default function About() {

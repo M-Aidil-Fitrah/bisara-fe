@@ -41,12 +41,12 @@ export default function Guide({ go }: { go?: (p: string) => void }) {
 
         <div className="mt-24 grid gap-5 md:grid-cols-2">
           <Role
-            title="Untuk psikolog"
+            title="Untuk admin Ritz"
             steps={[
-              'Pilih frasa resmi yang tampil sesuai urutan PSS-10.',
-              'Tunggu teks atau animasi yang tersedia selesai ditampilkan.',
-              'Jawaban pilihan klien masuk sebagai teks yang tersimpan di server.',
-              'Gunakan ringkasan skor sebagai bahan pertimbangan klinis.',
+              'Masuk ke Ritz untuk mengambil pengguna yang menunggu paling lama.',
+              'Gunakan chat dan video hanya di room yang telah dipasangkan.',
+              'Dampingi alur PSS-10 yang dijawab pengguna.',
+              'Tinjau skor selama room masih aktif.',
             ]}
           />
           <Role
@@ -56,7 +56,7 @@ export default function Guide({ go }: { go?: (p: string) => void }) {
               'Perhatikan teks dan avatar bila aset animasinya tersedia.',
               'Pilih satu jawaban PSS-10 yang paling sesuai.',
               'Jawaban dikirim langsung ke server setelah dipilih.',
-              'Gunakan video untuk berkomunikasi langsung dengan psikolog.',
+              'Gunakan video untuk berkomunikasi langsung dengan pendamping Ritz.',
             ]}
           />
         </div>

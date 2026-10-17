@@ -31,10 +31,10 @@ export default function Home({ go }: { go?: (p: string) => void }) {
         <div className="absolute inset-0 bg-ink/55" />
         <div data-hero className="relative px-6 pt-24 text-center">
           <h1 className="mx-auto max-w-4xl text-5xl font-normal leading-[1.05] tracking-tight text-paper sm:text-7xl">
-            Konsultasi psikolog tanpa hambatan bahasa isyarat
+            Layanan publik visual yang lebih mudah diakses
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-lg text-paper/80">
-            Konsultasi video, instrumen PSS-10, dan frasa resmi disatukan dalam ruang sesi yang tersimpan aman di server.
+            One-way Service untuk layar publik privat dan layanan Ritz untuk komunikasi dua arah serta PSS-10.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
             <Button onClick={() => handleNav('/fitur')}>Lihat layanan</Button>
@@ -47,16 +47,16 @@ export default function Home({ go }: { go?: (p: string) => void }) {
       <section id="cara-kerja" className="mx-auto max-w-6xl space-y-24 px-6 py-24 md:space-y-32 md:py-32">
         <Story
           image={IMG.consult} alt="Psikolog berbicara dengan klien di sofa"
-          eyebrow="Psikolog ke pengguna Tuli"
-          title="Ucapan psikolog, tampil dalam BISINDO"
-          body="Psikolog memilih frasa resmi PSS-10. Teks selalu tampil, sedangkan avatar 3D hanya digunakan jika aset animasi frasa tersebut tersedia dan tercatat di server."
+          eyebrow="Layanan publik"
+          title="Pesan teks yang dapat dibagikan ke layar"
+          body="One-way Service membuat layar privat untuk monitor lain. Teks selalu tampil; avatar 3D hanya digunakan bila katalog backend memiliki asset yang cocok."
           cta="Lihat kosakata" onClick={() => handleNav('/dictionary')}
         />
         <Story
           flip image={IMG.signing} alt="Perempuan memperagakan isyarat tangan"
-          eyebrow="Pengguna Tuli ke psikolog"
+          eyebrow="Pengguna ke Ritz"
           title="Jawab dengan pilihan yang jelas"
-          body="Teman Tuli memilih jawaban PSS-10 secara langsung. Jawaban disimpan ke backend dan dapat dilihat psikolog dalam sesi yang sama tanpa prediksi isyarat buatan."
+          body="Pengguna memilih jawaban PSS-10 di room Ritz aktif. Backend menghitung skor dan tidak membuat riwayat chat atau video."
           cta="Layanan Ritz" onClick={() => handleNav('/ritz')}
         />
         <Story
