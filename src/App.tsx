@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import MainLayout from './components/layout/MainLayout'
+import AccessibilityWidget from './components/common/AccessibilityWidget'
+import VisualToast from './components/common/VisualToast'
 import Home from './pages/Home'
 import Session from './pages/Session'
 import Dictionary from './pages/Dictionary'
@@ -30,6 +32,11 @@ export default function App() {
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {/* Global Inclusivity & WCAG Accessibility Support */}
+      <AccessibilityWidget />
+      <VisualToast />
     </BrowserRouter>
   )
 }
+

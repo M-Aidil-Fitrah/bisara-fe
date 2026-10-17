@@ -37,3 +37,39 @@ html {
 @keyframes sign2 { 0%, 100% { transform: rotate(8deg) translateY(-4px); } 50% { transform: rotate(-6deg) translateY(2px); } }
 @keyframes wave { 0%, 100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }
 @keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
+
+/* ==========================================================================
+   WCAG Accessibility Overrides
+   ========================================================================== */
+html.a11y-text-medium {
+  font-size: 112%;
+}
+
+html.a11y-text-large {
+  font-size: 125%;
+}
+
+html.a11y-grayscale {
+  filter: grayscale(100%);
+}
+
+html.a11y-high-contrast {
+  --color-paper: #ffffff;
+  --color-surface: #f4f4f4;
+  --color-line: #111827;
+  --color-ink: #000000;
+  --color-ink-2: #050505;
+  --color-muted: #1f2937;
+  --color-brand: #0b3760;
+  --color-brand-strong: #061f38;
+  filter: contrast(125%);
+}
+
+html.a11y-reduce-motion *,
+html.a11y-reduce-motion *::before,
+html.a11y-reduce-motion *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
