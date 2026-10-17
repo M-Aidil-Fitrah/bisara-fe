@@ -1,5 +1,4 @@
 import { Plus } from 'lucide-react'
-import { img } from '../../lib/images'
 import { usePsychologists } from '../../lib/appointments'
 import type { SessionRecord } from '../../types'
 
@@ -12,7 +11,7 @@ const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
 
 export default function PsychologistsTab({ data, onOpenAddPsy }: PsychologistsTabProps) {
-  const psychologists = usePsychologists()
+  const { list: psychologists, loading, error } = usePsychologists()
 
   return (
     <>
@@ -31,9 +30,12 @@ export default function PsychologistsTab({ data, onOpenAddPsy }: PsychologistsTa
         </button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      {loading && <p className="rounded-xl bg-surface p-8 text-muted">Memuat psikolog dari server…</p>}
+      {error && <p role="alert" className="rounded-xl bg-surface p-8 text-[#b8483e]">{error}</p>}
+      {!loading && !error && <div className="grid gap-4 md:grid-cols-2">
         {psychologists.map((p) => {
           const mine = data.filter((d) => d.psikolog === p.name)
+          const measuredDurations = mine.flatMap((session) => session.durationMin === null ? [] : [session.durationMin])
           const initials = p.name
             .replace(/^dr\. /, '')
             .split(' ')
@@ -48,7 +50,7 @@ export default function PsychologistsTab({ data, onOpenAddPsy }: PsychologistsTa
                 <div className="flex items-center gap-4">
                   {p.photo ? (
                     <img
-                      src={img(p.photo, 200)}
+                      src={p.photo}
                       alt={p.name}
                       className="size-14 rounded-full object-cover ring-2 ring-line"
                     />
@@ -60,9 +62,8 @@ export default function PsychologistsTab({ data, onOpenAddPsy }: PsychologistsTa
                   <div>
                     <p className="text-lg font-medium text-ink">{p.name}</p>
                     <p className="text-xs text-muted">
-                      {p.focus} · BISINDO {p.bisindo}
+                      {p.focus}
                     </p>
-                    {p.email && <p className="text-xs text-brand mt-0.5">{p.email}</p>}
                   </div>
                 </div>
                 <span className="rounded-full bg-brand-tint px-2.5 py-1 text-xs font-medium text-brand">
@@ -74,8 +75,8 @@ export default function PsychologistsTab({ data, onOpenAddPsy }: PsychologistsTa
                   ['Sesi ditangani', mine.length],
                   [
                     'Rata-rata durasi',
-                    mine.length
-                      ? `${Math.round(mine.reduce((s, d) => s + d.durationMin, 0) / mine.length)} mnt`
+                    measuredDurations.length
+                      ? `${Math.round(measuredDurations.reduce((sum, value) => sum + value, 0) / measuredDurations.length)} mnt`
                       : '—',
                   ],
                   [
@@ -92,7 +93,7 @@ export default function PsychologistsTab({ data, onOpenAddPsy }: PsychologistsTa
             </div>
           )
         })}
-      </div>
+      </div>}
     </>
   )
 }

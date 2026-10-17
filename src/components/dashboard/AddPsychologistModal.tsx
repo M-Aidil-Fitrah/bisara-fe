@@ -9,28 +9,30 @@ interface AddPsychologistModalProps {
 export default function AddPsychologistModal({ onClose }: AddPsychologistModalProps) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('bisara123')
-  const [focus, setFocus] = useState('Stres & kecemasan')
-  const [bisindo, setBisindo] = useState('Dasar')
+  const [password, setPassword] = useState('')
+  const [title, setTitle] = useState('Psikolog Klinis')
+  const [sippNumber, setSippNumber] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [busy, setBusy] = useState(false)
 
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
 
-    if (!name.trim() || !email.trim() || !password) {
-      return setError('Nama, email, dan kata sandi wajib diisi.')
+    if (!name.trim() || !email.trim() || password.length < 12 || !sippNumber.trim()) {
+      return setError('Nama, email, SIPP, dan kata sandi minimal 12 karakter wajib diisi.')
     }
 
-    const res = addPsychologistAccount({
+    setBusy(true)
+    const res = await addPsychologistAccount({
       name: name.trim(),
       email: email.trim(),
       password,
-      focus: focus.trim(),
-      bisindo,
-      photo: 'photo-1573495804664-b1c0849525af',
+      title: title.trim(),
+      sippNumber: sippNumber.trim(),
     })
+    setBusy(false)
 
     if ('error' in res) {
       setError(res.error)
@@ -109,11 +111,11 @@ export default function AddPsychologistModal({ onClose }: AddPsychologistModalPr
               <label className="block">
                 <span className="text-sm font-medium">Kata Sandi Default</span>
                 <input
-                  type="text"
+                  type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="bisara123"
+                  placeholder="Minimal 12 karakter"
                   className="mt-1 h-11 w-full rounded-lg bg-paper px-3.5 text-sm outline-none focus:ring-2 focus:ring-brand"
                 />
               </label>
@@ -121,28 +123,23 @@ export default function AddPsychologistModal({ onClose }: AddPsychologistModalPr
 
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block">
-                <span className="text-sm font-medium">Fokus Konseling</span>
+                <span className="text-sm font-medium">Gelar / Bidang</span>
                 <input
                   type="text"
-                  value={focus}
-                  onChange={(e) => setFocus(e.target.value)}
-                  placeholder="mis. Stres & kecemasan"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="mis. Psikolog Klinis Dewasa"
                   className="mt-1 h-11 w-full rounded-lg bg-paper px-3.5 text-sm outline-none focus:ring-2 focus:ring-brand"
                 />
               </label>
 
               <label className="block">
-                <span className="text-sm font-medium">Kemampuan BISINDO</span>
-                <select
-                  value={bisindo}
-                  onChange={(e) => setBisindo(e.target.value)}
+                <span className="text-sm font-medium">Nomor SIPP</span>
+                <input
+                  value={sippNumber}
+                  onChange={(e) => setSippNumber(e.target.value)}
                   className="mt-1 h-11 w-full rounded-lg bg-paper px-3 text-sm outline-none focus:ring-2 focus:ring-brand"
-                >
-                  <option value="Dasar">Dasar</option>
-                  <option value="Menengah">Menengah</option>
-                  <option value="Mahir">Mahir</option>
-                  <option value="Belum">Belum menguasai</option>
-                </select>
+                />
               </label>
             </div>
 
@@ -158,9 +155,10 @@ export default function AddPsychologistModal({ onClose }: AddPsychologistModalPr
               </button>
               <button
                 type="submit"
+                disabled={busy}
                 className="rounded-lg bg-brand px-5 py-2 text-sm font-medium text-white transition hover:bg-brand-strong"
               >
-                Simpan Akun Psikolog
+                {busy ? 'Menyimpan…' : 'Simpan Akun Psikolog'}
               </button>
             </div>
           </form>
