@@ -18,6 +18,7 @@ export default function AvatarCanvas({
   const mountRef = useRef<HTMLDivElement>(null)
   const [loading, setLoading] = useState(true)
   const [hasGLB, setHasGLB] = useState<boolean | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const signingRef = useRef(signing)
   const actionNameRef = useRef(actionName)
@@ -66,64 +67,15 @@ export default function AvatarCanvas({
     let idleAction: THREE.AnimationAction | null = null
     let signAction: THREE.AnimationAction | null = null
     let currentAction: THREE.AnimationAction | null = null
-    let proceduralGroup: THREE.Group | null = null
-    let leftArmGroup: THREE.Group | null = null
-    let rightArmGroup: THREE.Group | null = null
-    let headMesh: THREE.Mesh | null = null
-
-    // Procedural Fallback Mannequin
-    const setupProcedural = () => {
-      const group = new THREE.Group()
-      scene.add(group)
-      proceduralGroup = group
-
-      const bodyGeo = new THREE.CylinderGeometry(0.24, 0.28, 0.7, 32)
-      const bodyMat = new THREE.MeshStandardMaterial({ color: 0x22568a, roughness: 0.4 })
-      const body = new THREE.Mesh(bodyGeo, bodyMat)
-      body.position.y = 0.95
-      group.add(body)
-
-      const skinMat = new THREE.MeshStandardMaterial({ color: 0xf3d6c0, roughness: 0.5 })
-      const headGeo = new THREE.SphereGeometry(0.18, 32, 32)
-      headMesh = new THREE.Mesh(headGeo, skinMat)
-      headMesh.position.y = 1.46
-      group.add(headMesh)
-
-      const hairGeo = new THREE.SphereGeometry(0.19, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.5)
-      const hairMat = new THREE.MeshStandardMaterial({ color: 0x10263b, roughness: 0.6 })
-      const hair = new THREE.Mesh(hairGeo, hairMat)
-      hair.position.y = 1.48
-      group.add(hair)
-
-      leftArmGroup = new THREE.Group()
-      leftArmGroup.position.set(-0.32, 1.2, 0)
-      const armGeo = new THREE.CylinderGeometry(0.06, 0.05, 0.4, 16)
-      const armMat = new THREE.MeshStandardMaterial({ color: 0x22568a, roughness: 0.4 })
-      const leftArm = new THREE.Mesh(armGeo, armMat)
-      leftArm.position.y = -0.2
-      leftArmGroup.add(leftArm)
-      const handGeo = new THREE.SphereGeometry(0.06, 16, 16)
-      const leftHand = new THREE.Mesh(handGeo, skinMat)
-      leftHand.position.y = -0.42
-      leftArmGroup.add(leftHand)
-      group.add(leftArmGroup)
-
-      rightArmGroup = new THREE.Group()
-      rightArmGroup.position.set(0.32, 1.2, 0)
-      const rightArm = new THREE.Mesh(armGeo, armMat)
-      rightArm.position.y = -0.2
-      rightArmGroup.add(rightArm)
-      const rightHand = new THREE.Mesh(handGeo, skinMat)
-      rightHand.position.y = -0.42
-      rightArmGroup.add(rightHand)
-      group.add(rightArmGroup)
-    }
-
+    let clips: THREE.AnimationClip[] = []
+    let selectedActionName: string | undefined
     // Try to load GLB model
     const loader = new GLTFLoader()
+    let disposed = false
     loader.load(
       modelUrl,
       (gltf) => {
+        if (disposed) return
         const model = gltf.scene
         scene.add(model)
         setHasGLB(true)
@@ -229,17 +181,18 @@ export default function AvatarCanvas({
           mixer = new THREE.AnimationMixer(model)
 
           // Find animations
-          const clips = gltf.animations
+          clips = gltf.animations
           const idleClip =
             clips.find((c) => /idle/i.test(c.name)) ||
             clips.find((c) => /ready/i.test(c.name)) ||
-            clips[0]
-          const signClip =
-            (actionNameRef.current && clips.find((c) => c.name.toLowerCase() === actionNameRef.current?.toLowerCase())) ||
-            clips.find((c) => /terima/i.test(c.name)) ||
-            clips.find((c) => /air/i.test(c.name)) ||
-            clips[1] ||
-            clips[0]
+            null
+          selectedActionName = actionNameRef.current
+          const signClip = selectedActionName
+            ? clips.find((clip) => clip.name.toLowerCase() === selectedActionName?.toLowerCase())
+            : undefined
+          if (selectedActionName && !signClip) {
+            setLoadError(`Animasi “${selectedActionName}” tidak ditemukan dalam aset`)
+          }
 
           if (idleClip) idleAction = mixer.clipAction(idleClip)
           if (signClip) signAction = mixer.clipAction(signClip)
@@ -256,24 +209,36 @@ export default function AvatarCanvas({
       },
       undefined,
       (err) => {
-        console.warn('Failed to load GLB, using procedural 3D mannequin:', err)
+        console.warn('Failed to load GLB animation asset:', err)
         setHasGLB(false)
         setLoading(false)
-        setupProcedural()
+        setLoadError('Aset animasi tidak dapat dimuat')
       },
     )
 
-    let reqId: number
+    let reqId = 0
     const clock = new THREE.Clock()
+    let isIntersecting = true
 
     const animate = () => {
+      if (disposed || document.hidden || !isIntersecting) {
+        reqId = 0
+        return
+      }
       reqId = requestAnimationFrame(animate)
       const delta = clock.getDelta()
-      const t = clock.getElapsedTime()
-
       // GLB Mixer update
       if (mixer) {
         mixer.update(delta)
+
+        if (selectedActionName !== actionNameRef.current) {
+          selectedActionName = actionNameRef.current
+          const requestedClip = selectedActionName
+            ? clips.find((clip) => clip.name.toLowerCase() === selectedActionName?.toLowerCase())
+            : undefined
+          signAction = requestedClip ? mixer.clipAction(requestedClip) : null
+          setLoadError(selectedActionName && !requestedClip ? `Animasi “${selectedActionName}” tidak ditemukan dalam aset` : null)
+        }
 
         // Check if action needs to switch
         const isSigning = signingRef.current
@@ -288,26 +253,36 @@ export default function AvatarCanvas({
         }
       }
 
-      // Procedural Mannequin animation fallback
-      if (proceduralGroup && leftArmGroup && rightArmGroup && headMesh) {
-        if (signingRef.current) {
-          leftArmGroup.rotation.x = Math.sin(t * 4) * 0.4 - 0.4
-          leftArmGroup.rotation.z = Math.cos(t * 3.5) * 0.3 - 0.3
-          rightArmGroup.rotation.x = Math.cos(t * 4) * 0.4 - 0.4
-          rightArmGroup.rotation.z = -Math.sin(t * 3.5) * 0.3 + 0.3
-          headMesh.rotation.y = Math.sin(t * 2) * 0.08
-        } else {
-          leftArmGroup.rotation.x = 0
-          leftArmGroup.rotation.z = 0
-          rightArmGroup.rotation.x = 0
-          rightArmGroup.rotation.z = 0
-          headMesh.rotation.y = 0
-        }
-      }
-
       renderer.render(scene, camera)
     }
     animate()
+
+    const resumeAnimation = () => {
+      if (!reqId && !document.hidden && isIntersecting && !disposed) {
+        clock.start()
+        animate()
+      }
+    }
+
+    const handleVisibility = () => {
+      if (document.hidden && reqId) {
+        cancelAnimationFrame(reqId)
+        reqId = 0
+      } else {
+        resumeAnimation()
+      }
+    }
+
+    const observer = new IntersectionObserver(([entry]) => {
+      isIntersecting = entry?.isIntersecting ?? false
+      if (!isIntersecting && reqId) {
+        cancelAnimationFrame(reqId)
+        reqId = 0
+      } else {
+        resumeAnimation()
+      }
+    })
+    observer.observe(mount)
 
     const handleResize = () => {
       if (!mount) return
@@ -319,11 +294,21 @@ export default function AvatarCanvas({
     }
 
     window.addEventListener('resize', handleResize)
+    document.addEventListener('visibilitychange', handleVisibility)
 
     return () => {
+      disposed = true
       cancelAnimationFrame(reqId)
       window.removeEventListener('resize', handleResize)
+      document.removeEventListener('visibilitychange', handleVisibility)
+      observer.disconnect()
       renderer.dispose()
+      scene.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) return
+        object.geometry.dispose()
+        const materials = Array.isArray(object.material) ? object.material : [object.material]
+        materials.forEach((material) => material.dispose())
+      })
       if (mount.contains(renderer.domElement)) {
         mount.removeChild(renderer.domElement)
       }
@@ -344,6 +329,11 @@ export default function AvatarCanvas({
         <span className="absolute bottom-2 right-2 rounded bg-ink/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-paper/90 backdrop-blur-xs">
           WebGL 3D · BISINDO
         </span>
+      )}
+      {loadError && (
+        <div role="alert" className="absolute inset-0 grid place-items-center bg-ink/90 px-6 text-center text-sm text-paper">
+          {loadError}
+        </div>
       )}
     </div>
   )
