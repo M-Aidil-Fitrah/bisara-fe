@@ -1,31 +1,36 @@
 # BISARA Frontend
 
-Frontend React/TypeScript untuk portal BISARA. Data pengguna, psikolog, jadwal, sesi, pesan, riwayat, dan katalog frasa dibaca dari backend. Penyimpanan browser hanya digunakan untuk preferensi aksesibilitas; tidak digunakan sebagai database klinis atau autentikasi.
+Frontend React/TypeScript untuk layanan publik BISARA. Halaman publik diprerender saat build; editor display, renderer Three.js, kamera, PeerJS, dan WebRTC hanya berjalan di browser setelah route yang memerlukannya dibuka.
 
-## Perilaku utama
+## Kontrak produksi
 
-- Autentikasi memakai cookie HttpOnly backend, bukan token `localStorage`.
-- Sesi hanya dapat dibuka dari appointment backend.
-- Pesan disimpan melalui REST sebelum ID pesan disiarkan melalui WebSocket.
-- UI tidak membuat partner, skor, akurasi, antrean, atau riwayat simulasi.
-- Avatar hanya memutar aset dan nama klip yang diberikan katalog backend. Jika aset tidak ada, UI menyatakannya sebagai teks saja.
-- Video menggunakan PeerServer dan STUN untuk koneksi WebRTC P2P; tidak ada mode offline atau stream sintetis.
-- Halaman dipisah menjadi lazy-loaded chunks agar bundle awal lebih kecil.
+- One-way Service membuat display privat bertoken tanpa login. Viewer TV memakai token terpisah dan dapat memakai fullscreen.
+- Ritz memasangkan `USER` dengan `ADMIN`; PSS-10, chat sementara, dan video hanya tersedia untuk peserta room aktif.
+- `pnpm prerender` membuat HTML statis untuk route publik menggunakan Chromium. Nixpacks frontend memasang Chromium hanya pada build phase dan menerbitkan `dist` sebagai SPA output.
+- Renderer avatar menjadi chunk lazy terpisah; GLB tidak dipreload dari landing page.
 
-## Menjalankan lokal
+## Environment build Coolify
+
+Vite membaca nilai berikut saat build, jadi setiap perubahan harus diikuti rebuild/deploy frontend:
+
+```text
+VITE_API_URL=https://api-bisara.example.com/api
+VITE_WS_URL=wss://api-bisara.example.com
+VITE_PEER_HOST=peer.example.com
+VITE_PEER_PORT=443
+VITE_PEER_PATH=/
+VITE_PEER_SECURE=true
+VITE_STUN_URL=stun:stun.l.google.com:19302
+```
+
+Gunakan HTTPS pada frontend, API, dan PeerServer. HTTPS adalah syarat browser untuk `getUserMedia`; konfigurasi ini sengaja tidak memasukkan TURN lokal ataupun kredensial database.
+
+## Lokal dan verifikasi
 
 ```bash
 cp .env.example .env
 pnpm install
-pnpm dev
-```
-
-Lengkapi `VITE_API_URL`, `VITE_WS_URL`, konfigurasi PeerJS, dan `VITE_STUN_URL`. Tanpa konfigurasi PeerServer/STUN, fitur video dinonaktifkan dengan pesan eksplisit.
-
-## Verifikasi
-
-```bash
 pnpm check
+pnpm prerender
+pnpm exec playwright test src/smoke.spec.ts
 ```
-
-Perintah tersebut menjalankan lint, unit test, TypeScript build, dan Vite production build.

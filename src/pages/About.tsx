@@ -17,7 +17,7 @@ export default function About() {
         image={IMG.hands}
         eyebrow="Privasi"
         title="Privasi & keamanan data"
-        desc="Sesi kesehatan mental menuntut rasa aman. Berikut cara BISARA memperlakukan data Anda."
+        desc="Berikut cara BISARA memperlakukan data pada layanan publik dan layanan mitra."
       />
       <div className="mx-auto max-w-6xl px-6 py-24">
         <div className="grid border-t border-ink/80 md:grid-cols-2">

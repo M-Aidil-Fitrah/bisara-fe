@@ -64,7 +64,7 @@ export default function Login({ onGoRegister, onGoHome, onSuccess }: LoginProps)
         imageSrc={IMG.hero}
         eyebrow="BISARA"
         title="Saling paham, sana sini."
-        desc="Konsultasi psikolog dalam BISINDO, untuk Teman Tuli dan tenaga profesional."
+        desc="Masuk untuk menggunakan layanan publik BISARA atau melanjutkan layanan bersama mitra Ritz."
       />
 
       {/* Form half */}
@@ -147,7 +147,7 @@ export default function Login({ onGoRegister, onGoHome, onSuccess }: LoginProps)
 
         <div className="text-center sm:text-left">
           <p className="text-xs text-muted">
-            Data sesi diproses sesuai UU Pelindungan Data Pribadi & Rekam Medis.
+            Data sesi diproses sesuai kebijakan privasi BISARA.
           </p>
         </div>
       </div>

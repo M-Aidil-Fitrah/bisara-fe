@@ -68,9 +68,9 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
         imageSrc={IMG.signing}
         imageAlt="Komunikasi BISINDO"
         imageOpacityClass="opacity-60"
-        eyebrow="BISARA · TEMAN TULI"
+        eyebrow="BISARA · PENGGUNA"
         title="Layanan Inklusif, Ruang Aman."
-        desc="Daftarkan diri Anda untuk konsultasi skrining kesehatan mental berbasis bahasa isyarat BISINDO."
+        desc="Daftarkan akun pengguna untuk mengakses layanan publik BISARA dan layanan mitra yang tersedia."
       />
 
       {/* Form half */}
@@ -93,11 +93,11 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
 
         <div className="mx-auto my-auto w-full max-w-sm py-4">
           <div className="inline-flex items-center gap-2 rounded-full bg-brand/10 px-3 py-1 text-xs font-semibold text-brand mb-3">
-            Pendaftaran Teman Tuli
+            Pendaftaran pengguna
           </div>
           <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Daftar Akun</h1>
           <p className="mt-2 text-sm text-muted">
-            Buat akun untuk memulai sesi skrining dan konsultasi dengan psikolog.
+            Buat akun untuk melanjutkan layanan publik dan layanan psikolog melalui Ritz.
           </p>
 
           <form onSubmit={submit} className="mt-6 space-y-4" noValidate>
@@ -170,7 +170,7 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
 
         <div className="text-center sm:text-left">
           <p className="text-xs text-muted">
-            Akun psikolog & dokter didaftarkan oleh administrator klinik.
+            Pendamping Ritz menggunakan akun admin yang dikelola melalui deployment.
           </p>
         </div>
       </div>
