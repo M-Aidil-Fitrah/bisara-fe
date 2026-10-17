@@ -131,17 +131,71 @@ export default function AvatarCanvas({
         const size = box.getSize(new THREE.Vector3())
         const center = box.getCenter(new THREE.Vector3())
 
+        // Apply prototype visual styling based strictly on material names
+        model.traverse((child) => {
+          if (child instanceof THREE.Mesh && child.material) {
+            const mats = Array.isArray(child.material) ? child.material : [child.material]
+            mats.forEach((mat) => {
+              if (mat instanceof THREE.MeshStandardMaterial) {
+                if (mat.name.includes('Outfit')) {
+                  // Teal / Tosca shirt on torso, natural skin tone on neck & head
+                  mat.color.set(new THREE.Color('#5ea6a0'))
+                  mat.roughness = 0.55
+                  mat.onBeforeCompile = (shader) => {
+                    shader.vertexShader = shader.vertexShader.replace(
+                      '#include <common>',
+                      `#include <common>
+                       varying vec3 vLocalPos;`,
+                    )
+                    shader.vertexShader = shader.vertexShader.replace(
+                      '#include <begin_vertex>',
+                      `#include <begin_vertex>
+                       vLocalPos = position;`,
+                    )
+                    shader.fragmentShader = shader.fragmentShader.replace(
+                      '#include <common>',
+                      `#include <common>
+                       varying vec3 vLocalPos;`,
+                    )
+                    shader.fragmentShader = shader.fragmentShader.replace(
+                      '#include <color_fragment>',
+                      `#include <color_fragment>
+                       // Separate head/neck (skin) from shirt (teal)
+                       vec3 skinCol = vec3(0.87, 0.72, 0.61);
+                       vec3 shirtCol = vec3(0.37, 0.65, 0.63);
+                       float isHead = smoothstep(3.45, 3.62, vLocalPos.y);
+                       diffuseColor.rgb = mix(shirtCol, skinCol, isHead);`,
+                    )
+                  }
+                  mat.needsUpdate = true
+                } else if (mat.name.includes('Skin')) {
+                  // Natural warm sand skin tone from prototype
+                  mat.color.set(new THREE.Color('#deb89b'))
+                  mat.roughness = 0.5
+                  mat.needsUpdate = true
+                } else if (mat.name.includes('Hair')) {
+                  // Soft espresso brown hair from prototype
+                  mat.color.set(new THREE.Color('#38241b'))
+                  mat.roughness = 0.6
+                  mat.needsUpdate = true
+                }
+              }
+            })
+          }
+        })
+
         // Target avatar height ~ 1.8 units
         const scale = size.y > 0 ? 1.8 / size.y : 1
         model.scale.setScalar(scale)
 
-        // Position avatar centered on X/Z, with upper chest/face framed
+        // Center avatar
         model.position.x = -center.x * scale
         model.position.y = -box.min.y * scale
         model.position.z = -center.z * scale
 
-        // Camera target upper torso
-        camera.lookAt(0, 1.2, 0)
+        // Frame upper body (chest, shoulders, face) perfectly centered matching prototype
+        camera.position.set(0, 1.25, 1.55)
+        camera.lookAt(0, 1.18, 0)
 
         // Setup Animations
         if (gltf.animations && gltf.animations.length > 0) {

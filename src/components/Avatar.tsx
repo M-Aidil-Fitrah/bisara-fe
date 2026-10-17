@@ -33,10 +33,10 @@ export default function Avatar({
           <button
             type="button"
             onClick={() => setMode('2d')}
-            title="Beralih ke tampilan 2D"
-            className="absolute top-2 right-2 z-10 flex items-center gap-1 rounded-md bg-surface/85 px-2 py-1 text-[11px] font-medium text-muted backdrop-blur transition hover:bg-surface hover:text-ink shadow-xs"
+            title="Klik untuk beralih ke tampilan 2D"
+            className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1.5 rounded-lg bg-surface/90 px-2.5 py-1 text-xs font-medium text-ink shadow-sm ring-1 ring-line/50 backdrop-blur transition hover:bg-surface hover:ring-brand/40"
           >
-            <Box className="size-3 text-brand" /> 3D GLB
+            <Box className="size-3.5 text-brand" /> 3D GLB Aktif
           </button>
         )}
       </div>
@@ -81,10 +81,10 @@ export default function Avatar({
         <button
           type="button"
           onClick={() => setMode('3d')}
-          title="Beralih ke tampilan 3D GLB"
-          className="absolute top-2 right-2 z-10 flex items-center gap-1 rounded-md bg-surface/85 px-2 py-1 text-[11px] font-medium text-muted backdrop-blur transition hover:bg-surface hover:text-ink shadow-xs"
+          title="Klik untuk kembali ke tampilan 3D GLB"
+          className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1.5 rounded-lg bg-surface/90 px-2.5 py-1 text-xs font-medium text-ink shadow-sm ring-1 ring-line/50 backdrop-blur transition hover:bg-surface hover:ring-brand/40"
         >
-          <Sparkles className="size-3 text-brand" /> Mode 2D
+          <Sparkles className="size-3.5 text-brand" /> Mode 2D Aktif (Ganti ke 3D)
         </button>
       )}
     </div>
