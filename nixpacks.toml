@@ -1,8 +1,17 @@
 [variables]
 NIXPACKS_SPA_OUTPUT_DIR = "dist"
 
+[phases.setup]
+nixPkgs = ["chromium"]
+
 [phases.install]
 cmds = [
   "npm install -g pnpm@11.10.0",
   "pnpm i --frozen-lockfile"
+]
+
+[phases.build]
+cmds = [
+  "pnpm build",
+  "pnpm prerender"
 ]

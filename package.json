@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "prerender": "node scripts/prerender.mjs",
     "lint": "eslint .",
     "test": "vitest run src",
     "check": "pnpm lint && pnpm test && pnpm build",
