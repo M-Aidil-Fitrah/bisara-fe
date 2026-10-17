@@ -1,246 +1,145 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { Account } from '../types'
-import { addPsychologistToRoster } from './appointments'
+import { api, ApiError, mapBackendUserToAccount, type AdminUser } from '../api/client'
 
 export interface RegisteredAccount extends Account {
-  password: string
   createdAt?: string
 }
 
+export interface AuthState {
+  user: Account | null | undefined
+  loading: boolean
+  error: string | null
+}
 
-// Akun bawaan sistem untuk pengujian berbagai role
-export const INITIAL_ACCOUNTS: RegisteredAccount[] = [
-  {
-    email: 'tuli@bisara.id',
-    password: 'bisara123',
-    name: 'Rafi Akbar',
-    role: 'user',
-    kind: 'tuli',
-    title: 'Teman Tuli',
-    createdAt: '2026-10-01T08:00:00.000Z',
-  },
-  {
-    email: 'intan@bisara.id',
-    password: 'bisara123',
-    name: 'Intan Maharani',
-    role: 'user',
-    kind: 'tuli',
-    title: 'Teman Tuli',
-    createdAt: '2026-10-05T09:30:00.000Z',
-  },
-  {
-    email: 'psikolog@bisara.id',
-    password: 'bisara123',
-    name: 'dr. Nadia Putri, M.Psi',
-    role: 'user',
-    kind: 'psikolog',
-    title: 'Psikolog',
-    createdAt: '2026-09-15T10:00:00.000Z',
-  },
-  {
-    email: 'rizky@bisara.id',
-    password: 'bisara123',
-    name: 'Rizky Hanafi, M.Psi',
-    role: 'user',
-    kind: 'psikolog',
-    title: 'Psikolog',
-    createdAt: '2026-09-20T11:00:00.000Z',
-  },
-  {
-    email: 'admin@bisara.id',
-    password: 'admin123',
-    name: 'Admin Klinik',
-    role: 'admin',
-    title: 'Administrator',
-    createdAt: '2026-09-01T07:00:00.000Z',
-  },
-]
+const listeners = new Set<(state: AuthState) => void>()
+let currentAccount: Account | null | undefined
+let authLoaded = false
+let authError: string | null = null
+let bootstrapPromise: Promise<void> | null = null
 
-const KEY_AUTH = 'bisara-auth'
-const KEY_USERS = 'bisara-registered-users'
-const listeners = new Set<(a: Account | null) => void>()
+function getAuthState(): AuthState {
+  return { user: currentAccount, loading: !authLoaded, error: authError }
+}
 
-export function getStoredUsers(): RegisteredAccount[] {
+function publish(account: Account | null | undefined, error: string | null = null): void {
+  currentAccount = account
+  authError = error
+  authLoaded = true
+  const state = getAuthState()
+  listeners.forEach((listener) => listener(state))
+}
+
+function bootstrapAuth(): Promise<void> {
+  if (bootstrapPromise) return bootstrapPromise
+  bootstrapPromise = api.auth.getMe()
+    .then((user) => publish(user ? mapBackendUserToAccount(user) : null))
+    .catch((error) => publish(undefined, error instanceof Error ? error.message : 'Status login gagal diperiksa'))
+  return bootstrapPromise
+}
+
+export async function login(email: string, password: string): Promise<Account | null> {
   try {
-    const raw = localStorage.getItem(KEY_USERS)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as RegisteredAccount[]
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
+    const account = mapBackendUserToAccount(await api.auth.login(email, password))
+    publish(account)
+    return account
+  } catch (error) {
+    if (error instanceof ApiError && (error.statusCode === 400 || error.statusCode === 401)) return null
+    throw error
   }
 }
 
-export function getAllAccounts(): RegisteredAccount[] {
-  return [...INITIAL_ACCOUNTS, ...getStoredUsers()]
-}
-
-function readAuth(): Account | null {
-  try {
-    const raw = localStorage.getItem(KEY_AUTH)
-    if (!raw) return null
-    return JSON.parse(raw) as Account
-  } catch {
-    return null
-  }
-}
-
-export function login(email: string, password: string): Account | null {
-  const all = getAllAccounts()
-  const hit = all.find(
-    (a) => a.email.trim().toLowerCase() === email.trim().toLowerCase() && a.password === password,
-  )
-  if (!hit) return null
-  const acc: Account = {
-    email: hit.email,
-    name: hit.name,
-    role: hit.role,
-    kind: hit.kind,
-    title: hit.title,
-  }
-  localStorage.setItem(KEY_AUTH, JSON.stringify(acc))
-  listeners.forEach((l) => l(acc))
-  return acc
-}
-
-
-/**
- * Register khusus untuk Teman Tuli (klien).
- * Psikolog didaftarkan melalui panel Admin.
- */
-export function register(params: {
+export async function register(params: {
   name: string
   email: string
   password: string
-}): Account | { error: string } {
-  const all = getAllAccounts()
-  const exists = all.some(
-    (a) => a.email.trim().toLowerCase() === params.email.trim().toLowerCase(),
-  )
-  if (exists) {
-    return { error: 'Email sudah terdaftar. Silakan gunakan email lain atau masuk.' }
+}): Promise<Account | { error: string }> {
+  try {
+    const account = mapBackendUserToAccount(await api.auth.register({ ...params, role: 'TULI' }))
+    publish(account)
+    return account
+  } catch (error) {
+    return { error: error instanceof ApiError ? error.message : 'Pendaftaran gagal' }
   }
-
-  const newAcc: RegisteredAccount = {
-    email: params.email.trim().toLowerCase(),
-    password: params.password,
-    name: params.name.trim(),
-    role: 'user',
-    kind: 'tuli',
-    title: 'Teman Tuli',
-    createdAt: new Date().toISOString(),
-  }
-
-  const custom = getStoredUsers()
-  localStorage.setItem(KEY_USERS, JSON.stringify([...custom, newAcc]))
-  window.dispatchEvent(new Event('bisara-users-changed'))
-
-  const cleanAcc: Account = {
-    email: newAcc.email,
-    name: newAcc.name,
-    role: newAcc.role,
-    kind: newAcc.kind,
-    title: newAcc.title,
-  }
-  localStorage.setItem(KEY_AUTH, JSON.stringify(cleanAcc))
-  listeners.forEach((l) => l(cleanAcc))
-  return cleanAcc
 }
 
+function mapAdminUser(user: AdminUser): RegisteredAccount {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.profile?.name ?? user.email,
+    role: user.role === 'ADMIN' ? 'admin' : 'user',
+    kind: user.role === 'PSIKOLOG' ? 'psikolog' : user.role === 'TULI' ? 'tuli' : undefined,
+    title: user.profile?.title ?? undefined,
+    createdAt: new Date(user.createdAt).toISOString(),
+  }
+}
 
-/**
- * Tambah akun Psikolog / Dokter dari Panel Dashboard Admin.
- */
-export function addPsychologistAccount(params: {
+export async function addPsychologistAccount(params: {
   name: string
   email: string
   password: string
-  focus?: string
-  bisindo?: string
-  photo?: string
-}): { success: true; user: Account } | { error: string } {
-  const all = getAllAccounts()
-  const exists = all.some(
-    (a) => a.email.trim().toLowerCase() === params.email.trim().toLowerCase(),
-  )
-  if (exists) {
-    return { error: 'Email sudah terdaftar untuk pengguna lain.' }
+  title: string
+  sippNumber: string
+  bio?: string
+  avatarUrl?: string
+}): Promise<{ success: true; user: RegisteredAccount } | { error: string }> {
+  try {
+    const user = mapAdminUser(await api.admin.createPsychologist(params))
+    window.dispatchEvent(new Event('bisara-users-changed'))
+    window.dispatchEvent(new Event('bisara-psychologists'))
+    return { success: true, user }
+  } catch (error) {
+    return { error: error instanceof ApiError ? error.message : 'Gagal membuat akun psikolog' }
   }
+}
 
-  const newAcc: RegisteredAccount = {
-    email: params.email.trim().toLowerCase(),
-    password: params.password,
-    name: params.name.trim(),
-    role: 'user',
-    kind: 'psikolog',
-    title: 'Psikolog',
-    createdAt: new Date().toISOString(),
-  }
-
-  const custom = getStoredUsers()
-  localStorage.setItem(KEY_USERS, JSON.stringify([...custom, newAcc]))
-
-  // Tambahkan juga ke daftar psikolog aktif klinik
-  addPsychologistToRoster({
-    name: params.name.trim(),
-    email: params.email.trim().toLowerCase(),
-    focus: params.focus?.trim() || 'Konseling umum',
-    bisindo: params.bisindo || 'Dasar',
-    photo: params.photo || 'photo-1573495804664-b1c0849525af',
-  })
-
+export async function deleteUser(id: string): Promise<void> {
+  await api.admin.deleteUser(id)
   window.dispatchEvent(new Event('bisara-users-changed'))
-
-  const cleanAcc: Account = {
-    email: newAcc.email,
-    name: newAcc.name,
-    role: newAcc.role,
-    kind: newAcc.kind,
-    title: newAcc.title,
-  }
-  return { success: true, user: cleanAcc }
-
+  window.dispatchEvent(new Event('bisara-psychologists'))
 }
 
-export function deleteUser(email: string): boolean {
-  const currentAuth = readAuth()
-  if (currentAuth && currentAuth.email.toLowerCase() === email.toLowerCase()) {
-    return false // Tidak bisa menghapus akun yang sedang aktif digunakan
-  }
-  const custom = getStoredUsers().filter(
-    (u) => u.email.toLowerCase() !== email.toLowerCase(),
-  )
-  localStorage.setItem(KEY_USERS, JSON.stringify(custom))
-  window.dispatchEvent(new Event('bisara-users-changed'))
-  return true
-}
-
-export function useUsers(): RegisteredAccount[] {
-  const [users, setUsers] = useState<RegisteredAccount[]>(getAllAccounts)
-  useEffect(() => {
-    const sync = () => setUsers(getAllAccounts())
-    window.addEventListener('storage', sync)
-    window.addEventListener('bisara-users-changed', sync)
-    return () => {
-      window.removeEventListener('storage', sync)
-      window.removeEventListener('bisara-users-changed', sync)
-    }
+export function useUsers(): { users: RegisteredAccount[]; loading: boolean; error: string | null } {
+  const [users, setUsers] = useState<RegisteredAccount[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const refresh = useCallback(() => {
+    setLoading(true)
+    void api.admin.users()
+      .then((data) => {
+        setUsers(data.map(mapAdminUser))
+        setError(null)
+      })
+      .catch((cause) => {
+        setUsers([])
+        setError(cause instanceof ApiError ? cause.message : 'Gagal memuat pengguna')
+      })
+      .finally(() => setLoading(false))
   }, [])
-  return users
-}
-
-export function logout() {
-  localStorage.removeItem(KEY_AUTH)
-  listeners.forEach((l) => l(null))
-}
-
-export function useAuth(): Account | null {
-  const [user, setUser] = useState<Account | null>(readAuth)
   useEffect(() => {
-    listeners.add(setUser)
-    return () => {
-      listeners.delete(setUser)
-    }
+    queueMicrotask(refresh)
+    window.addEventListener('bisara-users-changed', refresh)
+    return () => window.removeEventListener('bisara-users-changed', refresh)
+  }, [refresh])
+  return { users, loading, error }
+}
+
+export async function logout(): Promise<void> {
+  await api.auth.logout()
+  publish(null)
+}
+
+export function useAuthState(): AuthState {
+  const [state, setState] = useState<AuthState>(getAuthState)
+  useEffect(() => {
+    listeners.add(setState)
+    if (!authLoaded) void bootstrapAuth()
+    return () => { listeners.delete(setState) }
   }, [])
-  return user
+  return state
+}
+
+export function useAuth(): Account | null | undefined {
+  return useAuthState().user
 }

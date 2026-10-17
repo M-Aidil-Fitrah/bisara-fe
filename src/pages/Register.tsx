@@ -34,19 +34,19 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
     else navigate('/')
   }
 
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
     if (!name.trim() || !email.trim() || !password) {
       return setError('Semua kolom wajib diisi.')
     }
-    if (password.length < 6) {
-      return setError('Kata sandi minimal 6 karakter.')
+    if (password.length < 12) {
+      return setError('Kata sandi minimal 12 karakter.')
     }
 
     setBusy(true)
-    setTimeout(() => {
-      const res = register({ name, email, password })
+    try {
+      const res = await register({ name, email, password })
       if ('error' in res) {
         setError(res.error)
         setBusy(false)
@@ -55,7 +55,10 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
         if (onSuccess) onSuccess()
         else navigate('/session')
       }
-    }, 400)
+    } catch {
+      setError('Terjadi kendala koneksi ke server. Silakan coba sesaat lagi.')
+      setBusy(false)
+    }
   }
 
   return (
@@ -138,7 +141,7 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
                 autoComplete="new-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Minimal 6 karakter"
+                placeholder="Minimal 12 karakter"
                 className="mt-1 h-12 w-full border-b border-ink/30 bg-transparent text-base outline-none transition placeholder:text-muted/50 focus:border-brand"
               />
             </label>

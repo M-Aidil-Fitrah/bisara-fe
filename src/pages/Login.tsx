@@ -33,13 +33,13 @@ export default function Login({ onGoRegister, onGoHome, onSuccess }: LoginProps)
     else navigate('/')
   }
 
-  const submit = (e: FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
     if (!email || !password) return setError('Email dan kata sandi wajib diisi.')
     setBusy(true)
-    setTimeout(() => {
-      const user = login(email, password)
+    try {
+      const user = await login(email, password)
       if (!user) {
         setError('Email atau kata sandi tidak cocok.')
         setBusy(false)
@@ -53,7 +53,10 @@ export default function Login({ onGoRegister, onGoHome, onSuccess }: LoginProps)
           navigate('/session')
         }
       }
-    }, 400)
+    } catch {
+      setError('Terjadi kendala koneksi ke server. Silakan coba sesaat lagi.')
+      setBusy(false)
+    }
   }
 
   return (
@@ -131,42 +134,6 @@ export default function Login({ onGoRegister, onGoHome, onSuccess }: LoginProps)
               {busy ? 'Memeriksa…' : 'Masuk'}
             </Button>
 
-            {/* Quick Demo Testing Accounts */}
-            <div className="mt-5 rounded-xl bg-surface/80 p-3.5 border border-line">
-              <p className="text-xs text-muted font-medium mb-2">⚡ Masuk Cepat Pengujian (1-Klik):</p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('tuli@bisara.id')
-                    setPassword('bisara123')
-                  }}
-                  className="rounded-lg bg-paper px-2.5 py-1.5 text-xs text-ink hover:bg-white border border-line transition font-medium"
-                >
-                  👤 Teman Tuli
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('psikolog@bisara.id')
-                    setPassword('bisara123')
-                  }}
-                  className="rounded-lg bg-paper px-2.5 py-1.5 text-xs text-ink hover:bg-white border border-line transition font-medium"
-                >
-                  🩺 Psikolog
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEmail('admin@bisara.id')
-                    setPassword('admin123')
-                  }}
-                  className="rounded-lg bg-paper px-2.5 py-1.5 text-xs text-ink hover:bg-white border border-line transition font-medium"
-                >
-                  🛡️ Admin
-                </button>
-              </div>
-            </div>
           </form>
 
           <div className="mt-8 border-t border-line pt-5 text-center text-sm">
