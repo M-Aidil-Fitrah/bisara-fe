@@ -78,6 +78,13 @@ importers:
       vite:
         specifier: ^8.3.0
         version: 8.3.4(@types/node@24.19.2)(jiti@2.7.0)
+    optionalDependencies:
+      '@rolldown/binding-linux-x64-gnu':
+        specifier: 1.2.13
+        version: 1.2.13
+      '@rolldown/binding-linux-x64-musl':
+        specifier: 1.2.13
+        version: 1.2.13
 
 packages:
 
