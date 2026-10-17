@@ -12,8 +12,41 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL
-if (!API_BASE_URL) throw new Error('VITE_API_URL wajib dikonfigurasi')
+const resolveDefaultApiUrl = (): string => {
+  const envUrl = import.meta.env.VITE_API_URL
+  if (envUrl && typeof envUrl === 'string' && envUrl.trim().length > 0) {
+    return envUrl.trim().replace(/\/$/, '')
+  }
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname
+    if (host.includes('staging')) {
+      return 'https://api-staging-bisara.kitakarsa.com/api'
+    }
+    if (host.includes('bisara.kitakarsa.com')) {
+      return 'https://api-bisara.kitakarsa.com/api'
+    }
+  }
+  return 'http://localhost:4000/api'
+}
+
+const resolveDefaultWsUrl = (): string => {
+  const envWs = import.meta.env.VITE_WS_URL
+  if (envWs && typeof envWs === 'string' && envWs.trim().length > 0) {
+    return envWs.trim().replace(/\/$/, '')
+  }
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname
+    if (host.includes('staging')) {
+      return 'wss://api-staging-bisara.kitakarsa.com'
+    }
+    if (host.includes('bisara.kitakarsa.com')) {
+      return 'wss://api-bisara.kitakarsa.com'
+    }
+  }
+  return 'ws://localhost:4000'
+}
+
+const API_BASE_URL = resolveDefaultApiUrl()
 const ApiErrorResponseSchema = z.object({
   success: z.literal(false),
   error: z.object({ code: z.string(), message: z.string() }),
@@ -240,8 +273,7 @@ const AdminUserSchema = z.object({
 })
 export type AdminUser = z.infer<typeof AdminUserSchema>
 
-export const WS_BASE_URL: string = import.meta.env.VITE_WS_URL
-if (!WS_BASE_URL) throw new Error('VITE_WS_URL wajib dikonfigurasi')
+export const WS_BASE_URL: string = resolveDefaultWsUrl()
 
 export const api = {
   auth: {
