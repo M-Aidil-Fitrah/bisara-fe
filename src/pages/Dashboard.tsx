@@ -33,7 +33,8 @@ export default function Dashboard({ user: propUser }: DashboardProps) {
   const [openSession, setOpenSession] = useState<SessionRecord | null>(null)
   const [showAddPsy, setShowAddPsy] = useState(false)
   const mainRef = useRef<HTMLElement>(null)
-  const { history: data, loading: historyLoading, error: historyError } = useSessionHistory()
+  const historyRequired = ['overview', 'history', 'psikolog'].includes(tab)
+  const { history: data, loading: historyLoading, error: historyError } = useSessionHistory(historyRequired)
 
   const setTab = (t: TabKey) => {
     setSearchParams({ tab: t })

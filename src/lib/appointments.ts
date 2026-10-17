@@ -18,6 +18,7 @@ export function usePsychologists(): { list: Psychologist[]; loading: boolean; er
   useEffect(() => {
     let active = true
     const load = () => {
+      if (!active) return
       setLoading(true)
       void api.psychologists.list().then((values) => {
         if (!active) return
@@ -64,7 +65,11 @@ export function useAppointments() {
     }
   }, [])
 
-  useEffect(() => { queueMicrotask(() => void refetch()) }, [refetch])
+  useEffect(() => {
+    let active = true
+    queueMicrotask(() => { if (active) void refetch() })
+    return () => { active = false }
+  }, [refetch])
 
   const request = useCallback(async (psychologistUserId: string): Promise<Appt> => {
     const created = await api.appointments.create(

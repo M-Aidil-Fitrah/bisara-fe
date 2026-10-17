@@ -93,7 +93,11 @@ export function useLiveSession(me: Kind, sessionId: string) {
     }
   }, [sessionId])
 
-  useEffect(() => { queueMicrotask(() => void reload()) }, [reload])
+  useEffect(() => {
+    let active = true
+    queueMicrotask(() => { if (active) void reload() })
+    return () => { active = false }
+  }, [reload])
 
   useEffect(() => {
     const ws = new WebSocket(WS_BASE_URL)

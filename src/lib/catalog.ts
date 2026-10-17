@@ -24,6 +24,10 @@ export function usePhraseCatalog(): {
     }
   }, [])
 
-  useEffect(() => { queueMicrotask(() => void refetch()) }, [refetch])
+  useEffect(() => {
+    let active = true
+    queueMicrotask(() => { if (active) void refetch() })
+    return () => { active = false }
+  }, [refetch])
   return { phrases, loading, error, refetch }
 }

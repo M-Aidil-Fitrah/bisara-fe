@@ -13,7 +13,7 @@ export const scorePss = (answers: string[]): number =>
 export const level = (score: number): 'Rendah' | 'Sedang' | 'Tinggi' =>
   score <= 13 ? 'Rendah' : score <= 26 ? 'Sedang' : 'Tinggi'
 
-export function useSessionHistory(): {
+export function useSessionHistory(enabled = true): {
   history: SessionRecord[]
   loading: boolean
   error: string | null
@@ -34,6 +34,11 @@ export function useSessionHistory(): {
       setLoading(false)
     }
   }, [])
-  useEffect(() => { queueMicrotask(() => void refetch()) }, [refetch])
-  return { history, loading, error, refetch }
+  useEffect(() => {
+    if (!enabled) return
+    let active = true
+    queueMicrotask(() => { if (active) void refetch() })
+    return () => { active = false }
+  }, [enabled, refetch])
+  return { history, loading: enabled && loading, error: enabled ? error : null, refetch }
 }

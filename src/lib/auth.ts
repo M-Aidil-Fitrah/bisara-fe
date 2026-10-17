@@ -118,9 +118,13 @@ export function useUsers(): { users: RegisteredAccount[]; loading: boolean; erro
       .finally(() => setLoading(false))
   }, [])
   useEffect(() => {
-    queueMicrotask(refresh)
+    let active = true
+    queueMicrotask(() => { if (active) refresh() })
     window.addEventListener('bisara-users-changed', refresh)
-    return () => window.removeEventListener('bisara-users-changed', refresh)
+    return () => {
+      active = false
+      window.removeEventListener('bisara-users-changed', refresh)
+    }
   }, [refresh])
   return { users, loading, error }
 }
