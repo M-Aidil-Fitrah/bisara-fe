@@ -36,7 +36,8 @@ export function useVideoCall({
   const localVideoRef = useRef<HTMLVideoElement | null>(null)
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null)
 
-  const sId = cleanId(sessionId || 'demo_session')
+  // Normalisasi room ID agar Laptop dan Smartphone selalu terhubung ke ruang konsultasi yang sama persis
+  const sId = 'bisara_consultation'
   const myPeerId = role === 'psikolog' ? `bsr-psi-${sId}` : `bsr-tuli-${sId}`
   const targetPeerId = role === 'psikolog' ? `bsr-tuli-${sId}` : `bsr-psi-${sId}`
 
@@ -47,16 +48,19 @@ export function useVideoCall({
     }
     if (remoteVideoRef.current && remoteStreamRef.current) {
       remoteVideoRef.current.srcObject = remoteStreamRef.current
+      remoteVideoRef.current.play().catch(() => {})
     }
   }, [])
 
   // Call target peer
   const callPartner = useCallback(() => {
-    if (!peerRef.current || !localStreamRef.current) return
+    if (!peerRef.current || peerRef.current.destroyed) return
     if (currentCallRef.current && currentCallRef.current.open) return
 
     setCallStatus('calling')
-    const call = peerRef.current.call(targetPeerId, localStreamRef.current)
+    const streamToSend = localStreamRef.current || new MediaStream()
+    const call = peerRef.current.call(targetPeerId, streamToSend)
+    if (!call) return
 
     currentCallRef.current = call
 
@@ -64,19 +68,23 @@ export function useVideoCall({
       remoteStreamRef.current = remoteStream
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = remoteStream
+        remoteVideoRef.current.play().catch(() => {})
       }
       setCallStatus('connected')
       onPartnerConnected?.()
     })
 
     call.on('close', () => {
-      setCallStatus('waiting')
+      currentCallRef.current = null
       remoteStreamRef.current = null
       if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null
+      setCallStatus('waiting')
       onPartnerDisconnected?.()
     })
 
-    call.on('error', () => {
+    call.on('error', (err) => {
+      console.warn('Call attempt error:', err)
+      currentCallRef.current = null
       setCallStatus('waiting')
     })
   }, [targetPeerId, onPartnerConnected, onPartnerDisconnected])
@@ -84,29 +92,51 @@ export function useVideoCall({
   useEffect(() => {
     let mounted = true
 
-    // 1. Get user media (camera & mic)
+    // 1. Get user media dengan fallback fleksibel untuk smartphone Android / Safari iOS
     async function startMedia() {
+      let stream: MediaStream | null = null
+
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
+        stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
             facingMode: 'user',
+            width: { ideal: 640 },
+            height: { ideal: 480 },
           },
           audio: true,
         })
-
-        if (!mounted) {
-          stream.getTracks().forEach((t) => t.stop())
-          return
+      } catch (err1) {
+        console.warn('getUserMedia audio+video gagal, mencoba video saja:', err1)
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user' },
+            audio: false,
+          })
+        } catch (err2) {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true })
+          } catch (err3) {
+            console.warn('Kamera tidak dapat diakses:', err3)
+            setErrorMsg('Izin kamera/mikrofon belum aktif. Mohon izinkan akses kamera di peramban.')
+          }
         }
+      }
 
+      if (!mounted) {
+        if (stream) stream.getTracks().forEach((t) => t.stop())
+        return
+      }
+
+      if (stream) {
         localStreamRef.current = stream
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream
+          localVideoRef.current.play().catch(() => {})
         }
+      }
 
-        // 2. Initialize PeerJS client with Google STUN servers
+      // 2. Inisialisasi PeerJS client dengan STUN Server Google
+      try {
         const peer = new Peer(myPeerId, {
           config: {
             iceServers: [
@@ -122,29 +152,34 @@ export function useVideoCall({
         peer.on('open', () => {
           if (!mounted) return
           setCallStatus('waiting')
-          // Auto initiate call after a short delay
-          setTimeout(() => {
-            if (mounted) callPartner()
-          }, 1500)
+          // Psikolog bertindak sebagai inisiator utama
+          if (role === 'psikolog') {
+            setTimeout(() => {
+              if (mounted) callPartner()
+            }, 1000)
+          }
         })
 
-        // Listen for incoming call
+        // Menjawab panggilan masuk
         peer.on('call', (incomingCall) => {
-          if (!mounted || !localStreamRef.current) return
+          if (!mounted) return
           currentCallRef.current = incomingCall
 
-          incomingCall.answer(localStreamRef.current)
+          // Jawab dengan stream lokal jika ada
+          incomingCall.answer(localStreamRef.current || undefined)
 
           incomingCall.on('stream', (remoteStream) => {
             remoteStreamRef.current = remoteStream
             if (remoteVideoRef.current) {
               remoteVideoRef.current.srcObject = remoteStream
+              remoteVideoRef.current.play().catch(() => {})
             }
             setCallStatus('connected')
             onPartnerConnected?.()
           })
 
           incomingCall.on('close', () => {
+            currentCallRef.current = null
             setCallStatus('waiting')
             remoteStreamRef.current = null
             if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null
@@ -153,29 +188,28 @@ export function useVideoCall({
         })
 
         peer.on('error', (err) => {
-          console.warn('PeerJS status notice:', err.type)
+          console.warn('PeerJS notice:', err.type)
           if (err.type === 'peer-unavailable') {
             setCallStatus('waiting')
           } else {
             setErrorMsg(err.message)
           }
         })
-      } catch (err: unknown) {
-        console.warn('Camera/mic access unavailable, fallback to simulated stream:', err)
-        setCallStatus('error')
-        const message = err instanceof Error ? err.message : String(err)
-        setErrorMsg('Izin kamera/mikrofon tidak aktif: ' + message)
+      } catch (peerInitErr) {
+        console.error('PeerJS init failed:', peerInitErr)
       }
     }
 
     startMedia()
 
-    // Ping / poll partner availability periodically
+    // Polling berkala: Psikolog memanggil berkala sampai terhubung
     const pollInterval = setInterval(() => {
       if (peerRef.current && (!currentCallRef.current || !currentCallRef.current.open)) {
-        callPartner()
+        if (role === 'psikolog') {
+          callPartner()
+        }
       }
-    }, 4000)
+    }, 3000)
 
     return () => {
       mounted = false
@@ -186,7 +220,7 @@ export function useVideoCall({
         localStreamRef.current.getTracks().forEach((track) => track.stop())
       }
     }
-  }, [myPeerId, callPartner])
+  }, [myPeerId, role, callPartner])
 
   // Toggle Camera
   const toggleCamera = useCallback(() => {

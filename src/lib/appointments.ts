@@ -81,17 +81,40 @@ export const PSYCHOLOGISTS = INITIAL_PSYCHOLOGISTS
 
 const KEY = 'bisara-appts'
 const SEED: Appt[] = [
-  { id: 'APT-201', klien: 'Intan M.', psikolog: INITIAL_PSYCHOLOGISTS[0].name, time: '10:30', status: 'scheduled', note: 'Kontrol lanjutan' },
-  { id: 'APT-202', klien: 'Dimas P.', psikolog: INITIAL_PSYCHOLOGISTS[0].name, time: '13:00', status: 'scheduled', note: 'Skrining awal' },
-  { id: 'APT-203', klien: 'Aulia R.', psikolog: INITIAL_PSYCHOLOGISTS[0].name, time: '15:30', status: 'scheduled', note: 'Skrining awal' },
+  { id: 'APT-201', klien: 'Rafi A.', psikolog: INITIAL_PSYCHOLOGISTS[0].name, time: '10:30', status: 'waiting', note: 'Skrining awal · Teman Tuli' },
+  { id: 'APT-202', klien: 'Intan M.', psikolog: INITIAL_PSYCHOLOGISTS[0].name, time: '13:00', status: 'scheduled', note: 'Kontrol lanjutan' },
+  { id: 'APT-203', klien: 'Dimas P.', psikolog: INITIAL_PSYCHOLOGISTS[0].name, time: '15:30', status: 'scheduled', note: 'Skrining awal' },
 ]
 
 const read = (): Appt[] => {
   try {
     const raw = localStorage.getItem(KEY)
-    if (!raw) return SEED
-    const v = JSON.parse(raw) as Appt[]
-    return Array.isArray(v) ? v : SEED
+    if (!raw) {
+      localStorage.setItem(KEY, JSON.stringify(SEED))
+      return SEED
+    }
+    let v = JSON.parse(raw) as Appt[]
+    if (Array.isArray(v) && v.length) {
+      let changed = false
+      // Ganti Intan M. di APT-201 dengan Rafi A. jika masih tersimpan dari mock lama
+      v = v.map((a) => {
+        if (a.id === 'APT-201' && a.klien !== 'Rafi A.') {
+          changed = true
+          return { ...a, klien: 'Rafi A.', status: 'waiting', note: 'Skrining awal · Teman Tuli' }
+        }
+        return a
+      })
+      if (!v.some((a) => a.klien === 'Rafi A.' && a.status !== 'done')) {
+        v = [{ id: 'APT-201', klien: 'Rafi A.', psikolog: INITIAL_PSYCHOLOGISTS[0].name, time: '10:30', status: 'waiting', note: 'Skrining awal · Teman Tuli' }, ...v.filter((a) => a.id !== 'APT-201')]
+        changed = true
+      }
+      if (changed) {
+        localStorage.setItem(KEY, JSON.stringify(v))
+      }
+      return v
+    }
+    localStorage.setItem(KEY, JSON.stringify(SEED))
+    return SEED
   } catch {
     return SEED
   }
@@ -132,5 +155,6 @@ export function useAppointments() {
   /** Psychologist left without saving: put the client back in the waiting room. */
   const release = (id: string) => write(read().map((a) => (a.id === id && a.status === 'live' ? { ...a, status: 'waiting' } : a)))
   const cancel = (id: string) => write(read().filter((a) => a.id !== id))
-  return { list, request, setStatus, release, cancel }
+  const resetToDefault = () => write(SEED)
+  return { list, request, setStatus, release, cancel, resetToDefault }
 }

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { RotateCcw } from 'lucide-react'
 import { Button } from '../ui'
 import { useAppointments } from '../../lib/appointments'
 import { getHistory } from '../../lib/history'
@@ -88,7 +89,7 @@ function ClientPanel({
 }
 
 export default function PsikologLobby({ name, onStart }: PsikologLobbyProps) {
-  const { list } = useAppointments()
+  const { list, resetToDefault } = useAppointments()
   const all = useMemo(getHistory, [list])
   const queue = list
     .filter((a) => a.psikolog === name && a.status !== 'done')
@@ -119,8 +120,17 @@ export default function PsikologLobby({ name, onStart }: PsikologLobbyProps) {
           <div className="grid gap-5 lg:grid-cols-[1fr_1.4fr]">
             {/* Queue */}
             <div data-reveal className="rounded-xl bg-surface p-2">
-              <div className="px-4 pb-2 pt-4">
+              <div className="flex items-center justify-between px-4 pb-2 pt-4">
                 <LobbyLabel>Antrean</LobbyLabel>
+                <button
+                  type="button"
+                  onClick={resetToDefault}
+                  title="Sinkronkan / reset ke antrean bawaan (Rafi Akbar)"
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-muted hover:text-brand transition cursor-pointer"
+                >
+                  <RotateCcw className="size-3" />
+                  Reset Antrean
+                </button>
               </div>
               <ul>
                 {queue.map((a) => (
