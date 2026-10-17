@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Menu, X, ArrowUpRight } from 'lucide-react'
+import { Menu, X, ArrowUpRight, LogIn, LayoutDashboard } from 'lucide-react'
 import logoFull from './assets/logo-full.png'
 import logoMark from './assets/logo-mark.png'
 import Home from './pages/Home'
@@ -7,13 +7,14 @@ import Session from './pages/Session'
 import Dictionary from './pages/Dictionary'
 import Guide from './pages/Guide'
 import About from './pages/About'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import Dashboard from './pages/Dashboard'
 import { Button, IMG } from './components/ui'
 import { usePageMotion } from './lib/motion'
 import { useAuth, logout } from './lib/auth'
-import Login from './pages/Login'
-import Dashboard from './pages/Dashboard'
 
-export type Page = 'home' | 'session' | 'dictionary' | 'guide' | 'about'
+export type Page = 'home' | 'session' | 'dictionary' | 'guide' | 'about' | 'login' | 'register' | 'dashboard'
 type Item = { page: Page; label: string; desc: string }
 
 const FEATURES: Item[] = [
@@ -29,12 +30,6 @@ const LINKS: [Page, string][] = [
 
 export default function App() {
   const user = useAuth()
-  if (!user) return <Login />
-  if (user.role === 'admin') return <Dashboard user={user} />
-  return <Site name={user.name} title={user.title ?? ''} />
-}
-
-function Site({ name, title }: { name: string; title: string }) {
   const [page, setPage] = useState<Page>('home')
   const [open, setOpen] = useState<string | null>(null)
   const [mobile, setMobile] = useState(false)
@@ -56,7 +51,35 @@ function Site({ name, title }: { name: string; title: string }) {
     return () => document.removeEventListener('mousedown', close)
   }, [])
 
-  const initialLetter = name.replace(/^dr\. /, '')[0] ?? 'B'
+  // If user navigated to login or register, show full screen without navbar & footer
+  if (page === 'login') {
+    return (
+      <Login
+        onGoRegister={() => go('register')}
+        onGoHome={() => go('home')}
+        onSuccess={() => {
+          if (user?.role === 'admin') go('dashboard')
+          else go('session')
+        }}
+      />
+    )
+  }
+
+  if (page === 'register') {
+    return (
+      <Register
+        onGoLogin={() => go('login')}
+        onGoHome={() => go('home')}
+        onSuccess={() => go('session')}
+      />
+    )
+  }
+
+  if (page === 'dashboard' && user?.role === 'admin') {
+    return <Dashboard user={user} onGoHome={() => go('home')} />
+  }
+
+  const initialLetter = user ? user.name.replace(/^dr\. /, '')[0] ?? 'B' : 'B'
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -104,21 +127,54 @@ function Site({ name, title }: { name: string; title: string }) {
                   {l}
                 </button>
               ))}
+
               <span className="mx-2 h-5 w-px bg-line" />
-              <Button onClick={() => go('session')} className="!h-9 !rounded-md !px-4">
-                Mulai sesi
-              </Button>
-              <div className="relative ml-1">
-                <button
-                  onMouseEnter={() => setOpen('akun')}
-                  onClick={() => setOpen(open === 'akun' ? null : 'akun')}
-                  aria-label="Akun"
-                  className="grid size-9 place-items-center rounded-md bg-ink text-sm text-paper"
-                >
-                  {initialLetter}
-                </button>
-              </div>
+
+              {user ? (
+                <>
+                  {user.role === 'admin' && (
+                    <button
+                      onClick={() => go('dashboard')}
+                      className="flex h-9 items-center gap-1.5 rounded-md px-3 text-sm text-brand transition hover:bg-paper"
+                    >
+                      <LayoutDashboard className="size-4" /> Konsol Admin
+                    </button>
+                  )}
+                  <Button
+                    onClick={() => go('session')}
+                    className="!h-9 !rounded-md !px-4"
+                  >
+                    Mulai sesi
+                  </Button>
+                  <div className="relative ml-1">
+                    <button
+                      onMouseEnter={() => setOpen('akun')}
+                      onClick={() => setOpen(open === 'akun' ? null : 'akun')}
+                      aria-label="Akun"
+                      className="grid size-9 place-items-center rounded-md bg-ink text-sm text-paper"
+                    >
+                      {initialLetter}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => go('login')}
+                    className="flex h-9 items-center gap-1.5 rounded-md px-3 text-[15px] text-ink transition hover:bg-paper"
+                  >
+                    <LogIn className="size-4" /> Masuk
+                  </button>
+                  <Button
+                    onClick={() => go('session')}
+                    className="!h-9 !rounded-md !px-4"
+                  >
+                    Mulai sesi
+                  </Button>
+                </>
+              )}
             </div>
+
             <button
               onClick={() => setMobile((m) => !m)}
               className="grid size-10 place-items-center rounded-md md:hidden"
@@ -129,27 +185,46 @@ function Site({ name, title }: { name: string; title: string }) {
             </button>
           </nav>
 
-          {open === 'akun' && (
-            <div className="absolute right-0 top-[64px] hidden w-[260px] rounded-xl bg-surface p-5 md:block">
-              <p className="text-sm text-muted">{title}</p>
-              <p className="mt-1 text-lg">{name}</p>
-              <button onClick={logout} className="mt-5 text-brand hover:text-ink">
-                Keluar
-              </button>
+          {/* User popup dropdown */}
+          {open === 'akun' && user && (
+            <div className="absolute right-0 top-[64px] hidden w-[260px] rounded-xl bg-surface p-5 shadow-lg ring-1 ring-line md:block">
+              <p className="text-sm text-muted">{user.title ?? 'Pengguna'}</p>
+              <p className="mt-1 text-lg font-medium">{user.name}</p>
+              <p className="text-xs text-muted mt-0.5">{user.email}</p>
+              <div className="mt-4 flex flex-col gap-2 border-t border-line pt-4 text-sm">
+                {user.role === 'admin' && (
+                  <button
+                    onClick={() => go('dashboard')}
+                    className="text-left text-brand hover:underline"
+                  >
+                    Buka Dashboard Admin
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    logout()
+                    setOpen(null)
+                  }}
+                  className="text-left text-[#b8483e] hover:underline"
+                >
+                  Keluar
+                </button>
+              </div>
             </div>
           )}
 
+          {/* Features mega menu */}
           {open === 'fitur' && (
-            <div className="absolute right-0 top-[64px] hidden w-[600px] gap-6 rounded-xl bg-surface p-5 md:flex">
+            <div className="absolute right-0 top-[64px] hidden w-[600px] gap-6 rounded-xl bg-surface p-5 shadow-lg ring-1 ring-line md:flex">
               <div className="flex flex-1 flex-col">
-                <p className="text-sm text-ink">Fitur</p>
+                <p className="text-sm font-semibold text-ink">Fitur Utama</p>
                 <ul className="mt-4 space-y-4">
                   {FEATURES.map((it) => (
                     <li key={it.page}>
                       <button onClick={() => go(it.page)} className="group text-left">
                         <span
                           className={`block text-lg ${
-                            page === it.page ? 'text-ink' : 'text-brand group-hover:text-ink'
+                            page === it.page ? 'text-ink font-medium' : 'text-brand group-hover:text-ink'
                           }`}
                         >
                           {it.label}
@@ -163,15 +238,16 @@ function Site({ name, title }: { name: string; title: string }) {
                   onClick={() => go('about')}
                   className="mt-auto pt-6 text-left text-sm text-brand hover:text-ink"
                 >
-                  Privasi & data
+                  Privasi & perlindungan data
                 </button>
               </div>
               <img src={IMG.signing} alt="" className="h-64 w-52 rounded-lg object-cover" />
             </div>
           )}
 
+          {/* Mobile slideout */}
           {mobile && (
-            <div className="mt-2 max-h-[80vh] overflow-y-auto rounded-xl bg-surface p-5 md:hidden">
+            <div className="mt-2 max-h-[80vh] overflow-y-auto rounded-xl bg-surface p-5 shadow-xl ring-1 ring-line md:hidden">
               <p className="text-xs uppercase tracking-[0.14em] text-muted">Fitur</p>
               {FEATURES.map((it) => (
                 <button
@@ -179,7 +255,7 @@ function Site({ name, title }: { name: string; title: string }) {
                   onClick={() => go(it.page)}
                   className="block w-full border-b border-line py-3 text-left"
                 >
-                  <span className={`block text-lg ${page === it.page ? 'text-ink' : 'text-brand'}`}>
+                  <span className={`block text-lg ${page === it.page ? 'text-ink font-medium' : 'text-brand'}`}>
                     {it.label}
                   </span>
                   <span className="block text-sm text-muted">{it.desc}</span>
@@ -188,15 +264,32 @@ function Site({ name, title }: { name: string; title: string }) {
               <button onClick={() => go('about')} className="block py-3 text-lg text-brand">
                 Privasi
               </button>
-              <Button onClick={() => go('session')} className="mt-2 w-full">
-                Mulai sesi
-              </Button>
-              <div className="mt-4 flex items-center justify-between border-t border-line pt-4 text-sm">
-                <span>{name}</span>
-                <button onClick={logout} className="text-brand">
-                  Keluar
-                </button>
-              </div>
+
+              {user ? (
+                <>
+                  <Button onClick={() => go('session')} className="mt-2 w-full">
+                    Mulai sesi
+                  </Button>
+                  <div className="mt-4 flex items-center justify-between border-t border-line pt-4 text-sm">
+                    <div>
+                      <p className="font-medium">{user.name}</p>
+                      <p className="text-xs text-muted">{user.title}</p>
+                    </div>
+                    <button onClick={logout} className="text-[#b8483e]">
+                      Keluar
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="mt-4 flex flex-col gap-2 border-t border-line pt-4">
+                  <Button onClick={() => go('login')} variant="outline" className="w-full">
+                    Masuk
+                  </Button>
+                  <Button onClick={() => go('register')} className="w-full">
+                    Daftar Akun
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -204,7 +297,13 @@ function Site({ name, title }: { name: string; title: string }) {
 
       <main className="flex-1">
         {page === 'home' && <Home go={go} />}
-        {page === 'session' && <Session />}
+        {page === 'session' && (
+          user ? (
+            <Session />
+          ) : (
+            <SessionLoginPrompt onGoLogin={() => go('login')} onGoRegister={() => go('register')} />
+          )
+        )}
         {page === 'dictionary' && <Dictionary />}
         {page === 'guide' && <Guide go={go} />}
         {page === 'about' && <About />}
@@ -217,11 +316,11 @@ function Site({ name, title }: { name: string; title: string }) {
             Saling paham, sana sini.
           </h2>
           <p className="mx-auto mt-4 max-w-md text-paper/70">
-            Coba sesi demo skrining PSS-10 langsung di browser. Tanpa akun, tanpa instalasi.
+            Coba sesi demo skrining PSS-10 langsung di browser. Tanpa instalasi perangkat lunak khusus.
           </p>
           <div className="mt-8 flex justify-center">
             <Button variant="light" arrow onClick={() => go('session')}>
-              Mulai sesi demo
+              Mulai sesi skrining
             </Button>
           </div>
         </div>
@@ -237,7 +336,7 @@ function Site({ name, title }: { name: string; title: string }) {
               [
                 'Produk',
                 [
-                  ['Sesi demo', 'session'],
+                  ['Sesi skrining', 'session'],
                   ['Kamus Isyarat', 'dictionary'],
                   ['Panduan', 'guide'],
                 ],
@@ -251,7 +350,7 @@ function Site({ name, title }: { name: string; title: string }) {
               ],
               [
                 'Teknologi',
-                [['Whisper'], ['MediaPipe'], ['Three.js']],
+                [['Whisper AI'], ['MediaPipe'], ['Three.js']],
               ],
             ].map(([t, links]) => (
               <div key={t as string}>
@@ -276,10 +375,42 @@ function Site({ name, title }: { name: string; title: string }) {
           </div>
           <div className="mt-16 flex items-end justify-between gap-6">
             <img src={logoMark} alt="" className="h-24 w-auto opacity-25 sm:h-32" />
-            <p className="text-xs text-muted">© 2026 BISARA · Bukan alat diagnosis · Foto: Unsplash</p>
+            <p className="text-xs text-muted">
+              © 2026 BISARA · Sistem Komunikasi Dua Arah BISINDO · Bukan alat diagnosis
+            </p>
           </div>
         </div>
       </footer>
+    </div>
+  )
+}
+
+function SessionLoginPrompt({
+  onGoLogin,
+  onGoRegister,
+}: {
+  onGoLogin: () => void
+  onGoRegister: () => void
+}) {
+  return (
+    <div className="mx-auto flex min-h-[75vh] max-w-2xl flex-col items-center justify-center px-6 py-32 text-center">
+      <span className="rounded-full bg-brand/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-brand">
+        Akses Sesi Konsultasi
+      </span>
+      <h1 className="mt-6 text-4xl font-normal tracking-tight sm:text-5xl">
+        Silakan masuk untuk memulai sesi
+      </h1>
+      <p className="mt-4 max-w-lg leading-relaxed text-muted">
+        Untuk menghubungkan ruang tunggu klien dengan psikolog yang bertugas, silakan masuk dengan akun Teman Tuli atau Psikolog Anda.
+      </p>
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <Button onClick={onGoLogin} arrow>
+          Masuk Sekarang
+        </Button>
+        <Button onClick={onGoRegister} variant="outline">
+          Daftar Akun Baru
+        </Button>
+      </div>
     </div>
   )
 }

@@ -21,7 +21,7 @@ const fmtTime = (d: string) =>
   new Date(d).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
 const pct = (n: number) => `${Math.round(n * 100)}%`
 
-export default function Dashboard({ user }: { user: Account }) {
+export default function Dashboard({ user, onGoHome }: { user: Account; onGoHome?: () => void }) {
   const [tab, setTab] = useState<Tab>('overview')
   const [nav, setNav] = useState(false)
   const [open, setOpen] = useState<SessionRecord | null>(null)
@@ -52,12 +52,23 @@ export default function Dashboard({ user }: { user: Account }) {
           nav ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex items-center gap-3 px-2">
-          <img src={logoMark} alt="" className="size-8 object-contain" />
-          <div>
-            <p className="font-semibold">BISARA</p>
-            <p className="text-xs text-paper/50">Konsol admin</p>
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-3">
+            <img src={logoMark} alt="" className="size-8 object-contain" />
+            <div>
+              <p className="font-semibold">BISARA</p>
+              <p className="text-xs text-paper/50">Konsol admin</p>
+            </div>
           </div>
+          {onGoHome && (
+            <button
+              onClick={onGoHome}
+              title="Ke Beranda Utama"
+              className="text-xs text-brand-soft hover:text-white"
+            >
+              Beranda
+            </button>
+          )}
         </div>
         <nav className="mt-10 space-y-1">
           {TABS.map(([k, l]) => (
