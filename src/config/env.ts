@@ -19,7 +19,8 @@ export const FrontendEnvSchema = z.object({
   VITE_STUN_URL: z.string().regex(/^(stun|stuns):[^\s]+$/),
 })
 
-const parsed = FrontendEnvSchema.safeParse(import.meta.env)
+const envSource = typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env : (typeof process !== 'undefined' ? process.env : {})
+const parsed = FrontendEnvSchema.safeParse(envSource)
 if (!parsed.success) {
   const fields = parsed.error.issues
     .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
