@@ -1,14 +1,5 @@
 import { z } from 'zod'
 
-export const SignLabelEnum = z.enum([
-  'TIDAK_PERNAH',
-  'HAMPIR_TIDAK_PERNAH',
-  'KADANG_KADANG',
-  'CUKUP_SERING',
-  'SANGAT_SERING',
-])
-export type SignLabel = z.infer<typeof SignLabelEnum>
-
 export const RoleSchema = z.enum(['user', 'admin'])
 export type Role = z.infer<typeof RoleSchema>
 
@@ -16,6 +7,7 @@ export const KindSchema = z.enum(['tuli', 'psikolog'])
 export type Kind = z.infer<typeof KindSchema>
 
 export const AccountSchema = z.object({
+  id: z.string(),
   email: z.string().email(),
   name: z.string().min(1),
   role: RoleSchema,
@@ -24,16 +16,20 @@ export const AccountSchema = z.object({
 })
 export type Account = z.infer<typeof AccountSchema>
 
-export const ApptStatusSchema = z.enum(['scheduled', 'waiting', 'live', 'done'])
+export const ApptStatusSchema = z.enum(['scheduled', 'waiting', 'live', 'done', 'cancelled'])
 export type ApptStatus = z.infer<typeof ApptStatusSchema>
 
 export const ApptSchema = z.object({
   id: z.string(),
+  clientId: z.string(),
+  psychologistId: z.string(),
   klien: z.string(),
   psikolog: z.string(),
   time: z.string(),
   status: ApptStatusSchema,
   note: z.string().optional(),
+  scheduledAt: z.string(),
+  sessionId: z.string().nullable(),
 })
 export type Appt = z.infer<typeof ApptSchema>
 
@@ -48,7 +44,7 @@ export const MessageStatusEnum = z.enum([
 export type MessageStatus = z.infer<typeof MessageStatusEnum>
 
 export const MessageSchema = z.object({
-  id: z.number(),
+  id: z.string(),
   from: KindSchema,
   text: z.string(),
   step: z.number(),
@@ -68,12 +64,12 @@ export const SessionRecordSchema = z.object({
   date: z.string(),
   psikolog: z.string(),
   klien: z.string(),
-  durationMin: z.number(),
+  durationMin: z.number().nullable(),
   score: z.number().nullable(),
-  accuracy: z.number(),
+  accuracy: z.number().nullable(),
   manual: z.number(),
   status: SessionStatusSchema,
-  notes: z.string(),
+  notes: z.string().nullable(),
   lines: z.array(
     z.object({
       from: KindSchema,
@@ -84,19 +80,3 @@ export const SessionRecordSchema = z.object({
   ),
 })
 export type SessionRecord = z.infer<typeof SessionRecordSchema>
-
-export const SignDictionaryItemSchema = z.object({
-  word: z.string(),
-  category: z.string(),
-  desc: z.string(),
-  hasClip: z.boolean(),
-  glbUrl: z.string().optional(),
-  animationName: z.string().optional(),
-})
-export type Sign = z.infer<typeof SignDictionaryItemSchema>
-
-export const SignPredictionResponseSchema = z.object({
-  label: SignLabelEnum,
-  confidence: z.number(),
-})
-export type SignPredictionResponse = z.infer<typeof SignPredictionResponseSchema>
