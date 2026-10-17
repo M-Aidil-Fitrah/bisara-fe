@@ -135,17 +135,32 @@ export function useVideoCall({
         }
       }
 
-      // 2. Inisialisasi PeerJS client dengan STUN Server Google
+      // 2. Inisialisasi PeerJS client (mendukung custom PeerServer di VPS Coolify)
       try {
-        const peer = new Peer(myPeerId, {
-          config: {
-            iceServers: [
-              { urls: 'stun:stun.l.google.com:19302' },
-              { urls: 'stun:stun1.l.google.com:19302' },
-              { urls: 'stun:stun2.l.google.com:19302' },
-            ],
-          },
-        })
+        const customHost = import.meta.env.VITE_PEER_HOST
+        const customPort = import.meta.env.VITE_PEER_PORT ? Number(import.meta.env.VITE_PEER_PORT) : 443
+        const customPath = import.meta.env.VITE_PEER_PATH || '/'
+        const customSecure = import.meta.env.VITE_PEER_SECURE !== 'false'
+
+        const iceServers = [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+        ]
+
+        const peerOptions = customHost
+          ? {
+              host: customHost,
+              port: customPort,
+              path: customPath,
+              secure: customSecure,
+              config: { iceServers },
+            }
+          : {
+              config: { iceServers },
+            }
+
+        const peer = new Peer(myPeerId, peerOptions)
 
         peerRef.current = peer
 
