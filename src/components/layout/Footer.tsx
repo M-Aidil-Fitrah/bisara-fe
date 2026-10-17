@@ -6,7 +6,8 @@ const FOOTER_SECTIONS = [
   {
     title: 'Layanan',
     links: [
-      { label: 'Sesi Skrining', to: '/session' },
+      { label: 'One-way Service', to: '/one-way' },
+      { label: 'Layanan Ritz', to: '/ritz' },
       { label: 'Kamus Isyarat', to: '/dictionary' },
       { label: 'Panduan', to: '/guide' },
     ],
@@ -38,7 +39,7 @@ export default function Footer() {
               <img src={logoFull} alt="BISARA" className="size-full scale-[1.9] object-contain" />
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted">
-              Sistem komunikasi dua arah BISINDO untuk layanan kesehatan mental inklusif. Menghubungkan Teman Tuli dengan psikolog secara aman dan privat.
+              Platform komunikasi visual untuk layanan publik dan layanan psikolog bersama mitra Ritz.
             </p>
           </div>
 
@@ -71,7 +72,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-16 flex items-end justify-between gap-6 border-t border-line/60 pt-8">
-          <img src="/favicon.svg" alt="" className="h-16 w-auto opacity-20 sm:h-24" />
+          <img src="/logo-mark.png" alt="" className="h-16 w-auto opacity-20 sm:h-24" />
           <p className="text-xs text-muted text-right">
             © 2026 BISARA · Sistem Komunikasi Dua Arah BISINDO · Bukan alat diagnosis pengganti tenaga medis.
           </p>

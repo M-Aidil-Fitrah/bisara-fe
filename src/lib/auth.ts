@@ -1,149 +1,23 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { api, ApiError, type AuthUser } from '../api/client'
 import type { Account } from '../types'
-import { api, ApiError, mapBackendUserToAccount, type AdminUser } from '../api/client'
 
-export interface RegisteredAccount extends Account {
-  createdAt?: string
-}
-
-export interface AuthState {
-  user: Account | null | undefined
-  loading: boolean
-  error: string | null
-}
-
+export interface AuthState { user: Account | null | undefined; loading: boolean; error: string | null }
 const listeners = new Set<(state: AuthState) => void>()
-let currentAccount: Account | null | undefined
-let authLoaded = false
-let authError: string | null = null
-let bootstrapPromise: Promise<void> | null = null
+let current: Account | null | undefined
+let loaded = false
+let failure: string | null = null
+let initial: Promise<void> | null = null
 
-function getAuthState(): AuthState {
-  return { user: currentAccount, loading: !authLoaded, error: authError }
+function mapUser(user: AuthUser): Account { return { id: user.id, email: user.email, name: user.profile?.name ?? user.email, role: user.role === 'ADMIN' ? 'admin' : 'user' } }
+function state(): AuthState { return { user: current, loading: !loaded, error: failure } }
+function publish(user: Account | null | undefined, error: string | null = null): void { current = user; failure = error; loaded = true; listeners.forEach((listener) => listener(state())) }
+function bootstrap(): Promise<void> {
+  if (!initial) initial = api.auth.getMe().then((user) => publish(user ? mapUser(user) : null)).catch((cause) => publish(undefined, cause instanceof Error ? cause.message : 'Status login gagal diperiksa'))
+  return initial
 }
-
-function publish(account: Account | null | undefined, error: string | null = null): void {
-  currentAccount = account
-  authError = error
-  authLoaded = true
-  const state = getAuthState()
-  listeners.forEach((listener) => listener(state))
-}
-
-function bootstrapAuth(): Promise<void> {
-  if (bootstrapPromise) return bootstrapPromise
-  bootstrapPromise = api.auth.getMe()
-    .then((user) => publish(user ? mapBackendUserToAccount(user) : null))
-    .catch((error) => publish(undefined, error instanceof Error ? error.message : 'Status login gagal diperiksa'))
-  return bootstrapPromise
-}
-
-export async function login(email: string, password: string): Promise<Account | null> {
-  try {
-    const account = mapBackendUserToAccount(await api.auth.login(email, password))
-    publish(account)
-    return account
-  } catch (error) {
-    if (error instanceof ApiError && (error.statusCode === 400 || error.statusCode === 401)) return null
-    throw error
-  }
-}
-
-export async function register(params: {
-  name: string
-  email: string
-  password: string
-}): Promise<Account | { error: string }> {
-  try {
-    const account = mapBackendUserToAccount(await api.auth.register({ ...params, role: 'TULI' }))
-    publish(account)
-    return account
-  } catch (error) {
-    return { error: error instanceof ApiError ? error.message : 'Pendaftaran gagal' }
-  }
-}
-
-function mapAdminUser(user: AdminUser): RegisteredAccount {
-  return {
-    id: user.id,
-    email: user.email,
-    name: user.profile?.name ?? user.email,
-    role: user.role === 'ADMIN' ? 'admin' : 'user',
-    kind: user.role === 'PSIKOLOG' ? 'psikolog' : user.role === 'TULI' ? 'tuli' : undefined,
-    title: user.profile?.title ?? undefined,
-    createdAt: new Date(user.createdAt).toISOString(),
-  }
-}
-
-export async function addPsychologistAccount(params: {
-  name: string
-  email: string
-  password: string
-  title: string
-  sippNumber: string
-  bio?: string
-  avatarUrl?: string
-}): Promise<{ success: true; user: RegisteredAccount } | { error: string }> {
-  try {
-    const user = mapAdminUser(await api.admin.createPsychologist(params))
-    window.dispatchEvent(new Event('bisara-users-changed'))
-    window.dispatchEvent(new Event('bisara-psychologists'))
-    return { success: true, user }
-  } catch (error) {
-    return { error: error instanceof ApiError ? error.message : 'Gagal membuat akun psikolog' }
-  }
-}
-
-export async function deleteUser(id: string): Promise<void> {
-  await api.admin.deleteUser(id)
-  window.dispatchEvent(new Event('bisara-users-changed'))
-  window.dispatchEvent(new Event('bisara-psychologists'))
-}
-
-export function useUsers(): { users: RegisteredAccount[]; loading: boolean; error: string | null } {
-  const [users, setUsers] = useState<RegisteredAccount[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const refresh = useCallback(() => {
-    setLoading(true)
-    void api.admin.users()
-      .then((data) => {
-        setUsers(data.map(mapAdminUser))
-        setError(null)
-      })
-      .catch((cause) => {
-        setUsers([])
-        setError(cause instanceof ApiError ? cause.message : 'Gagal memuat pengguna')
-      })
-      .finally(() => setLoading(false))
-  }, [])
-  useEffect(() => {
-    let active = true
-    queueMicrotask(() => { if (active) refresh() })
-    window.addEventListener('bisara-users-changed', refresh)
-    return () => {
-      active = false
-      window.removeEventListener('bisara-users-changed', refresh)
-    }
-  }, [refresh])
-  return { users, loading, error }
-}
-
-export async function logout(): Promise<void> {
-  await api.auth.logout()
-  publish(null)
-}
-
-export function useAuthState(): AuthState {
-  const [state, setState] = useState<AuthState>(getAuthState)
-  useEffect(() => {
-    listeners.add(setState)
-    if (!authLoaded) void bootstrapAuth()
-    return () => { listeners.delete(setState) }
-  }, [])
-  return state
-}
-
-export function useAuth(): Account | null | undefined {
-  return useAuthState().user
-}
+export async function login(email: string, password: string): Promise<Account | null> { try { const user = mapUser(await api.auth.login(email, password)); publish(user); return user } catch (cause) { if (cause instanceof ApiError && (cause.statusCode === 400 || cause.statusCode === 401)) return null; throw cause } }
+export async function register(input: { name: string; email: string; password: string }): Promise<Account | { error: string }> { try { const user = mapUser(await api.auth.register(input)); publish(user); return user } catch (cause) { return { error: cause instanceof ApiError ? cause.message : 'Pendaftaran gagal' } } }
+export async function logout(): Promise<void> { await api.auth.logout(); publish(null) }
+export function useAuthState(): AuthState { const [value, setValue] = useState<AuthState>(state); useEffect(() => { listeners.add(setValue); if (!loaded) void bootstrap(); return () => { listeners.delete(setValue) } }, []); return value }
+export function useAuth(): Account | null | undefined { return useAuthState().user }

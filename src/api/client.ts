@@ -1,418 +1,75 @@
 import { z } from 'zod'
-import {
-  SessionDetailSchema,
-  SessionRecordSchema,
-  type Account,
-  type Appt,
-  type SessionDetail,
-  type SessionRecord,
-} from '../schemas'
 import { frontendEnv } from '../config/env'
 
 export class ApiError extends Error {
-  constructor(
-    public readonly statusCode: number,
-    public readonly code: string,
-    message: string,
-  ) {
+  constructor(public readonly statusCode: number, public readonly code: string, message: string) {
     super(message)
     this.name = 'ApiError'
   }
 }
 
-const API_BASE_URL = frontendEnv.VITE_API_URL
-const ApiErrorResponseSchema = z.object({
-  success: z.literal(false),
-  error: z.object({ code: z.string(), message: z.string() }),
+const ErrorSchema = z.object({ success: z.literal(false), error: z.object({ code: z.string(), message: z.string() }) })
+const AssetSchema = z.object({ id: z.string(), glbUrl: z.string(), animationName: z.string(), durationMs: z.number().int() })
+export const PhraseSchema = z.object({ id: z.string(), text: z.string(), category: z.string(), animations: z.array(AssetSchema) })
+export const PartnerSchema = z.object({ slug: z.string(), name: z.string(), description: z.string(), logoUrl: z.string() })
+export const AuthUserSchema = z.object({ id: z.string(), email: z.string().email(), role: z.enum(['USER', 'ADMIN']), profile: z.object({ name: z.string(), avatarUrl: z.string().nullable().optional() }).nullable() })
+export const MeetingSchema = z.object({
+  id: z.string(), status: z.enum(['WAITING', 'ACTIVE', 'ENDED', 'CANCELLED', 'EXPIRED']), expiresAt: z.string().or(z.date()),
+  partner: PartnerSchema, user: z.object({ id: z.string(), name: z.string() }), admin: z.object({ id: z.string().nullable(), name: z.string() }).nullable(),
 })
+export const DisplaySchema = z.object({ token: z.string(), text: z.string(), expiresAt: z.string().or(z.date()), phrase: PhraseSchema.nullable() })
+export const PssRoomSchema = z.object({ items: z.array(z.object({ id: z.string(), itemNumber: z.number().int(), questionText: z.string(), isReversed: z.boolean(), phrase: z.object({ id: z.string(), text: z.string(), animations: z.array(AssetSchema) }) })), answers: z.array(z.object({ itemId: z.string(), value: z.number().int() })), score: z.number().int().nullable() })
+export type Phrase = z.infer<typeof PhraseSchema>
+export type CatalogPhrase = Phrase
+export type Partner = z.infer<typeof PartnerSchema>
+export type AuthUser = z.infer<typeof AuthUserSchema>
+export type Meeting = z.infer<typeof MeetingSchema>
+export type Display = z.infer<typeof DisplaySchema>
+export type PssRoom = z.infer<typeof PssRoomSchema>
+export const WS_BASE_URL = frontendEnv.VITE_WS_URL
 
 async function request<T>(path: string, schema: z.ZodType<T>, init: RequestInit = {}): Promise<T> {
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), 12_000)
   try {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      ...init,
-      credentials: 'include',
-      signal: controller.signal,
-      headers: {
-        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-        ...init.headers,
-      },
-    })
+    const response = await fetch(`${frontendEnv.VITE_API_URL}${path}`, { ...init, credentials: 'include', signal: controller.signal, headers: { ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...init.headers } })
     if (!response.ok) {
-      const body = await response.json().catch(() => null)
-      const parsed = ApiErrorResponseSchema.safeParse(body)
-      throw new ApiError(
-        response.status,
-        parsed.success ? parsed.data.error.code : 'REQUEST_FAILED',
-        parsed.success ? parsed.data.error.message : `Permintaan gagal (${response.status})`,
-      )
+      const parsed = ErrorSchema.safeParse(await response.json().catch(() => null))
+      throw new ApiError(response.status, parsed.success ? parsed.data.error.code : 'REQUEST_FAILED', parsed.success ? parsed.data.error.message : `Permintaan gagal (${response.status})`)
     }
-    const body = await response.json()
-    return schema.parse(body)
-  } catch (error) {
-    if (error instanceof ApiError || error instanceof z.ZodError) throw error
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new ApiError(408, 'REQUEST_TIMEOUT', 'Server tidak merespons tepat waktu')
-    }
+    if (response.status === 204) return schema.parse(undefined)
+    return schema.parse(await response.json())
+  } catch (cause) {
+    if (cause instanceof ApiError || cause instanceof z.ZodError) throw cause
+    if (cause instanceof DOMException && cause.name === 'AbortError') throw new ApiError(408, 'REQUEST_TIMEOUT', 'Server tidak merespons tepat waktu')
     throw new ApiError(0, 'NETWORK_ERROR', 'Tidak dapat terhubung ke server BISARA')
-  } finally {
-    window.clearTimeout(timeout)
-  }
+  } finally { window.clearTimeout(timeout) }
 }
 
-async function requestEmpty(path: string, init: RequestInit): Promise<void> {
-  const controller = new AbortController()
-  const timeout = window.setTimeout(() => controller.abort(), 12_000)
-  try {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      ...init,
-      credentials: 'include',
-      signal: controller.signal,
-    })
-    if (!response.ok) {
-      const body = await response.json().catch(() => null)
-      const parsed = ApiErrorResponseSchema.safeParse(body)
-      throw new ApiError(
-        response.status,
-        parsed.success ? parsed.data.error.code : 'REQUEST_FAILED',
-        parsed.success ? parsed.data.error.message : `Permintaan gagal (${response.status})`,
-      )
-    }
-  } catch (error) {
-    if (error instanceof ApiError) throw error
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      throw new ApiError(408, 'REQUEST_TIMEOUT', 'Server tidak merespons tepat waktu')
-    }
-    throw new ApiError(0, 'NETWORK_ERROR', 'Tidak dapat terhubung ke server BISARA')
-  } finally {
-    window.clearTimeout(timeout)
-  }
-}
-
-export const BackendRoleSchema = z.enum(['TULI', 'PSIKOLOG', 'ADMIN'])
-export const BackendAuthUserSchema = z.object({
-  id: z.string(),
-  email: z.string().email(),
-  role: BackendRoleSchema,
-  profile: z.object({
-    name: z.string(),
-    avatarUrl: z.string().nullable().optional(),
-    title: z.string().nullable().optional(),
-    sippNumber: z.string().nullable().optional(),
-    bio: z.string().nullable().optional(),
-  }).nullable(),
-})
-export type BackendAuthUser = z.infer<typeof BackendAuthUserSchema>
-
-export function mapBackendUserToAccount(user: BackendAuthUser): Account {
-  return {
-    id: user.id,
-    email: user.email,
-    name: user.profile?.name ?? user.email,
-    role: user.role === 'ADMIN' ? 'admin' : 'user',
-    kind: user.role === 'PSIKOLOG' ? 'psikolog' : user.role === 'TULI' ? 'tuli' : undefined,
-    title: user.profile?.title ?? undefined,
-  }
-}
-
-const AuthEnvelopeSchema = z.object({
-  success: z.literal(true),
-  data: z.object({ user: BackendAuthUserSchema }),
-})
-
-export const BackendAppointmentSchema = z.object({
-  id: z.string(),
-  clientId: z.string(),
-  clientName: z.string(),
-  clientEmail: z.string(),
-  psychologistId: z.string(),
-  psychologistName: z.string(),
-  psychologistEmail: z.string(),
-  scheduledAt: z.string().or(z.date()),
-  status: z.enum(['SCHEDULED', 'WAITING', 'IN_SESSION', 'COMPLETED', 'CANCELLED']),
-  note: z.string().nullable().optional(),
-  sessionId: z.string().nullable(),
-})
-export type BackendAppointment = z.infer<typeof BackendAppointmentSchema>
-
-function mapAppointment(value: BackendAppointment): Appt {
-  const status: Appt['status'] =
-    value.status === 'WAITING' ? 'waiting' :
-    value.status === 'IN_SESSION' ? 'live' :
-    value.status === 'COMPLETED' ? 'done' :
-    value.status === 'CANCELLED' ? 'cancelled' : 'scheduled'
-  const date = new Date(value.scheduledAt)
-  return {
-    id: value.id,
-    clientId: value.clientId,
-    psychologistId: value.psychologistId,
-    klien: value.clientName,
-    psikolog: value.psychologistName,
-    time: date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-    scheduledAt: date.toISOString(),
-    status,
-    note: value.note ?? undefined,
-    sessionId: value.sessionId,
-  }
-}
-
-export const BackendPsychologistSchema = z.object({
-  id: z.string(),
-  userId: z.string(),
-  name: z.string(),
-  email: z.string().optional(),
-  title: z.string().nullable().optional(),
-  sippNumber: z.string().nullable().optional(),
-  avatarUrl: z.string().nullable().optional(),
-  bio: z.string().nullable().optional(),
-})
-export type BackendPsychologist = z.infer<typeof BackendPsychologistSchema>
-
-export const BackendPss10ItemSchema = z.object({
-  id: z.string(),
-  itemNumber: z.number().int(),
-  questionText: z.string(),
-  isReversed: z.boolean(),
-  phrases: z.array(z.object({
-    id: z.string(),
-    indonesianText: z.string(),
-    signCategory: z.string(),
-    animations: z.array(z.object({
-      id: z.string(),
-      glbUrl: z.string(),
-      animationName: z.string(),
-      durationMs: z.number().int(),
-    })),
-  })),
-})
-export type BackendPss10Item = z.infer<typeof BackendPss10ItemSchema>
-
-export const CatalogPhraseSchema = z.object({
-  id: z.string(),
-  text: z.string(),
-  category: z.string(),
-  animations: z.array(z.object({
-    id: z.string(),
-    glbUrl: z.string(),
-    animationName: z.string(),
-    durationMs: z.number().int(),
-  })),
-})
-export type CatalogPhrase = z.infer<typeof CatalogPhraseSchema>
-
-export const BackendSessionMessageSchema = z.object({
-  id: z.string(),
-  sessionId: z.string(),
-  senderRole: z.enum(['TULI', 'PSIKOLOG']),
-  text: z.string(),
-  step: z.number().int(),
-  status: z.enum(['PROCESSING', 'REVIEW_REQUIRED', 'CORRECTION_REQUIRED', 'CONFIRMED', 'SENT', 'FAILED']),
-  confidence: z.number().nullable(),
-  isManualCorrection: z.boolean(),
-  phraseMatched: z.boolean(),
-  createdAt: z.string().or(z.date()),
-})
-export type BackendSessionMessage = z.infer<typeof BackendSessionMessageSchema>
-
-export const BackendSessionDetailSchema = z.object({
-  id: z.string(),
-  appointmentId: z.string().nullable(),
-  clientId: z.string(),
-  clientName: z.string(),
-  psychologistId: z.string(),
-  psychologistName: z.string(),
-  startedAt: z.string().or(z.date()),
-  endedAt: z.string().or(z.date()).nullable(),
-  score: z.number().nullable(),
-  accuracy: z.number().nullable(),
-  manualCorrections: z.number(),
-  notes: z.string().nullable(),
-  status: z.enum(['ACTIVE', 'COMPLETED', 'CANCELLED']),
-  messages: z.array(BackendSessionMessageSchema),
-})
-export type BackendSessionDetail = z.infer<typeof BackendSessionDetailSchema>
-
-export const DashboardStatsSchema = z.object({
-  totalSessions: z.number().int(),
-  completedSessions: z.number().int(),
-  averageScore: z.number().nullable(),
-  averageAccuracy: z.number().nullable(),
-  totalManualCorrections: z.number().int(),
-  scoreDistribution: z.object({
-    rendah: z.number().int(),
-    sedang: z.number().int(),
-    tinggi: z.number().int(),
-  }),
-  cancelledSessions: z.number().int(),
-  sessionsWithScore: z.number().int(),
-  sessionsWithAccuracy: z.number().int(),
-  weeklySessions: z.array(z.object({
-    start: z.string(),
-    end: z.string(),
-    count: z.number().int(),
-  })),
-})
-export type DashboardStats = z.infer<typeof DashboardStatsSchema>
-
-const AdminUserSchema = z.object({
-  id: z.string(),
-  email: z.string(),
-  role: BackendRoleSchema,
-  createdAt: z.string().or(z.date()),
-  profile: z.object({
-    name: z.string(),
-    title: z.string().nullable(),
-    sippNumber: z.string().nullable(),
-    avatarUrl: z.string().nullable(),
-  }).nullable(),
-})
-export type AdminUser = z.infer<typeof AdminUserSchema>
-
-export const WS_BASE_URL = frontendEnv.VITE_WS_URL
+const AuthEnvelope = z.object({ success: z.literal(true), data: z.object({ user: AuthUserSchema }) })
+const Envelope = <T>(schema: z.ZodType<T>) => z.object({ success: z.literal(true), data: schema })
 
 export const api = {
   auth: {
-    async login(email: string, password: string): Promise<BackendAuthUser> {
-      const result = await request('/auth/login', AuthEnvelopeSchema, {
-        method: 'POST', body: JSON.stringify({ email, password }),
-      })
-      return result.data.user
-    },
-    async register(data: { name: string; email: string; password: string; role: 'TULI' }): Promise<BackendAuthUser> {
-      const result = await request('/auth/register', AuthEnvelopeSchema, {
-        method: 'POST', body: JSON.stringify(data),
-      })
-      return result.data.user
-    },
-    async getMe(): Promise<BackendAuthUser | null> {
-      try {
-        const result = await request('/auth/me', z.object({ success: z.literal(true), data: BackendAuthUserSchema }))
-        return result.data
-      } catch (error) {
-        if (error instanceof ApiError && error.statusCode === 401) return null
-        throw error
-      }
-    },
-    logout(): Promise<void> {
-      return requestEmpty('/auth/logout', { method: 'POST' })
-    },
+    login: async (email: string, password: string) => (await request('/auth/login', AuthEnvelope, { method: 'POST', body: JSON.stringify({ email, password }) })).data.user,
+    register: async (input: { name: string; email: string; password: string }) => (await request('/auth/register', AuthEnvelope, { method: 'POST', body: JSON.stringify({ ...input, role: 'USER' }) })).data.user,
+    getMe: async (): Promise<AuthUser | null> => { try { return (await request('/auth/me', Envelope(AuthUserSchema))).data } catch (cause) { if (cause instanceof ApiError && cause.statusCode === 401) return null; throw cause } },
+    logout: () => request('/auth/logout', z.undefined(), { method: 'POST' }),
   },
-  appointments: {
-    async list(): Promise<Appt[]> {
-      const result = await request('/appointments', z.object({ success: z.literal(true), data: z.array(BackendAppointmentSchema) }))
-      return result.data.map(mapAppointment)
-    },
-    async create(psychologistId: string, scheduledAt: Date, note?: string): Promise<Appt> {
-      const result = await request('/appointments', z.object({ success: z.literal(true), data: BackendAppointmentSchema }), {
-        method: 'POST', body: JSON.stringify({ psychologistId, scheduledAt: scheduledAt.toISOString(), note }),
-      })
-      return mapAppointment(result.data)
-    },
-    async updateStatus(id: string, status: 'WAITING' | 'CANCELLED'): Promise<Appt> {
-      const result = await request(`/appointments/${id}/status`, z.object({ success: z.literal(true), data: BackendAppointmentSchema }), {
-        method: 'PATCH', body: JSON.stringify({ status }),
-      })
-      return mapAppointment(result.data)
-    },
+  catalog: { phrases: async () => (await request('/catalog/phrases', Envelope(z.array(PhraseSchema)))).data },
+  partners: { list: async () => (await request('/partners', Envelope(z.array(PartnerSchema)))).data },
+  displays: {
+    create: async () => (await request('/displays', Envelope(DisplaySchema.extend({ editorToken: z.string() })), { method: 'POST', body: '{}' })).data,
+    get: async (token: string) => (await request(`/displays/${token}`, Envelope(DisplaySchema))).data,
+    update: async (token: string, editorToken: string, input: { text: string; phraseId: string | null }) => (await request(`/displays/${token}`, Envelope(DisplaySchema), { method: 'PATCH', headers: { 'x-display-editor-token': editorToken }, body: JSON.stringify(input) })).data,
   },
-  psychologists: {
-    async list(): Promise<BackendPsychologist[]> {
-      const result = await request('/psychologists', z.object({ success: z.literal(true), data: z.array(BackendPsychologistSchema) }))
-      return result.data
-    },
+  meetings: {
+    match: async (slug: string): Promise<Meeting | null> => { try { return (await request(`/meetings/partners/${slug}/match`, Envelope(MeetingSchema), { method: 'POST' })).data } catch (cause) { if (cause instanceof ApiError && cause.statusCode === 204) return null; throw cause } },
+    get: async (id: string) => (await request(`/meetings/${id}`, Envelope(MeetingSchema))).data,
+    end: (id: string) => request(`/meetings/${id}/end`, z.undefined(), { method: 'POST' }),
   },
-  pss10: {
-    async items(): Promise<BackendPss10Item[]> {
-      const result = await request('/pss10/items', z.object({ success: z.literal(true), data: z.array(BackendPss10ItemSchema) }))
-      return result.data
-    },
-  },
-  catalog: {
-    async phrases(): Promise<CatalogPhrase[]> {
-      const result = await request('/catalog/phrases', z.object({
-        success: z.literal(true),
-        data: z.array(CatalogPhraseSchema),
-      }))
-      return result.data
-    },
-  },
-  sessions: {
-    async create(appointmentId: string): Promise<BackendSessionDetail> {
-      const result = await request('/sessions', z.object({ success: z.literal(true), data: BackendSessionDetailSchema }), {
-        method: 'POST', body: JSON.stringify({ appointmentId }),
-      })
-      return result.data
-    },
-    async get(id: string): Promise<BackendSessionDetail> {
-      const result = await request(`/sessions/${id}`, z.object({ success: z.literal(true), data: BackendSessionDetailSchema }))
-      return result.data
-    },
-    async addMessage(sessionId: string, message: {
-      text: string
-      step: number
-      phraseId?: string
-    }): Promise<BackendSessionMessage> {
-      const result = await request(`/sessions/${sessionId}/messages`, z.object({ success: z.literal(true), data: BackendSessionMessageSchema }), {
-        method: 'POST', body: JSON.stringify(message),
-      })
-      return result.data
-    },
-    async complete(sessionId: string, resultData: {
-      notes?: string
-    }): Promise<BackendSessionDetail> {
-      const result = await request(`/sessions/${sessionId}/complete`, z.object({ success: z.literal(true), data: BackendSessionDetailSchema }), {
-        method: 'POST', body: JSON.stringify(resultData),
-      })
-      return result.data
-    },
-  },
-  history: {
-    async list(cursor?: string, limit = 25): Promise<{ items: SessionRecord[]; nextCursor: string | null }> {
-      const query = new URLSearchParams({ limit: String(limit) })
-      if (cursor) query.set('cursor', cursor)
-      const result = await request(`/history?${query.toString()}`, z.object({
-        success: z.literal(true),
-        data: z.object({
-          items: z.array(SessionRecordSchema),
-          nextCursor: z.string().nullable(),
-        }),
-      }))
-      return result.data
-    },
-    async detail(id: string): Promise<SessionDetail> {
-      const result = await request(`/history/${encodeURIComponent(id)}`, z.object({
-        success: z.literal(true),
-        data: SessionDetailSchema,
-      }))
-      return result.data
-    },
-    async stats(): Promise<DashboardStats> {
-      const result = await request('/history/stats', z.object({ success: z.literal(true), data: DashboardStatsSchema }))
-      return result.data
-    },
-  },
-  admin: {
-    async users(): Promise<AdminUser[]> {
-      const result = await request('/admin/users', z.object({ success: z.literal(true), data: z.array(AdminUserSchema) }))
-      return result.data
-    },
-    async createPsychologist(data: {
-      name: string
-      email: string
-      password: string
-      title: string
-      sippNumber: string
-      bio?: string
-      avatarUrl?: string
-    }): Promise<AdminUser> {
-      const result = await request('/admin/psychologists', z.object({ success: z.literal(true), data: AdminUserSchema }), {
-        method: 'POST', body: JSON.stringify(data),
-      })
-      return result.data
-    },
-    deleteUser(id: string): Promise<void> {
-      return requestEmpty(`/admin/users/${id}`, { method: 'DELETE' })
-    },
+  pss: {
+    get: async (roomId: string) => (await request(`/pss/rooms/${roomId}`, Envelope(PssRoomSchema))).data,
+    answer: async (roomId: string, itemId: string, value: number) => (await request(`/pss/rooms/${roomId}/answers`, Envelope(PssRoomSchema), { method: 'PUT', body: JSON.stringify({ itemId, value }) })).data,
   },
 }

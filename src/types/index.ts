@@ -1,13 +1,6 @@
-export type {
-  Account,
-  Appt,
-  ApptStatus,
-  Kind,
-  MessageStatus,
-  Msg,
-  Role,
-  SessionRecord,
-  SessionDetail,
-  SessionStatus,
-} from '../schemas'
-export { MessageStatusEnum } from '../schemas'
+export interface Account {
+  id: string
+  email: string
+  name: string
+  role: 'user' | 'admin'
+}
