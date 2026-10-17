@@ -1,124 +1,172 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { ANSWERS, OPENING, PSS10 } from '../data'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ANSWERS, OPENING } from '../data'
 import type { Kind, Msg } from '../types'
+import {
+  api,
+  ApiError,
+  BackendSessionMessageSchema,
+  WS_BASE_URL,
+  type BackendPss10Item,
+  type BackendSessionMessage,
+} from '../api/client'
 
-export const STEPS: { t: string; opening: boolean }[] = [
-  ...OPENING.map((t) => ({ t, opening: true })),
-  ...PSS10.map((t) => ({ t, opening: false })),
-]
-
-export const OPEN_ANSWERS = ['Saya mengerti', 'Mohon diulang']
-export const SIGN_MS = 2600
-
-const keyOf = (id: string) => `bisara-live-${id}`
-
-export function speak(text: string) {
-  try {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = 'id-ID'
-    window.speechSynthesis.cancel()
-    window.speechSynthesis.speak(u)
-  } catch {
-    // Ignore speech synthesis failures in unsupported environments
+export interface SessionStep {
+  text: string
+  opening: boolean
+  phraseId?: string
+  animation?: {
+    glbUrl: string
+    animationName: string
+    durationMs: number
   }
 }
 
-/**
- * Shared session state for the two devices. Tabs on the same browser sync through
- * BroadcastChannel; when no partner is detected the other side is simulated.
- */
-export function useLiveSession(me: Kind, id: string) {
-  const KEY = keyOf(id)
-  const load = useCallback((): Msg[] => {
-    try {
-      const raw = localStorage.getItem(KEY)
-      if (!raw) return []
-      return JSON.parse(raw) as Msg[]
-    } catch {
-      return []
-    }
-  }, [KEY])
+export const OPEN_ANSWERS = ['Saya mengerti', 'Mohon diulang']
 
-  const [msgs, setMsgs] = useState<Msg[]>(load)
-  const [partnerAt, setPartnerAt] = useState(0)
-  const [now, setNow] = useState(() => Date.now())
-  const ch = useRef<BroadcastChannel | null>(null)
-  const sim = useRef<number | null>(null)
+export function speak(text: string) {
+  if (!('speechSynthesis' in window)) return
+  const utterance = new SpeechSynthesisUtterance(text)
+  utterance.lang = 'id-ID'
+  window.speechSynthesis.cancel()
+  window.speechSynthesis.speak(utterance)
+}
+
+function mapMessage(message: BackendSessionMessage): Msg {
+  return {
+    id: message.id,
+    from: message.senderRole === 'TULI' ? 'tuli' : 'psikolog',
+    text: message.text,
+    step: message.step,
+    status: message.status,
+    phraseMatched: message.phraseMatched,
+    conf: message.confidence ?? undefined,
+    manual: message.isManualCorrection,
+    at: new Date(message.createdAt).getTime(),
+  }
+}
+
+function buildSteps(items: BackendPss10Item[]): SessionStep[] {
+  return [
+    ...OPENING.map((text) => ({ text, opening: true })),
+    ...items
+      .sort((a, b) => a.itemNumber - b.itemNumber)
+      .map((item) => {
+        const phrase = item.phrases.find((candidate) => candidate.indonesianText === item.questionText)
+        const animation = phrase?.animations[0]
+        return {
+          text: item.questionText,
+          opening: false,
+          phraseId: phrase?.id,
+          animation: animation ? {
+            glbUrl: animation.glbUrl,
+            animationName: animation.animationName,
+            durationMs: animation.durationMs,
+          } : undefined,
+        }
+      }),
+  ]
+}
+
+export function useLiveSession(me: Kind, sessionId: string) {
+  const [msgs, setMsgs] = useState<Msg[]>([])
+  const [steps, setSteps] = useState<SessionStep[]>([])
+  const [partnerOnline, setPartnerOnline] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const wsRef = useRef<WebSocket | null>(null)
+
+  const append = useCallback((message: Msg) => {
+    setMsgs((current) => current.some((item) => item.id === message.id) ? current : [...current, message])
+  }, [])
+
+  const reload = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [session, pssItems] = await Promise.all([api.sessions.get(sessionId), api.pss10.items()])
+      setMsgs(session.messages.map(mapMessage))
+      setSteps(buildSteps(pssItems))
+      setError(null)
+    } catch (cause) {
+      setError(cause instanceof ApiError ? cause.message : 'Sesi tidak dapat dimuat')
+    } finally {
+      setLoading(false)
+    }
+  }, [sessionId])
+
+  useEffect(() => { queueMicrotask(() => void reload()) }, [reload])
 
   useEffect(() => {
-    const c = new BroadcastChannel(KEY)
-    ch.current = c
-    c.onmessage = (e: MessageEvent<{ type: string; role?: Kind }>) => {
-      if (e.data.type === 'hello' && e.data.role !== me) setPartnerAt(Date.now())
-      if (e.data.type === 'sync') setMsgs(load())
+    const ws = new WebSocket(WS_BASE_URL)
+    wsRef.current = ws
+    ws.onopen = () => ws.send(JSON.stringify({ type: 'JOIN_ROOM', payload: { sessionId } }))
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(String(event.data)) as { type?: string; payload?: unknown; error?: { message?: string } }
+        if (data.type === 'ROOM_JOINED') {
+          const payload = data.payload as { memberCount?: number }
+          setPartnerOnline((payload.memberCount ?? 0) > 1)
+        } else if (data.type === 'MEMBER_JOINED' || data.type === 'MEMBER_LEFT') {
+          const payload = data.payload as { memberCount?: number }
+          setPartnerOnline((payload.memberCount ?? 0) > 1)
+        } else if (data.type === 'MESSAGE_SENT') {
+          const parsed = BackendSessionMessageSchema.safeParse(data.payload)
+          if (parsed.success) append(mapMessage(parsed.data))
+        } else if (data.type === 'ERROR') {
+          setError(data.error?.message ?? 'Koneksi realtime ditolak')
+        }
+      } catch {
+        setError('Server realtime mengirim data tidak valid')
+      }
     }
-    const beat = () => {
-      c.postMessage({ type: 'hello', role: me })
-      setNow(Date.now())
-    }
-    beat()
-    const t = setInterval(beat, 1500)
+    ws.onerror = () => setError('Koneksi realtime tidak tersedia')
+    ws.onclose = () => setPartnerOnline(false)
     return () => {
-      clearInterval(t)
-      c.close()
+      ws.close()
+      wsRef.current = null
     }
-  }, [me, KEY, load])
+  }, [append, sessionId])
 
-  const partnerOnline = now - partnerAt < 4000
-  const write = useCallback(
-    (next: Msg[]) => {
-      localStorage.setItem(KEY, JSON.stringify(next))
-      setMsgs(next)
-      ch.current?.postMessage({ type: 'sync' })
-    },
-    [KEY],
-  )
-
-  const push = useCallback(
-    (m: Omit<Msg, 'id' | 'at'>) => {
-      const cur = load()
-      const lastItem = cur.at(-1)
-      const nextId = (lastItem ? lastItem.id : 0) + 1
-      write([...cur, { ...m, id: nextId, at: Date.now() }])
-    },
-    [write, load],
-  )
-
-  const reset = useCallback(() => write([]), [write])
-
-  const answers = msgs.filter((m) => m.from === 'tuli')
-  const step = answers.filter((a) => a.text !== 'Mohon diulang').length
+  const answers = useMemo(() => msgs.filter((message) => message.from === 'tuli'), [msgs])
+  const step = answers.filter((answer) => answer.text !== 'Mohon diulang').length
+  const currentStep = steps[step]
   const last = msgs.at(-1)
   const pendingQuestion = last?.from === 'psikolog' ? last : null
-  const done = step >= STEPS.length
-  const currentStep = STEPS[step]
+  const done = steps.length > 0 && step >= steps.length
   const options = currentStep?.opening ? OPEN_ANSWERS : ANSWERS
 
-  // Simulate the missing device.
-  useEffect(() => {
-    if (partnerOnline || done || !currentStep) return
-    if (sim.current !== null) clearTimeout(sim.current)
+  const push = useCallback(async (message: Omit<Msg, 'id' | 'at'>): Promise<void> => {
+    const relatedStep = steps[message.step]
+    const phraseId = message.from === 'psikolog' && relatedStep?.text === message.text
+      ? relatedStep.phraseId
+      : undefined
+    const persisted = await api.sessions.addMessage(sessionId, {
+      text: message.text,
+      step: message.step,
+      phraseId,
+    })
+    append(mapMessage(persisted))
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'MESSAGE_SENT',
+        payload: { sessionId, messageId: persisted.id },
+      }))
+    }
+  }, [append, sessionId, steps])
 
-    if (me === 'tuli' && !pendingQuestion) {
-      sim.current = window.setTimeout(
-        () => push({ from: 'psikolog', text: currentStep.t, step, status: 'CONFIRMED', phraseMatched: true }),
-        msgs.length ? 2200 : 1200,
-      )
-    }
-    if (me === 'psikolog' && pendingQuestion) {
-      sim.current = window.setTimeout(() => {
-        const opts = currentStep.opening ? ['Saya mengerti'] : ANSWERS
-        const a = opts[Math.floor(Math.random() * opts.length)] ?? opts[0]
-        const conf = 0.7 + Math.random() * 0.28
-        push({ from: 'tuli', text: a, step, status: 'CONFIRMED', conf })
-        speak(a)
-      }, SIGN_MS + 2600)
-    }
-    return () => {
-      if (sim.current !== null) clearTimeout(sim.current)
-    }
-  }, [me, partnerOnline, pendingQuestion, step, done, msgs.length, push, currentStep])
-
-  return { msgs, push, reset, step, done, pendingQuestion, options, partnerOnline, answers }
+  return {
+    msgs,
+    push,
+    reload,
+    step,
+    steps,
+    currentStep,
+    done,
+    pendingQuestion,
+    options,
+    partnerOnline,
+    answers,
+    loading,
+    error,
+    me,
+  }
 }

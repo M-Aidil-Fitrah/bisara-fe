@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  Mic,
   Play,
   Pause,
   Video,
@@ -13,8 +12,9 @@ import {
 } from 'lucide-react'
 import { Button } from '../ui'
 import { ANSWERS } from '../../data'
-import { useLiveSession, STEPS, SIGN_MS, speak } from '../../lib/live'
-import { saveSession, scorePss, level } from '../../lib/history'
+import { useLiveSession, speak } from '../../lib/live'
+import { scorePss, level } from '../../lib/history'
+import { api } from '../../api/client'
 import type { Appt, Msg } from '../../types'
 import SessionHeader from './SessionHeader'
 import AvatarStage from './AvatarStage'
@@ -24,7 +24,7 @@ import { formatMsgTime } from '../../lib/time'
 import { useScrollBottom } from './useScrollBottom'
 
 export interface PsikologConsultationViewProps {
-  appt: Appt
+  appt: Appt & { sessionId: string }
   onLeave: () => void
   onSaved: () => void
 }
@@ -34,16 +34,15 @@ export default function PsikologConsultationView({
   onLeave,
   onSaved,
 }: PsikologConsultationViewProps) {
-  const s = useLiveSession('psikolog', appt.id)
-  const [listening, setListening] = useState(false)
-  const [transcript, setTranscript] = useState('')
-  const [reviewState, setReviewState] = useState<'idle' | 'listening' | 'review'>('idle')
+  const s = useLiveSession('psikolog', appt.sessionId)
+  const [reviewState, setReviewState] = useState<'idle' | 'review'>('idle')
   const [editableTranscript, setEditableTranscript] = useState('')
   const [signing, setSigning] = useState(false)
   const [notes, setNotes] = useState('')
   const [saved, setSaved] = useState(false)
-  const [playing, setPlaying] = useState<number | null>(null)
+  const [playing, setPlaying] = useState<string | null>(null)
   const [leftTab, setLeftTab] = useState<'video' | 'avatar'>('video')
+  const [actionError, setActionError] = useState<string | null>(null)
   const timers = useRef<number[]>([])
   const chat = useScrollBottom(s.msgs.length)
   const lastAns = useRef(s.answers.length)
@@ -59,96 +58,70 @@ export default function PsikologConsultationView({
     lastAns.current = s.answers.length
   }, [s.answers.length, s.partnerOnline, s.answers])
 
-  const curStep = STEPS[s.step]
+  const curStep = s.currentStep
 
   const startSpeak = () => {
     if (!curStep) return
-    const text = curStep.t
-    setListening(true)
-    setReviewState('listening')
-    setTranscript('')
+    const text = curStep.text
     setEditableTranscript(text)
-    const words = text.split(' ')
-    words.forEach((_, i) =>
-      timers.current.push(
-        window.setTimeout(() => setTranscript(words.slice(0, i + 1).join(' ')), 60 * (i + 1))
-      )
-    )
-    timers.current.push(
-      window.setTimeout(() => {
-        setListening(false)
-        setReviewState('review')
-        setEditableTranscript(text)
-      }, 60 * words.length + 300)
-    )
+    setReviewState('review')
   }
 
   const isPhraseInCatalog = Boolean(
     curStep &&
-      STEPS.some((step) => step.t.trim().toLowerCase() === editableTranscript.trim().toLowerCase())
+      s.steps.some((step) => step.text.trim().toLowerCase() === editableTranscript.trim().toLowerCase())
   )
 
-  const confirmAndSend = () => {
+  const confirmAndSend = async () => {
     if (!editableTranscript.trim()) return
     const finalText = editableTranscript.trim()
-    s.push({
-      from: 'psikolog',
-      text: finalText,
-      step: s.step,
-      status: 'CONFIRMED',
-      phraseMatched: isPhraseInCatalog,
-    })
-    setSigning(true)
-    setReviewState('idle')
-    setEditableTranscript('')
-    setTranscript('')
-    timers.current.push(window.setTimeout(() => setSigning(false), SIGN_MS))
+    setActionError(null)
+    try {
+      await s.push({
+        from: 'psikolog',
+        text: finalText,
+        step: s.step,
+        status: 'SENT',
+        phraseMatched: isPhraseInCatalog,
+      })
+      if (curStep?.animation && finalText === curStep.text) {
+        setSigning(true)
+        timers.current.push(window.setTimeout(() => setSigning(false), curStep.animation?.durationMs))
+      }
+      setReviewState('idle')
+      setEditableTranscript('')
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Pesan gagal dikirim')
+    }
   }
 
   const cancelReview = () => {
     setReviewState('idle')
-    setTranscript('')
     setEditableTranscript('')
-    setListening(false)
   }
 
   const applyStandardPhrase = () => {
     if (curStep) {
-      setEditableTranscript(curStep.t)
+      setEditableTranscript(curStep.text)
     }
   }
 
   const pssAns = s.answers.filter((a) => ANSWERS.includes(a.text)).map((a) => a.text)
   const score = scorePss(pssAns)
-  const canSpeak = reviewState === 'idle' && !s.pendingQuestion && !s.done
+  const canSpeak = reviewState === 'idle' && !s.pendingQuestion && !s.done && Boolean(curStep)
 
-  const save = useCallback(() => {
-    const now = Date.now()
-    const firstAt = s.msgs[0]?.at ?? now
-    const lastAt = s.msgs.at(-1)?.at ?? now
-    const durationMin = Math.max(1, Math.round((lastAt - firstAt) / 60000))
-    const randomSuffix = Math.floor(Math.random() * 400)
-    const confAnswers = s.answers.filter((a) => typeof a.conf === 'number')
-    const avgAccuracy = confAnswers.length
-      ? confAnswers.reduce((x, a) => x + (a.conf ?? 0), 0) / confAnswers.length
-      : 0.82
-
-    saveSession({
-      id: `BSR-${String(461 + randomSuffix).padStart(4, '0')}`,
-      date: new Date(now).toISOString(),
-      psikolog: appt.psikolog,
-      klien: appt.klien,
-      durationMin,
-      score: pssAns.length ? score : null,
-      accuracy: avgAccuracy,
-      manual: s.answers.filter((a) => a.manual).length,
-      status: s.done ? 'Selesai' : 'Dibatalkan',
-      notes: notes || '—',
-      lines: s.msgs.map(({ from, text, conf, manual }) => ({ from, text, conf, manual })),
-    })
-    setSaved(true)
-    onSaved()
-  }, [s.answers, s.msgs, s.done, appt.psikolog, appt.klien, pssAns.length, score, notes, onSaved])
+  const save = useCallback(async () => {
+    setActionError(null)
+    try {
+      await api.sessions.complete(appt.sessionId, {
+        notes: notes || undefined,
+      })
+      setSaved(true)
+      onSaved()
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : 'Sesi gagal disimpan')
+    }
+  }, [appt.sessionId, notes, onSaved])
 
 
   const playVoice = (m: Msg) => {
@@ -166,10 +139,7 @@ export default function PsikologConsultationView({
         step={s.step}
         partner={s.partnerOnline}
         onLeave={onLeave}
-        onReset={() => {
-          s.reset()
-          setSaved(false)
-        }}
+        steps={s.steps}
       />
       <div className="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6">
         <div className="grid gap-5 lg:grid-cols-[1fr_1.15fr]">
@@ -209,7 +179,7 @@ export default function PsikologConsultationView({
 
             {leftTab === 'video' ? (
               <VideoCallStage
-                sessionId={appt.id}
+                sessionId={appt.sessionId}
                 role="psikolog"
                 partnerName={`Klien: ${appt.klien}`}
                 className="aspect-[4/3] lg:aspect-auto lg:min-h-[460px] lg:flex-1"
@@ -218,6 +188,8 @@ export default function PsikologConsultationView({
               <AvatarStage
                 className="aspect-[4/3] lg:aspect-auto lg:min-h-[460px] lg:flex-1"
                 signing={signing}
+                modelUrl={curStep?.animation?.glbUrl}
+                actionName={curStep?.animation?.animationName}
                 caption={
                   lastQ ? lastQ.text : <span className="text-paper/50">Avatar akan memperagakan ucapan Anda.</span>
                 }
@@ -242,7 +214,7 @@ export default function PsikologConsultationView({
                       <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-white/80">
                         <CheckCircle2 className="size-3 text-emerald-300" />
                         <span>
-                          {formatMsgTime(m.at)} · Terkonfirmasi {m.phraseMatched !== false ? '(Animasi Aktif)' : '(Teks Saja)'}
+                          {formatMsgTime(m.at)} · Terkirim {m.phraseMatched ? '(Frasa resmi)' : '(Teks bebas)'}
                         </span>
                       </div>
                     </div>
@@ -274,12 +246,15 @@ export default function PsikologConsultationView({
                   </div>
                 )
               )}
-              {s.pendingQuestion && !listening && reviewState === 'idle' && (
+              {s.pendingQuestion && reviewState === 'idle' && (
                 <p className="text-sm text-muted">Klien sedang menjawab…</p>
               )}
             </div>
 
             <div className="border-t border-line p-4">
+              {(s.error || actionError) && (
+                <p role="alert" className="mb-3 text-sm text-[#b8483e]">{actionError ?? s.error}</p>
+              )}
               {s.done ? (
                 <p className="text-sm text-muted">
                   Semua butir telah dijawab. Lengkapi catatan lalu simpan sesi.
@@ -290,13 +265,13 @@ export default function PsikologConsultationView({
                     <div className="flex items-center gap-2">
                       <span className="flex size-2 rounded-full bg-amber-500 animate-pulse" />
                       <span className="text-[11px] font-semibold tracking-wider uppercase text-amber-700 dark:text-amber-300">
-                        Pemeriksaan Pesan (Review Required)
+                        Tinjau sebelum dikirim
                       </span>
                     </div>
                     {isPhraseInCatalog ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
                         <ShieldCheck className="size-3" />
-                        Frasa Terverifikasi BISINDO
+                        Frasa resmi PSS-10
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 border border-amber-500/20">
@@ -308,7 +283,7 @@ export default function PsikologConsultationView({
 
                   <div>
                     <label className="text-xs text-muted block mb-1 flex items-center justify-between">
-                      <span>Hasil Transkripsi Suara (Dapat dikoreksi langsung):</span>
+                      <span>Frasa yang akan dikirim:</span>
                       {!isPhraseInCatalog && curStep && (
                         <button
                           type="button"
@@ -335,7 +310,7 @@ export default function PsikologConsultationView({
                         className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface transition"
                       >
                         <RotateCcw className="size-3.5 text-muted" />
-                        Ulangi Bicara
+                        Pulihkan frasa resmi
                       </button>
                       <button
                         type="button"
@@ -348,12 +323,12 @@ export default function PsikologConsultationView({
 
                     <button
                       type="button"
-                      onClick={confirmAndSend}
+                      onClick={() => void confirmAndSend()}
                       disabled={!editableTranscript.trim()}
                       className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-strong disabled:opacity-50 transition"
                     >
                       <Send className="size-3.5" />
-                      Konfirmasi & Kirim ke Avatar
+                      Konfirmasi & Kirim
                     </button>
                   </div>
                 </div>
@@ -362,34 +337,18 @@ export default function PsikologConsultationView({
                   <button
                     onClick={startSpeak}
                     disabled={!canSpeak}
-                    aria-label="Bicara"
+                    aria-label="Siapkan pertanyaan"
                     className={`relative grid size-14 shrink-0 place-items-center rounded-full transition ${
-                      listening
-                        ? 'bg-ink text-paper'
-                        : canSpeak
-                          ? 'bg-brand text-white hover:bg-brand-strong'
-                          : 'bg-line text-muted'
+                      canSpeak ? 'bg-brand text-white hover:bg-brand-strong' : 'bg-line text-muted'
                     }`}
                   >
-                    {listening && (
-                      <span className="absolute inset-0 animate-ping rounded-full bg-brand/40" />
-                    )}
-                    <Mic className="relative size-5" />
+                    <Send className="relative size-5" />
                   </button>
                   <div className="min-w-0 flex-1">
-                    {listening ? (
-                      <>
-                        <VoiceWave active seed={3} />
-                        <p className="mt-1 truncate text-sm">{transcript}</p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-xs text-muted">
-                          {canSpeak ? 'Berikutnya, bacakan:' : 'Menunggu jawaban'}
-                        </p>
-                        <p className="truncate text-[15px]">{curStep?.t ?? ''}</p>
-                      </>
-                    )}
+                    <p className="text-xs text-muted">
+                      {canSpeak ? 'Pertanyaan berikutnya:' : 'Menunggu jawaban'}
+                    </p>
+                    <p className="truncate text-[15px]">{curStep?.text ?? ''}</p>
                   </div>
                 </div>
               )}
@@ -438,7 +397,7 @@ export default function PsikologConsultationView({
             </div>
             <p className="mt-3 text-xs text-muted">Butir 4, 5, 7, 8 diskor terbalik. Bukan diagnosis.</p>
             <div className="mt-auto flex items-center gap-3 pt-6">
-              <Button onClick={save} disabled={saved}>
+              <Button onClick={() => void save()} disabled={saved || !s.done || pssAns.length !== 10}>
                 {saved ? 'Tersimpan' : 'Simpan sesi'}
               </Button>
               {saved && <span className="text-sm text-ok">Masuk ke riwayat admin.</span>}

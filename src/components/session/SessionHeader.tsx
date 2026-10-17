@@ -1,6 +1,6 @@
 import React from 'react'
 import { PhoneOff } from 'lucide-react'
-import { STEPS } from '../../lib/live'
+import type { SessionStep } from '../../lib/live'
 import { OPENING } from '../../data'
 
 export interface SessionHeaderProps {
@@ -8,7 +8,7 @@ export interface SessionHeaderProps {
   step: number
   partner: boolean
   onLeave: () => void
-  onReset: () => void
+  steps: SessionStep[]
 }
 
 export default function SessionHeader({
@@ -16,11 +16,11 @@ export default function SessionHeader({
   step,
   partner,
   onLeave,
-  onReset,
+  steps,
 }: SessionHeaderProps) {
-  const done = step >= STEPS.length
+  const done = steps.length > 0 && step >= steps.length
   const qNo = step - OPENING.length + 1
-  const cur = STEPS[step]
+  const cur = steps[step]
   const isOpening = cur ? cur.opening : false
 
   return (
@@ -30,7 +30,7 @@ export default function SessionHeader({
           <div>
             <p className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-brand-soft">
               <span className={`size-1.5 rounded-full ${partner ? 'bg-[#7fd1a8]' : 'bg-[#e8c27a]'}`} />
-              {role} · {partner ? 'Terhubung' : 'Mode simulasi'}
+              {role} · {partner ? 'Terhubung' : 'Menunggu peserta lain'}
             </p>
             <p className="mt-2 flex items-baseline gap-3 text-4xl font-light tracking-tight">
               {done ? 'Selesai' : isOpening ? 'Pembuka' : `Butir ${String(qNo).padStart(2, '0')}`}
@@ -38,12 +38,6 @@ export default function SessionHeader({
             </p>
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={onReset}
-              className="h-10 rounded-lg px-4 text-sm text-paper/70 ring-1 ring-paper/20 hover:text-paper"
-            >
-              Ulang
-            </button>
             <button
               onClick={onLeave}
               className="flex h-10 items-center gap-2 rounded-lg bg-[#b8483e] px-4 text-sm text-white hover:bg-[#a03d34]"
@@ -53,7 +47,7 @@ export default function SessionHeader({
           </div>
         </div>
         <div className="mt-6 flex gap-1">
-          {STEPS.map((s, i) => (
+          {steps.map((s, i) => (
             <div
               key={i}
               className={`h-1 rounded-full transition-all duration-500 ${
