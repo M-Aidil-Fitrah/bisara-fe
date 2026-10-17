@@ -1,0 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --color-paper: #eee7de;
+  --color-surface: #f7f2eb;
+  --color-line: #d9cebf;
+  --color-ink: #10263b;
+  --color-ink-2: #1a3550;
+  --color-muted: #5f6770;
+  --color-brand: #22568a;
+  --color-brand-strong: #1a4570;
+  --color-brand-soft: #a9c5e0;
+  --color-brand-tint: #dde5ea;
+  --color-ok: #2c6e4f;
+  --color-warn: #9a5a16;
+}
+
+html {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+.notch-top {
+  clip-path: polygon(0 0, 28% 0, 28% 56px, 100% 56px, 100% 100%, 0 100%);
+}
+
+@keyframes sign { 0%, 100% { transform: rotate(-8deg) translateY(0); } 50% { transform: rotate(10deg) translateY(-6px); } }
+@keyframes sign2 { 0%, 100% { transform: rotate(8deg) translateY(-4px); } 50% { transform: rotate(-6deg) translateY(2px); } }
+@keyframes wave { 0%, 100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }
+@keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
