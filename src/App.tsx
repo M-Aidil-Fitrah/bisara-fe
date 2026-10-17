@@ -32,7 +32,7 @@ export default function App() {
           <Route path="/about" element={<About />} />
         </Route>
 
-        {/* Fallback route */}
+        {/* Unknown routes return to the landing page */}
         <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

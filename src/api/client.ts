@@ -12,7 +12,8 @@ export class ApiError extends Error {
   }
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL
+if (!API_BASE_URL) throw new Error('VITE_API_URL wajib dikonfigurasi')
 const ApiErrorResponseSchema = z.object({
   success: z.literal(false),
   error: z.object({ code: z.string(), message: z.string() }),
@@ -239,8 +240,8 @@ const AdminUserSchema = z.object({
 })
 export type AdminUser = z.infer<typeof AdminUserSchema>
 
-const apiOrigin = new URL(API_BASE_URL, window.location.origin)
-export const WS_BASE_URL = import.meta.env.VITE_WS_URL ?? `${apiOrigin.protocol === 'https:' ? 'wss:' : 'ws:'}//${apiOrigin.host}`
+export const WS_BASE_URL: string = import.meta.env.VITE_WS_URL
+if (!WS_BASE_URL) throw new Error('VITE_WS_URL wajib dikonfigurasi')
 
 export const api = {
   auth: {
