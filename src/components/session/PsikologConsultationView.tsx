@@ -1,5 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
-import { Mic, Play, Pause, Video, Bot } from 'lucide-react'
+import {
+  Mic,
+  Play,
+  Pause,
+  Video,
+  Bot,
+  CheckCircle2,
+  AlertCircle,
+  RotateCcw,
+  Send,
+  Edit3,
+  ShieldCheck,
+} from 'lucide-react'
 import { Button } from '../ui'
 import { ANSWERS } from '../../data'
 import { useLiveSession, STEPS, SIGN_MS, speak } from '../../lib/live'
@@ -26,6 +38,8 @@ export default function PsikologConsultationView({
   const s = useLiveSession('psikolog', appt.id)
   const [listening, setListening] = useState(false)
   const [transcript, setTranscript] = useState('')
+  const [reviewState, setReviewState] = useState<'idle' | 'listening' | 'review'>('idle')
+  const [editableTranscript, setEditableTranscript] = useState('')
   const [signing, setSigning] = useState(false)
   const [notes, setNotes] = useState('')
   const [saved, setSaved] = useState(false)
@@ -46,31 +60,68 @@ export default function PsikologConsultationView({
     lastAns.current = s.answers.length
   }, [s.answers.length, s.partnerOnline, s.answers])
 
+  const curStep = STEPS[s.step]
+
   const startSpeak = () => {
-    const curStep = STEPS[s.step]
     if (!curStep) return
     const text = curStep.t
     setListening(true)
+    setReviewState('listening')
     setTranscript('')
+    setEditableTranscript(text)
     const words = text.split(' ')
     words.forEach((_, i) =>
       timers.current.push(
-        window.setTimeout(() => setTranscript(words.slice(0, i + 1).join(' ')), 80 * (i + 1))
+        window.setTimeout(() => setTranscript(words.slice(0, i + 1).join(' ')), 60 * (i + 1))
       )
     )
     timers.current.push(
       window.setTimeout(() => {
         setListening(false)
-        s.push({ from: 'psikolog', text, step: s.step })
-        setSigning(true)
-        timers.current.push(window.setTimeout(() => setSigning(false), SIGN_MS))
-      }, 80 * words.length + 400)
+        setReviewState('review')
+        setEditableTranscript(text)
+      }, 60 * words.length + 300)
     )
+  }
+
+  const isPhraseInCatalog = Boolean(
+    curStep &&
+      STEPS.some((step) => step.t.trim().toLowerCase() === editableTranscript.trim().toLowerCase())
+  )
+
+  const confirmAndSend = () => {
+    if (!editableTranscript.trim()) return
+    const finalText = editableTranscript.trim()
+    s.push({
+      from: 'psikolog',
+      text: finalText,
+      step: s.step,
+      status: 'CONFIRMED',
+      phraseMatched: isPhraseInCatalog,
+    })
+    setSigning(true)
+    setReviewState('idle')
+    setEditableTranscript('')
+    setTranscript('')
+    timers.current.push(window.setTimeout(() => setSigning(false), SIGN_MS))
+  }
+
+  const cancelReview = () => {
+    setReviewState('idle')
+    setTranscript('')
+    setEditableTranscript('')
+    setListening(false)
+  }
+
+  const applyStandardPhrase = () => {
+    if (curStep) {
+      setEditableTranscript(curStep.t)
+    }
   }
 
   const pssAns = s.answers.filter((a) => ANSWERS.includes(a.text)).map((a) => a.text)
   const score = scorePss(pssAns)
-  const canSpeak = !listening && !s.pendingQuestion && !s.done
+  const canSpeak = reviewState === 'idle' && !s.pendingQuestion && !s.done
 
   const save = () => {
     const confAnswers = s.answers.filter((a) => typeof a.conf === 'number')
@@ -105,7 +156,6 @@ export default function PsikologConsultationView({
   }
 
   const lastQ = [...s.msgs].reverse().find((m) => m.from === 'psikolog')
-  const curStep = STEPS[s.step]
 
   return (
     <div>
@@ -185,11 +235,14 @@ export default function PsikologConsultationView({
               {s.msgs.map((m) =>
                 m.from === 'psikolog' ? (
                   <div key={m.id} className="flex justify-end">
-                    <div className="max-w-[85%] rounded-xl bg-brand px-4 py-3 text-white">
+                    <div className="max-w-[85%] rounded-xl bg-brand px-4 py-3 text-white shadow-sm">
                       <p className="text-[15px] leading-snug">{m.text}</p>
-                      <p className="mt-1 text-[11px] text-white/60">
-                        {formatMsgTime(m.at)} · terkirim ke avatar
-                      </p>
+                      <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-white/80">
+                        <CheckCircle2 className="size-3 text-emerald-300" />
+                        <span>
+                          {formatMsgTime(m.at)} · Terkonfirmasi {m.phraseMatched !== false ? '(Animasi Aktif)' : '(Teks Saja)'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -219,7 +272,7 @@ export default function PsikologConsultationView({
                   </div>
                 )
               )}
-              {s.pendingQuestion && !listening && (
+              {s.pendingQuestion && !listening && reviewState === 'idle' && (
                 <p className="text-sm text-muted">Klien sedang menjawab…</p>
               )}
             </div>
@@ -229,6 +282,79 @@ export default function PsikologConsultationView({
                 <p className="text-sm text-muted">
                   Semua butir telah dijawab. Lengkapi catatan lalu simpan sesi.
                 </p>
+              ) : reviewState === 'review' ? (
+                <div className="space-y-3 rounded-xl border border-brand/20 bg-brand/5 p-4 transition">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="flex size-2 rounded-full bg-amber-500 animate-pulse" />
+                      <span className="text-[11px] font-semibold tracking-wider uppercase text-amber-700 dark:text-amber-300">
+                        Pemeriksaan Pesan (Review Required)
+                      </span>
+                    </div>
+                    {isPhraseInCatalog ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                        <ShieldCheck className="size-3" />
+                        Frasa Terverifikasi BISINDO
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                        <AlertCircle className="size-3" />
+                        Variasi Teks Bebas
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-xs text-muted block mb-1 flex items-center justify-between">
+                      <span>Hasil Transkripsi Suara (Dapat dikoreksi langsung):</span>
+                      {!isPhraseInCatalog && curStep && (
+                        <button
+                          type="button"
+                          onClick={applyStandardPhrase}
+                          className="text-[11px] font-medium text-brand hover:underline"
+                        >
+                          Gunakan frasa resmi PSS-10
+                        </button>
+                      )}
+                    </label>
+                    <textarea
+                      value={editableTranscript}
+                      onChange={(e) => setEditableTranscript(e.target.value)}
+                      rows={2}
+                      className="w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm leading-relaxed text-ink focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+                    />
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={startSpeak}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-paper px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface transition"
+                      >
+                        <RotateCcw className="size-3.5 text-muted" />
+                        Ulangi Bicara
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelReview}
+                        className="rounded-lg px-2.5 py-1.5 text-xs text-muted hover:text-ink transition"
+                      >
+                        Batal
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={confirmAndSend}
+                      disabled={!editableTranscript.trim()}
+                      className="inline-flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-strong disabled:opacity-50 transition"
+                    >
+                      <Send className="size-3.5" />
+                      Konfirmasi & Kirim ke Avatar
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <div className="flex items-center gap-4">
                   <button
