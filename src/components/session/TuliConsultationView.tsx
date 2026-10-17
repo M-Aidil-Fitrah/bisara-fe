@@ -1,5 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
+import {
+  CheckCircle2,
+  AlertTriangle,
+  RotateCcw,
+  Volume2,
+  Sparkles,
+} from 'lucide-react'
 import { Button, img } from '../ui'
 import { usePsychologists } from '../../lib/appointments'
 import { useLiveSession, STEPS, SIGN_MS } from '../../lib/live'
@@ -66,7 +73,14 @@ export default function TuliConsultationView({ appt, onLeave }: TuliConsultation
   }
 
   const send = (a: string, conf?: number) => {
-    s.push({ from: 'tuli', text: a, step: s.step, conf, manual: conf === undefined })
+    s.push({
+      from: 'tuli',
+      text: a,
+      step: s.step,
+      status: 'CONFIRMED',
+      conf,
+      manual: conf === undefined,
+    })
     setDet(null)
   }
 
@@ -126,7 +140,7 @@ export default function TuliConsultationView({ appt, onLeave }: TuliConsultation
               )
             }
           />
-          <div className="rounded-xl bg-surface p-5 sm:p-6">
+          <div className="rounded-xl bg-surface p-5 sm:p-6 border border-line">
             <div ref={resp}>
               {s.done ? (
                 <p className="text-xl">Semua jawaban terkirim. Anda dapat keluar dari sesi.</p>
@@ -150,46 +164,111 @@ export default function TuliConsultationView({ appt, onLeave }: TuliConsultation
                   </div>
                 </div>
               ) : phase === 'confirm' && det ? (
-                <div>
-                  <p className="text-xs uppercase tracking-[0.14em] text-brand">
-                    Terbaca sebagai · {Math.round(det.conf * 100)}%
-                  </p>
-                  <p className={`${big ? 'text-5xl' : 'text-4xl'} mt-2 font-light tracking-tight`}>{det.a}</p>
-                  <div className="mt-6 flex flex-wrap items-center gap-3">
-                    <Button arrow onClick={() => send(det.a, det.conf)}>
-                      Benar, kirim
-                    </Button>
-                    <Button variant="outline" onClick={() => setPhase('manual')}>
-                      Ubah
-                    </Button>
-                    <button onClick={() => setPhase('ready')} className="px-2 text-sm text-muted hover:text-ink">
-                      Rekam ulang
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="flex size-2 rounded-full bg-amber-500 animate-pulse" />
+                      <span className="text-xs font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                        Status: REVIEW_REQUIRED (Pemeriksaan Jawaban)
+                      </span>
+                    </div>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/10 px-2.5 py-1 text-xs font-medium text-brand border border-brand/20">
+                      <Sparkles className="size-3" />
+                      Keyakinan AI: {Math.round(det.conf * 100)}%
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-medium text-ink">
+                      Apakah teks ini sudah sesuai dengan jawabanmu?
+                    </h3>
+                    <p className="mt-1 text-xs text-muted">
+                      Pesan belum dikirim ke psikolog. Anda dapat memeriksa hasil pengenalan kamera terlebih dahulu.
+                    </p>
+                  </div>
+
+                  <div className="rounded-xl border border-line bg-paper/60 p-4">
+                    <p className="text-xs text-muted uppercase tracking-wider">Hasil Pengenalan Isyarat:</p>
+                    <p className={`${big ? 'text-4xl' : 'text-3xl'} mt-1 font-semibold text-brand tracking-tight`}>
+                      "{det.a}"
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => send(det.a, det.conf)}
+                      className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 transition"
+                    >
+                      <CheckCircle2 className="size-4" />
+                      <span>Benar, Konfirmasi & Kirim</span>
+                      <Volume2 className="size-3.5 opacity-80" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPhase('manual')}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-800 dark:text-amber-200 hover:bg-amber-500/20 transition"
+                    >
+                      <AlertTriangle className="size-4 text-amber-600" />
+                      Koreksi Jawaban
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPhase('ready')}
+                      className="inline-flex items-center gap-1.5 rounded-xl px-3 py-3 text-sm text-muted hover:text-ink transition"
+                    >
+                      <RotateCcw className="size-4" />
+                      Rekam Ulang
                     </button>
                   </div>
                 </div>
               ) : (
-                <div>
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <h3 className="text-2xl font-normal">Pilih jawaban</h3>
-                    {det && det.conf < 0.65 && (
-                      <p className="text-sm text-warn">Isyarat kurang jelas, silakan pilih.</p>
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line pb-3">
+                    <div>
+                      <h3 className="text-xl font-medium">Koreksi Jawaban (Pilih Jawaban Resmi)</h3>
+                      <p className="mt-0.5 text-xs text-muted">
+                        Pilih frasa jawaban resmi BISARA berikut yang sesuai dengan kondisi Anda:
+                      </p>
+                    </div>
+                    {det && (
+                      <button
+                        type="button"
+                        onClick={() => setPhase('confirm')}
+                        className="text-xs text-brand hover:underline"
+                      >
+                        Kembali ke hasil isyarat ("{det.a}")
+                      </button>
                     )}
                   </div>
-                  <div className={`mt-4 grid gap-2 ${isOpening ? 'grid-cols-2' : 'sm:grid-cols-5'}`}>
+                  <div className={`mt-2 grid gap-2.5 ${isOpening ? 'grid-cols-2' : 'sm:grid-cols-5'}`}>
                     {s.options.map((o, i) => (
                       <button
                         key={o}
+                        type="button"
                         onClick={() => send(o)}
-                        className="group flex items-center gap-4 rounded-lg bg-paper px-4 py-3.5 text-left transition hover:bg-brand hover:text-white sm:flex-col sm:items-start sm:gap-4"
+                        className="group flex items-center gap-3 rounded-xl border border-line bg-paper px-4 py-3 text-left transition hover:border-brand hover:bg-brand hover:text-white sm:flex-col sm:items-start sm:gap-2.5 shadow-sm"
                       >
                         {!isOpening && (
-                          <span className="text-2xl font-light text-brand group-hover:text-brand-soft">
+                          <span className="flex size-6 items-center justify-center rounded-md bg-brand/10 text-xs font-semibold text-brand group-hover:bg-white/20 group-hover:text-white">
                             {i}
                           </span>
                         )}
-                        <span className={`${big ? 'text-lg' : 'text-sm'} leading-tight`}>{o}</span>
+                        <span className={`${big ? 'text-base font-semibold' : 'text-sm font-medium'} leading-snug`}>
+                          {o}
+                        </span>
                       </button>
                     ))}
+                  </div>
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setPhase('ready')}
+                      className="inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink transition"
+                    >
+                      <RotateCcw className="size-3.5" />
+                      Batal koreksi, peragakan isyarat kembali
+                    </button>
                   </div>
                 </div>
               )}
