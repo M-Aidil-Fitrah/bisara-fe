@@ -1,5 +1,13 @@
 import { z } from 'zod'
-import { SessionRecordSchema, type Account, type Appt, type SessionRecord } from '../schemas'
+import {
+  SessionDetailSchema,
+  SessionRecordSchema,
+  type Account,
+  type Appt,
+  type SessionDetail,
+  type SessionRecord,
+} from '../schemas'
+import { frontendEnv } from '../config/env'
 
 export class ApiError extends Error {
   constructor(
@@ -12,41 +20,7 @@ export class ApiError extends Error {
   }
 }
 
-const resolveDefaultApiUrl = (): string => {
-  const envUrl = import.meta.env.VITE_API_URL
-  if (envUrl && typeof envUrl === 'string' && envUrl.trim().length > 0) {
-    return envUrl.trim().replace(/\/$/, '')
-  }
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname
-    if (host.includes('staging')) {
-      return 'https://api-staging-bisara.kitakarsa.com/api'
-    }
-    if (host.includes('bisara.kitakarsa.com')) {
-      return 'https://api-bisara.kitakarsa.com/api'
-    }
-  }
-  return 'http://localhost:4000/api'
-}
-
-const resolveDefaultWsUrl = (): string => {
-  const envWs = import.meta.env.VITE_WS_URL
-  if (envWs && typeof envWs === 'string' && envWs.trim().length > 0) {
-    return envWs.trim().replace(/\/$/, '')
-  }
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname
-    if (host.includes('staging')) {
-      return 'wss://api-staging-bisara.kitakarsa.com'
-    }
-    if (host.includes('bisara.kitakarsa.com')) {
-      return 'wss://api-bisara.kitakarsa.com'
-    }
-  }
-  return 'ws://localhost:4000'
-}
-
-const API_BASE_URL = resolveDefaultApiUrl()
+const API_BASE_URL = frontendEnv.VITE_API_URL
 const ApiErrorResponseSchema = z.object({
   success: z.literal(false),
   error: z.object({ code: z.string(), message: z.string() }),
@@ -66,7 +40,7 @@ async function request<T>(path: string, schema: z.ZodType<T>, init: RequestInit 
       },
     })
     if (!response.ok) {
-      const body: unknown = await response.json().catch(() => null)
+      const body = await response.json().catch(() => null)
       const parsed = ApiErrorResponseSchema.safeParse(body)
       throw new ApiError(
         response.status,
@@ -74,7 +48,7 @@ async function request<T>(path: string, schema: z.ZodType<T>, init: RequestInit 
         parsed.success ? parsed.data.error.message : `Permintaan gagal (${response.status})`,
       )
     }
-    const body: unknown = await response.json()
+    const body = await response.json()
     return schema.parse(body)
   } catch (error) {
     if (error instanceof ApiError || error instanceof z.ZodError) throw error
@@ -97,7 +71,7 @@ async function requestEmpty(path: string, init: RequestInit): Promise<void> {
       signal: controller.signal,
     })
     if (!response.ok) {
-      const body: unknown = await response.json().catch(() => null)
+      const body = await response.json().catch(() => null)
       const parsed = ApiErrorResponseSchema.safeParse(body)
       throw new ApiError(
         response.status,
@@ -259,6 +233,28 @@ export const BackendSessionDetailSchema = z.object({
 })
 export type BackendSessionDetail = z.infer<typeof BackendSessionDetailSchema>
 
+export const DashboardStatsSchema = z.object({
+  totalSessions: z.number().int(),
+  completedSessions: z.number().int(),
+  averageScore: z.number().nullable(),
+  averageAccuracy: z.number().nullable(),
+  totalManualCorrections: z.number().int(),
+  scoreDistribution: z.object({
+    rendah: z.number().int(),
+    sedang: z.number().int(),
+    tinggi: z.number().int(),
+  }),
+  cancelledSessions: z.number().int(),
+  sessionsWithScore: z.number().int(),
+  sessionsWithAccuracy: z.number().int(),
+  weeklySessions: z.array(z.object({
+    start: z.string(),
+    end: z.string(),
+    count: z.number().int(),
+  })),
+})
+export type DashboardStats = z.infer<typeof DashboardStatsSchema>
+
 const AdminUserSchema = z.object({
   id: z.string(),
   email: z.string(),
@@ -273,7 +269,7 @@ const AdminUserSchema = z.object({
 })
 export type AdminUser = z.infer<typeof AdminUserSchema>
 
-export const WS_BASE_URL: string = resolveDefaultWsUrl()
+export const WS_BASE_URL = frontendEnv.VITE_WS_URL
 
 export const api = {
   auth: {
@@ -372,8 +368,27 @@ export const api = {
     },
   },
   history: {
-    async list(): Promise<SessionRecord[]> {
-      const result = await request('/history', z.object({ success: z.literal(true), data: z.array(SessionRecordSchema) }))
+    async list(cursor?: string, limit = 25): Promise<{ items: SessionRecord[]; nextCursor: string | null }> {
+      const query = new URLSearchParams({ limit: String(limit) })
+      if (cursor) query.set('cursor', cursor)
+      const result = await request(`/history?${query.toString()}`, z.object({
+        success: z.literal(true),
+        data: z.object({
+          items: z.array(SessionRecordSchema),
+          nextCursor: z.string().nullable(),
+        }),
+      }))
+      return result.data
+    },
+    async detail(id: string): Promise<SessionDetail> {
+      const result = await request(`/history/${encodeURIComponent(id)}`, z.object({
+        success: z.literal(true),
+        data: SessionDetailSchema,
+      }))
+      return result.data
+    },
+    async stats(): Promise<DashboardStats> {
+      const result = await request('/history/stats', z.object({ success: z.literal(true), data: DashboardStatsSchema }))
       return result.data
     },
   },

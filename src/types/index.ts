@@ -7,6 +7,7 @@ export type {
   Msg,
   Role,
   SessionRecord,
+  SessionDetail,
   SessionStatus,
 } from '../schemas'
 export { MessageStatusEnum } from '../schemas'

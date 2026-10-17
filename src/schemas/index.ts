@@ -61,6 +61,8 @@ export type SessionStatus = z.infer<typeof SessionStatusSchema>
 
 export const SessionRecordSchema = z.object({
   id: z.string(),
+  clientId: z.string(),
+  psychologistId: z.string(),
   date: z.string(),
   psikolog: z.string(),
   klien: z.string(),
@@ -70,6 +72,10 @@ export const SessionRecordSchema = z.object({
   manual: z.number(),
   status: SessionStatusSchema,
   notes: z.string().nullable(),
+})
+export type SessionRecord = z.infer<typeof SessionRecordSchema>
+
+export const SessionDetailSchema = SessionRecordSchema.extend({
   lines: z.array(
     z.object({
       from: KindSchema,
@@ -79,4 +85,4 @@ export const SessionRecordSchema = z.object({
     }),
   ),
 })
-export type SessionRecord = z.infer<typeof SessionRecordSchema>
+export type SessionDetail = z.infer<typeof SessionDetailSchema>
