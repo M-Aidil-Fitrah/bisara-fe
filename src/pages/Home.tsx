@@ -4,6 +4,19 @@ import { Plus, Minus } from 'lucide-react'
 import { Button, Eyebrow, SectionHeader } from '../components/ui'
 import { IMG } from '../lib/images'
 
+const featureCards: ReadonlyArray<{
+  image: string
+  eyebrow: string
+  title: string
+  description: string
+  callToAction: string
+  path: string
+}> = [
+  { image: IMG.light, eyebrow: 'Skrining', title: 'Sepuluh butir PSS-10', description: 'Pertanyaan stres tersaji berurutan, dengan ringkasan skor sebagai bahan pertimbangan psikolog.', callToAction: 'Mulai skrining', path: '/session' },
+  { image: IMG.laptop, eyebrow: 'Persiapan', title: 'Siap dalam tiga menit', description: 'Atur cahaya, posisi kamera, dan tampilan berdampingan sebelum sesi dimulai.', callToAction: 'Baca panduan', path: '/guide' },
+  { image: IMG.smile, eyebrow: 'Katalog', title: 'Periksa frasa yang tersedia', description: 'Lihat frasa resmi dan status aset animasi yang benar-benar tercatat pada server.', callToAction: 'Buka katalog', path: '/dictionary' },
+]
+
 export default function Home({ go }: { go?: (p: string) => void }) {
   const navigate = useNavigate()
   const handleNav = (path: string) => {
@@ -57,18 +70,14 @@ export default function Home({ go }: { go?: (p: string) => void }) {
 
       {/* CARDS */}
       <section className="mx-auto grid max-w-6xl gap-5 px-6 pb-28 md:grid-cols-3">
-        {[
-          [IMG.light, 'Skrining', 'Sepuluh butir PSS-10', 'Pertanyaan stres tersaji berurutan, dengan ringkasan skor sebagai bahan pertimbangan psikolog.', 'Mulai skrining', '/session'],
-          [IMG.laptop, 'Persiapan', 'Siap dalam tiga menit', 'Atur cahaya, posisi kamera, dan tampilan berdampingan sebelum sesi dimulai.', 'Baca panduan', '/guide'],
-          [IMG.smile, 'Katalog', 'Periksa frasa yang tersedia', 'Lihat frasa resmi dan status aset animasi yang benar-benar tercatat pada server.', 'Buka katalog', '/dictionary'],
-        ].map(([src, e, t, d, c, p]) => (
-          <article data-reveal key={t} className="flex flex-col rounded-xl bg-ink p-3 text-paper">
-            <img src={src} alt="" className="aspect-[4/3] w-full rounded-lg object-cover" />
+        {featureCards.map((card) => (
+          <article data-reveal key={card.title} className="flex flex-col rounded-xl bg-ink p-3 text-paper">
+            <img src={card.image} alt="" className="aspect-[4/3] w-full rounded-lg object-cover" />
             <div className="flex flex-1 flex-col p-4 pt-6">
-              <Eyebrow light>{e}</Eyebrow>
-              <h3 className="mt-3 text-2xl font-normal leading-tight">{t}</h3>
-              <p className="mt-3 flex-1 text-sm leading-relaxed text-paper/70">{d}</p>
-              <Button variant="light" arrow className="mt-6 self-start" onClick={() => handleNav(p)}>{c}</Button>
+              <Eyebrow light>{card.eyebrow}</Eyebrow>
+              <h3 className="mt-3 text-2xl font-normal leading-tight">{card.title}</h3>
+              <p className="mt-3 flex-1 text-sm leading-relaxed text-paper/70">{card.description}</p>
+              <Button variant="light" arrow className="mt-6 self-start" onClick={() => handleNav(card.path)}>{card.callToAction}</Button>
             </div>
           </article>
         ))}

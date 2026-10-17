@@ -22,6 +22,12 @@ import {
   type TextSize,
 } from '../../lib/a11y'
 
+const TEXT_SIZES: ReadonlyArray<{ id: TextSize; label: string }> = [
+  { id: 'normal', label: '100% Normal' },
+  { id: 'medium', label: '115% Sedang' },
+  { id: 'large', label: '130% Besar' },
+]
+
 export default function AccessibilityWidget() {
   const [isOpen, setIsOpen] = useState(false)
   const [settings, setSettings] = useState<A11ySettings>(() => getStoredA11ySettings())
@@ -46,7 +52,7 @@ export default function AccessibilityWidget() {
   // Handle outside click to close
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+      if (panelRef.current && (!(e.target instanceof Node) || !panelRef.current.contains(e.target))) {
         setIsOpen(false)
       }
     }
@@ -138,16 +144,10 @@ export default function AccessibilityWidget() {
                 <span className="text-xs font-semibold text-ink uppercase tracking-wider">Ukuran Teks</span>
               </div>
               <div className="grid grid-cols-3 gap-1.5">
-                {(
-                  [
-                    { id: 'normal', label: '100% Normal' },
-                    { id: 'medium', label: '115% Sedang' },
-                    { id: 'large', label: '130% Besar' },
-                  ] as const
-                ).map((size) => (
+                {TEXT_SIZES.map((size) => (
                   <button
                     key={size.id}
-                    onClick={() => updateSetting('textSize', size.id as TextSize)}
+                    onClick={() => updateSetting('textSize', size.id)}
                     className={`rounded-lg py-1.5 px-2 text-xs font-medium transition ${
                       settings.textSize === size.id
                         ? 'bg-brand text-white shadow-sm'

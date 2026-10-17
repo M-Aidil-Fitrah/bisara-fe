@@ -28,7 +28,7 @@ export function Eyebrow({ children, light }: { children: ReactNode; light?: bool
 export function SectionHeader({ eyebrow, title, desc, align = 'left', light }: { eyebrow: string; title: ReactNode; desc?: string; align?: 'left' | 'center'; light?: boolean }) {
   return (
     <div data-reveal className={align === 'center' ? 'mx-auto max-w-2xl text-center' : 'max-w-2xl'}>
-      <Eyebrow light={light}>{eyebrow}</Eyebrow>
+      <Eyebrow {...(light === undefined ? {} : { light })}>{eyebrow}</Eyebrow>
       <h2 className={`mt-4 text-4xl font-normal leading-[1.1] tracking-tight sm:text-5xl ${light ? 'text-paper' : 'text-ink'}`}>{title}</h2>
       {desc && <p className={`mt-5 text-lg leading-relaxed ${light ? 'text-paper/75' : 'text-muted'}`}>{desc}</p>}
     </div>

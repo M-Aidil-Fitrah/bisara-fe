@@ -3,14 +3,14 @@ import AvatarCanvas from '../three/AvatarCanvas'
 type Props = {
   signing?: boolean
   className?: string
-  modelUrl?: string
-  actionName?: string
+  modelUrl: string
+  actionName: string
 }
 
 export default function Avatar({
   signing = false,
   className = '',
-  modelUrl = '/models/avatar.glb',
+  modelUrl,
   actionName,
 }: Props) {
   return (

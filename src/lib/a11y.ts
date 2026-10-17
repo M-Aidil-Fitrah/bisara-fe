@@ -90,6 +90,12 @@ export interface VisualToastEventDetail {
   type?: 'info' | 'success' | 'alert'
 }
 
+declare global {
+  interface WindowEventMap {
+    'bisara-visual-toast': CustomEvent<VisualToastEventDetail>
+  }
+}
+
 /**
  * Trigger a prominent visual toast notification for deaf / hard-of-hearing users
  */

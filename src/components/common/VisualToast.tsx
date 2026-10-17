@@ -10,9 +10,8 @@ export default function VisualToast() {
   const [toasts, setToasts] = useState<ActiveToast[]>([])
 
   useEffect(() => {
-    const handleToast = (e: Event) => {
-      const customEvent = e as CustomEvent<VisualToastEventDetail>
-      const detail = customEvent.detail
+    const handleToast = (event: WindowEventMap['bisara-visual-toast']) => {
+      const detail = event.detail
       if (!detail) return
 
       const newToast: ActiveToast = {

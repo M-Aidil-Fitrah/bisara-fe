@@ -5,14 +5,14 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 interface AvatarCanvasProps {
   signing?: boolean
   className?: string
-  modelUrl?: string
-  actionName?: string
+  modelUrl: string
+  actionName: string
 }
 
 export default function AvatarCanvas({
   signing = false,
   className = '',
-  modelUrl = '/models/avatar.glb',
+  modelUrl,
   actionName,
 }: AvatarCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null)
