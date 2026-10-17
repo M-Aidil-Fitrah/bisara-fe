@@ -1,8 +1,7 @@
-import { useMemo, useState } from 'react'
-import { RotateCcw } from 'lucide-react'
+import { useState } from 'react'
 import { Button } from '../ui'
 import { useAppointments } from '../../lib/appointments'
-import { getHistory } from '../../lib/history'
+import { useSessionHistory } from '../../lib/history'
 import type { Appt, SessionRecord } from '../../types'
 import { LobbyHero, LobbyLabel, ScoreTag } from './LobbyShared'
 import { fmtDate } from '../../lib/format'
@@ -90,10 +89,10 @@ function ClientPanel({
 }
 
 export default function PsikologLobby({ name, onStart }: PsikologLobbyProps) {
-  const { list, resetToDefault } = useAppointments()
-  const all = useMemo(() => getHistory(), [])
+  const { list, loading: appointmentsLoading, error: appointmentsError, refetch } = useAppointments()
+  const { history: all, loading: historyLoading, error: historyError } = useSessionHistory()
   const queue = list
-    .filter((a) => a.psikolog === name && a.status !== 'done')
+    .filter((a) => a.status !== 'done' && a.status !== 'cancelled')
     .sort(
       (a, b) =>
         (a.status === 'waiting' ? -1 : 0) - (b.status === 'waiting' ? -1 : 0) ||
@@ -115,7 +114,12 @@ export default function PsikologLobby({ name, onStart }: PsikologLobbyProps) {
         desc={`${queue.length} klien terjadwal${waiting ? ` · ${waiting} sedang di ruang tunggu` : ''}. Pilih klien untuk melihat riwayatnya sebelum memulai sesi.`}
       />
       <div className="mx-auto max-w-6xl space-y-16 px-6 py-12">
-        {queue.length === 0 ? (
+        {(appointmentsError || historyError) && (
+          <p role="alert" className="rounded-xl bg-surface p-6 text-[#b8483e]">{appointmentsError ?? historyError}</p>
+        )}
+        {(appointmentsLoading || historyLoading) ? (
+          <p className="text-muted">Memuat antrean dan riwayat dari server…</p>
+        ) : queue.length === 0 ? (
           <p className="text-muted">Tidak ada jadwal tersisa hari ini.</p>
         ) : (
           <div className="grid gap-5 lg:grid-cols-[1fr_1.4fr]">
@@ -125,12 +129,11 @@ export default function PsikologLobby({ name, onStart }: PsikologLobbyProps) {
                 <LobbyLabel>Antrean</LobbyLabel>
                 <button
                   type="button"
-                  onClick={resetToDefault}
-                  title="Sinkronkan / reset ke antrean bawaan (Rafi Akbar)"
+                  onClick={() => void refetch()}
+                  title="Ambil antrean terbaru dari server"
                   className="inline-flex items-center gap-1 text-[11px] font-medium text-muted hover:text-brand transition cursor-pointer"
                 >
-                  <RotateCcw className="size-3" />
-                  Reset Antrean
+                  Sinkronkan
                 </button>
               </div>
               <ul>
@@ -180,7 +183,7 @@ export default function PsikologLobby({ name, onStart }: PsikologLobbyProps) {
               >
                 <span className="text-sm text-muted">{fmtDate(h.date)}</span>
                 <span className="text-lg sm:order-none">{h.klien}</span>
-                <span className="col-span-2 truncate text-sm text-muted sm:col-span-1">{h.notes}</span>
+                <span className="col-span-2 truncate text-sm text-muted sm:col-span-1">{h.notes ?? 'Tidak ada catatan'}</span>
                 <ScoreTag h={h} />
               </li>
             ))}
