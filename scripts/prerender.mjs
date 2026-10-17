@@ -6,7 +6,20 @@ import { chromium } from '@playwright/test'
 
 const port = 4173
 const origin = `http://127.0.0.1:${port}`
-const routes = ['/', '/fitur', '/one-way', '/ritz', '/dictionary', '/guide', '/about', '/login', '/register']
+const routes = [
+  '/',
+  '/one-way',
+  '/two-way',
+  '/two-way/layanan-psikolog',
+  '/two-way/layanan-psikolog/ritz',
+  '/fitur',
+  '/ritz',
+  '/dictionary',
+  '/guide',
+  '/about',
+  '/login',
+  '/register',
+]
 
 function findChromium() {
   for (const command of ['chromium', 'chromium-browser', 'google-chrome']) {
