@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Button } from '../ui'
+import { login } from '../../lib/auth'
 
 export default function SessionLoginPrompt() {
   return (
@@ -24,6 +25,31 @@ export default function SessionLoginPrompt() {
             Daftar Akun Baru
           </Button>
         </Link>
+      </div>
+
+      {/* 1-Click Demo Login for Testing */}
+      <div className="mt-10 rounded-2xl bg-surface p-5 border border-line max-w-md w-full shadow-sm">
+        <p className="text-xs uppercase tracking-wider text-muted font-semibold mb-3">
+          ⚡ Masuk Kilat Pengujian (1-Klik)
+        </p>
+        <div className="grid grid-cols-2 gap-2.5">
+          <button
+            onClick={() => login('tuli@bisara.id', 'bisara123')}
+            className="flex flex-col items-center justify-center rounded-xl bg-paper p-3 text-ink hover:bg-white border border-line transition shadow-sm group"
+          >
+            <span className="text-lg">👤</span>
+            <span className="text-xs font-semibold mt-1">Teman Tuli</span>
+            <span className="text-[10px] text-muted">Rafi Akbar</span>
+          </button>
+          <button
+            onClick={() => login('psikolog@bisara.id', 'bisara123')}
+            className="flex flex-col items-center justify-center rounded-xl bg-paper p-3 text-ink hover:bg-white border border-line transition shadow-sm group"
+          >
+            <span className="text-lg">🩺</span>
+            <span className="text-xs font-semibold mt-1">Psikolog</span>
+            <span className="text-[10px] text-muted">dr. Nadia Putri</span>
+          </button>
+        </div>
       </div>
     </div>
   )
