@@ -11,6 +11,9 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
+  build: {
+    chunkSizeWarningLimit: 800,
+  },
   server: {
     host: true,
     allowedHosts: ['localhost', '127.0.0.1'],
