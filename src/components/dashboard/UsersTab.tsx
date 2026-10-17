@@ -10,7 +10,7 @@ const fmtDate = (d: string) =>
   new Date(d).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
 
 export default function UsersTab({ onOpenAddPsy }: UsersTabProps) {
-  const users = useUsers()
+  const { users, loading, error } = useUsers()
   const [q, setQ] = useState('')
   const [roleFilter, setRoleFilter] = useState('Semua')
 
@@ -31,10 +31,13 @@ export default function UsersTab({ onOpenAddPsy }: UsersTabProps) {
   const countPsy = users.filter((u) => u.kind === 'psikolog').length
   const countAdmin = users.filter((u) => u.role === 'admin').length
 
-  const handleDelete = (email: string, name: string) => {
+  const handleDelete = async (id: string, email: string, name: string) => {
     if (window.confirm(`Yakin ingin menghapus akun ${name} (${email})?`)) {
-      const ok = deleteUser(email)
-      if (!ok) alert('Tidak dapat menghapus akun yang sedang aktif digunakan.')
+      try {
+        await deleteUser(id)
+      } catch (error) {
+        alert(error instanceof Error ? error.message : 'Pengguna gagal dihapus')
+      }
     }
   }
 
@@ -103,6 +106,9 @@ export default function UsersTab({ onOpenAddPsy }: UsersTabProps) {
       </div>
 
       <div data-dash className="rounded-xl bg-surface p-2">
+        {loading && <p className="p-10 text-center text-muted">Memuat pengguna dari server…</p>}
+        {error && <p role="alert" className="p-10 text-center text-[#b8483e]">{error}</p>}
+        {!loading && !error && (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="text-xs text-muted">
@@ -116,7 +122,7 @@ export default function UsersTab({ onOpenAddPsy }: UsersTabProps) {
             </thead>
             <tbody>
               {filtered.map((u) => {
-                const isCustom = !['tuli@bisara.id', 'psikolog@bisara.id', 'admin@bisara.id'].includes(u.email)
+                const canDelete = u.role !== 'admin'
                 const initials = u.name
                   .replace(/^dr\. /, '')
                   .split(' ')
@@ -153,19 +159,19 @@ export default function UsersTab({ onOpenAddPsy }: UsersTabProps) {
                     </td>
                     <td className="px-4 py-3.5 text-muted">{u.title ?? '-'}</td>
                     <td className="px-4 py-3.5 text-muted">
-                      {u.createdAt ? fmtDate(u.createdAt) : 'Bawaan sistem'}
+                      {u.createdAt ? fmtDate(u.createdAt) : '—'}
                     </td>
                     <td className="px-4 py-3.5 text-right">
-                      {isCustom ? (
+                      {canDelete ? (
                         <button
-                          onClick={() => handleDelete(u.email, u.name)}
+                          onClick={() => void handleDelete(u.id, u.email, u.name)}
                           title="Hapus Pengguna"
                           className="rounded p-1.5 text-muted hover:bg-red-50 hover:text-[#b8483e]"
                         >
                           <Trash2 className="size-4" />
                         </button>
                       ) : (
-                        <span className="text-xs text-muted/60">Akun inti</span>
+                        <span className="text-xs text-muted/60">Dilindungi</span>
                       )}
                     </td>
                   </tr>
@@ -177,6 +183,7 @@ export default function UsersTab({ onOpenAddPsy }: UsersTabProps) {
             <p className="p-10 text-center text-muted">Tidak ada pengguna yang cocok dengan filter.</p>
           )}
         </div>
+        )}
       </div>
     </>
   )

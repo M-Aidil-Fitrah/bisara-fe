@@ -58,8 +58,8 @@ export default function SessionDetailDrawer({ session: s, onClose }: SessionDeta
             {[
               ['Klien', s.klien],
               ['Psikolog', s.psikolog],
-              ['Durasi', `${s.durationMin} menit`],
-              ['Akurasi isyarat', pct(s.accuracy)],
+              ['Durasi', s.durationMin === null ? 'Belum tersedia' : `${s.durationMin} menit`],
+              ['Akurasi isyarat', s.accuracy === null ? 'Belum tersedia' : pct(s.accuracy)],
               ['Jawaban manual', String(s.manual)],
               [
                 'Skor PSS-10',
@@ -74,7 +74,7 @@ export default function SessionDetailDrawer({ session: s, onClose }: SessionDeta
           </dl>
           <div>
             <p className="text-xs uppercase tracking-[0.14em] text-brand">Catatan psikolog</p>
-            <p className="mt-3 rounded-xl bg-surface p-4 leading-relaxed">{s.notes}</p>
+            <p className="mt-3 rounded-xl bg-surface p-4 leading-relaxed">{s.notes ?? 'Tidak ada catatan tersimpan.'}</p>
           </div>
           <div>
             <p className="text-xs uppercase tracking-[0.14em] text-brand">Transkrip Percakapan</p>

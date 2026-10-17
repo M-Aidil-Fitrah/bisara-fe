@@ -15,15 +15,21 @@ const level = (s: number) => (s <= 13 ? 'Rendah' : s <= 26 ? 'Sedang' : 'Tinggi'
 
 export default function OverviewTab({ data, onOpen, goHistory }: OverviewTabProps) {
   const done = data.filter((d) => d.status === 'Selesai')
-  const avg = done.reduce((s, d) => s + (d.score ?? 0), 0) / Math.max(1, done.length)
-  const acc = data.reduce((s, d) => s + d.accuracy, 0) / Math.max(1, data.length)
-  const manual = data.reduce((s, d) => s + d.manual, 0) / Math.max(1, done.length * 12)
+  const scored = done.filter((item): item is SessionRecord & { score: number } => item.score !== null)
+  const avg = scored.length ? scored.reduce((sum, item) => sum + item.score, 0) / scored.length : null
+  const measuredAccuracy = data.filter(
+    (item): item is SessionRecord & { accuracy: number } => item.accuracy !== null,
+  )
+  const acc = measuredAccuracy.length
+    ? measuredAccuracy.reduce((sum, item) => sum + item.accuracy, 0) / measuredAccuracy.length
+    : null
+  const manual = done.length ? done.reduce((sum, item) => sum + item.manual, 0) / (done.length * 10) : null
   const dist = ['Rendah', 'Sedang', 'Tinggi'].map(
     (l) => done.filter((d) => level(d.score ?? 0) === l).length,
   )
 
   const weeks = Array.from({ length: 8 }, (_, i) => {
-    const end = new Date(2026, 9, 29)
+    const end = new Date()
     end.setDate(end.getDate() - (7 - i) * 7)
     const start = new Date(end)
     start.setDate(start.getDate() - 7)
@@ -48,10 +54,10 @@ export default function OverviewTab({ data, onOpen, goHistory }: OverviewTabProp
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          ['Sesi selesai', String(done.length), `${data.length - done.length} dibatalkan`],
-          ['Rata-rata skor PSS-10', avg.toFixed(1), `Kategori ${level(avg).toLowerCase()}`],
-          ['Akurasi pengenalan isyarat', pct(acc), 'Rata-rata keyakinan model'],
-          ['Jawaban manual', pct(manual), 'Dari seluruh jawaban'],
+          ['Sesi selesai', String(done.length), `${data.filter((item) => item.status === 'Dibatalkan').length} dibatalkan`],
+          ['Rata-rata skor PSS-10', avg === null ? '—' : avg.toFixed(1), avg === null ? 'Belum ada skor' : `Kategori ${level(avg).toLowerCase()}`],
+          ['Akurasi pengenalan isyarat', acc === null ? '—' : pct(acc), acc === null ? 'Belum ada hasil model' : 'Rata-rata keyakinan model'],
+          ['Jawaban manual', manual === null ? '—' : pct(manual), manual === null ? 'Belum ada sesi selesai' : 'Dari sepuluh jawaban PSS-10'],
         ].map(([l, v, h]) => (
           <div key={l} data-dash className="rounded-xl bg-surface p-6">
             <p className="text-sm text-muted">{l}</p>
@@ -142,7 +148,7 @@ export default function OverviewTab({ data, onOpen, goHistory }: OverviewTabProp
                         <p className="text-xs text-muted">{fmtDate(r.date)} · {fmtTime(r.date)}</p>
                       </td>
                       <td className="px-3 py-3.5">{r.klien}</td>
-                      <td className="px-3 py-3.5 text-muted">{r.durationMin} mnt</td>
+                      <td className="px-3 py-3.5 text-muted">{r.durationMin === null ? '—' : `${r.durationMin} mnt`}</td>
                       <td className="px-3 py-3.5">
                         {r.status === 'Dibatalkan' || r.score === null ? (
                           <span className="rounded-md bg-paper px-2 py-1 text-xs text-muted">Dibatalkan</span>
@@ -169,19 +175,17 @@ export default function OverviewTab({ data, onOpen, goHistory }: OverviewTabProp
         </div>
 
         <div data-dash className="rounded-xl bg-surface p-6">
-          <p className="text-xs uppercase tracking-[0.14em] text-brand">Perlu ditambah ke kosakata</p>
-          <p className="mt-2 text-sm text-muted">Kata yang sering muncul tetapi masih memakai alfabet jari.</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-brand">Kualitas data sesi</p>
+          <p className="mt-2 text-sm text-muted">Ringkasan berdasarkan rekaman sesi dari backend.</p>
           <ul className="mt-4 divide-y divide-line border-t border-line">
             {[
-              ['Yakin', 31],
-              ['Hari ini', 24],
-              ['Masalah', 19],
-              ['Keluarga', 12],
-              ['Tidur', 9],
-            ].map(([w, n]) => (
-              <li key={w} className="flex items-center justify-between py-3 text-sm">
-                <span>{w}</span>
-                <span className="text-muted">{n}× diminta</span>
+              ['Sesi dengan skor PSS-10', scored.length],
+              ['Sesi dengan akurasi model', measuredAccuracy.length],
+              ['Sesi tanpa akurasi model', data.filter((item) => item.accuracy === null).length],
+            ].map(([label, value]) => (
+              <li key={label} className="flex items-center justify-between py-3 text-sm">
+                <span>{label}</span>
+                <span className="text-muted">{value}</span>
               </li>
             ))}
           </ul>

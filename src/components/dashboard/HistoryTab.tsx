@@ -106,8 +106,10 @@ export default function HistoryTab({ data, onOpen }: HistoryTabProps) {
                     </td>
                     <td className="px-3 py-3.5">{r.klien}</td>
                     <td className="px-3 py-3.5 text-muted">{r.psikolog}</td>
-                    <td className="px-3 py-3.5 text-muted">{r.durationMin} mnt</td>
-                    <td className="px-3 py-3.5 text-muted">{pct(r.accuracy)}</td>
+                    <td className="px-3 py-3.5 text-muted">{r.durationMin === null ? '—' : `${r.durationMin} mnt`}</td>
+                    <td className="px-3 py-3.5 text-muted">
+                      {r.accuracy === null ? 'Belum tersedia' : pct(r.accuracy)}
+                    </td>
                     <td className="px-3 py-3.5">
                       {r.status === 'Dibatalkan' || r.score === null ? (
                         <span className="rounded-md bg-paper px-2 py-1 text-xs text-muted">Dibatalkan</span>

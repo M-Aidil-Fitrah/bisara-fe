@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import gsap from 'gsap'
-import { getHistory } from '../lib/history'
-import { useAuth } from '../lib/auth'
+import { useSessionHistory } from '../lib/history'
+import { useAuthState } from '../lib/auth'
 import type { Account, SessionRecord } from '../types'
 import DashboardSidebar, { type TabKey } from '../components/dashboard/DashboardSidebar'
 import DashboardHeader from '../components/dashboard/DashboardHeader'
@@ -20,8 +20,8 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ user: propUser }: DashboardProps) {
-  const authUser = useAuth()
-  const user = propUser || authUser
+  const { user: authUser, loading: authLoading, error: authError } = useAuthState()
+  const user = propUser !== undefined ? propUser : authUser
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -33,6 +33,7 @@ export default function Dashboard({ user: propUser }: DashboardProps) {
   const [openSession, setOpenSession] = useState<SessionRecord | null>(null)
   const [showAddPsy, setShowAddPsy] = useState(false)
   const mainRef = useRef<HTMLElement>(null)
+  const { history: data, loading: historyLoading, error: historyError } = useSessionHistory()
 
   const setTab = (t: TabKey) => {
     setSearchParams({ tab: t })
@@ -52,6 +53,14 @@ export default function Dashboard({ user: propUser }: DashboardProps) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [tab])
 
+  if (propUser === undefined && authLoading) {
+    return <div className="grid min-h-screen place-items-center text-muted">Memeriksa hak akses…</div>
+  }
+
+  if (propUser === undefined && authError) {
+    return <div role="alert" className="grid min-h-screen place-items-center p-6 text-center text-[#b8483e]">{authError}</div>
+  }
+
   if (!user || user.role !== 'admin') {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center p-6 text-center">
@@ -66,8 +75,6 @@ export default function Dashboard({ user: propUser }: DashboardProps) {
       </div>
     )
   }
-
-  const data = getHistory()
 
   return (
     <div className="flex min-h-screen bg-paper text-ink">
@@ -86,14 +93,16 @@ export default function Dashboard({ user: propUser }: DashboardProps) {
         />
 
         <main ref={mainRef} className="px-4 py-8 sm:px-8 sm:py-10">
-          {tab === 'overview' && (
+          {['overview', 'history', 'psikolog'].includes(tab) && historyLoading && <p className="mb-6 rounded-xl bg-surface p-6 text-muted">Memuat data sesi dari server…</p>}
+          {['overview', 'history', 'psikolog'].includes(tab) && historyError && <p role="alert" className="mb-6 rounded-xl bg-surface p-6 text-[#b8483e]">{historyError}</p>}
+          {!historyLoading && !historyError && tab === 'overview' && (
             <OverviewTab
               data={data}
               onOpen={setOpenSession}
               goHistory={() => setTab('history')}
             />
           )}
-          {tab === 'history' && (
+          {!historyLoading && !historyError && tab === 'history' && (
             <HistoryTab
               data={data}
               onOpen={setOpenSession}
@@ -104,7 +113,7 @@ export default function Dashboard({ user: propUser }: DashboardProps) {
               onOpenAddPsy={() => setShowAddPsy(true)}
             />
           )}
-          {tab === 'psikolog' && (
+          {!historyLoading && !historyError && tab === 'psikolog' && (
             <PsychologistsTab
               data={data}
               onOpenAddPsy={() => setShowAddPsy(true)}
