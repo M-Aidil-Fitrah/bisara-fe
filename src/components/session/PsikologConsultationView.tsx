@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Mic, Play, Pause } from 'lucide-react'
+import { Mic, Play, Pause, Video, Bot } from 'lucide-react'
 import { Button } from '../ui'
 import { ANSWERS } from '../../data'
 import { useLiveSession, STEPS, SIGN_MS, speak } from '../../lib/live'
@@ -7,6 +7,7 @@ import { saveSession, scorePss, level } from '../../lib/history'
 import type { Appt, Msg } from '../../types'
 import SessionHeader from './SessionHeader'
 import AvatarStage from './AvatarStage'
+import VideoCallStage from './VideoCallStage'
 import VoiceWave from './VoiceWave'
 import { formatMsgTime } from './MessageBubble'
 import { useScrollBottom } from './useScrollBottom'
@@ -29,6 +30,7 @@ export default function PsikologConsultationView({
   const [notes, setNotes] = useState('')
   const [saved, setSaved] = useState(false)
   const [playing, setPlaying] = useState<number | null>(null)
+  const [leftTab, setLeftTab] = useState<'video' | 'avatar'>('video')
   const timers = useRef<number[]>([])
   const chat = useScrollBottom(s.msgs.length)
   const lastAns = useRef(s.answers.length)
@@ -119,13 +121,57 @@ export default function PsikologConsultationView({
       />
       <div className="mx-auto max-w-7xl space-y-5 px-4 py-6 sm:px-6">
         <div className="grid gap-5 lg:grid-cols-[1fr_1.15fr]">
-          <AvatarStage
-            className="aspect-[4/3] lg:aspect-auto lg:min-h-[520px]"
-            signing={signing}
-            caption={
-              lastQ ? lastQ.text : <span className="text-paper/50">Avatar akan memperagakan ucapan Anda.</span>
-            }
-          />
+          {/* Left Column: Client Live Video Call or 3D Avatar Preview */}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between rounded-xl bg-surface p-1.5 border border-line">
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setLeftTab('video')}
+                  className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                    leftTab === 'video'
+                      ? 'bg-brand text-white shadow-sm'
+                      : 'text-muted hover:text-ink'
+                  }`}
+                >
+                  <Video className="size-3.5" />
+                  Video Tatap Muka Klien
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLeftTab('avatar')}
+                  className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                    leftTab === 'avatar'
+                      ? 'bg-brand text-white shadow-sm'
+                      : 'text-muted hover:text-ink'
+                  }`}
+                >
+                  <Bot className="size-3.5" />
+                  Pratinjau Avatar 3D
+                </button>
+              </div>
+              <span className="hidden sm:inline-block text-[11px] font-mono text-muted pr-2">
+                P2P Real-time
+              </span>
+            </div>
+
+            {leftTab === 'video' ? (
+              <VideoCallStage
+                sessionId={appt.id}
+                role="psikolog"
+                partnerName={`Klien: ${appt.klien}`}
+                className="aspect-[4/3] lg:aspect-auto lg:min-h-[460px] lg:flex-1"
+              />
+            ) : (
+              <AvatarStage
+                className="aspect-[4/3] lg:aspect-auto lg:min-h-[460px] lg:flex-1"
+                signing={signing}
+                caption={
+                  lastQ ? lastQ.text : <span className="text-paper/50">Avatar akan memperagakan ucapan Anda.</span>
+                }
+              />
+            )}
+          </div>
 
           {/* Chat with voice replies */}
           <div className="flex min-h-[420px] flex-col rounded-xl bg-surface">

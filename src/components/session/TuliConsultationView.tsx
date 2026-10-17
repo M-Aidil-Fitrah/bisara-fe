@@ -6,7 +6,7 @@ import { useLiveSession, STEPS, SIGN_MS } from '../../lib/live'
 import type { Appt } from '../../types'
 import SessionHeader from './SessionHeader'
 import AvatarStage from './AvatarStage'
-import CameraPreview from './CameraPreview'
+import VideoCallStage from './VideoCallStage'
 import MessageBubble from './MessageBubble'
 import { useScrollBottom } from './useScrollBottom'
 
@@ -86,18 +86,12 @@ export default function TuliConsultationView({ appt, onLeave }: TuliConsultation
       <div className="mx-auto grid max-w-7xl gap-5 px-4 py-6 sm:px-6 lg:grid-cols-2">
         {/* Left: call + chat */}
         <div className="flex flex-col gap-5">
-          <div className="relative aspect-video overflow-hidden rounded-xl bg-ink">
-            <img
-              src={img(psi?.photo ?? 'photo-1573495804664-b1c0849525af', 1200)}
-              alt={`Video ${appt.psikolog}`}
-              className="size-full object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent to-transparent" />
-            <p className="absolute bottom-3 left-4 text-sm text-paper">{appt.psikolog}</p>
-            <div className="absolute bottom-3 right-3 w-28 overflow-hidden rounded-lg ring-2 ring-paper/80 sm:w-36">
-              <CameraPreview active={phase === 'detecting'} small />
-            </div>
-          </div>
+          <VideoCallStage
+            sessionId={appt.id}
+            role="tuli"
+            partnerName={appt.psikolog}
+            partnerPhoto={img(psi?.photo ?? 'photo-1573495804664-b1c0849525af', 1200)}
+          />
 
           <div className="flex min-h-[280px] flex-1 flex-col rounded-xl bg-surface">
             <p className="border-b border-line px-5 py-3 text-xs uppercase tracking-[0.14em] text-brand">
