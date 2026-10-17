@@ -11,6 +11,8 @@ export interface AvatarStageProps {
   setSpeed?: (n: number) => void
   onReplay?: () => void
   className?: string
+  modelUrl?: string
+  actionName?: string
 }
 
 export default function AvatarStage({
@@ -22,6 +24,8 @@ export default function AvatarStage({
   setSpeed,
   onReplay,
   className = '',
+  modelUrl,
+  actionName,
 }: AvatarStageProps) {
   const cap = useRef<HTMLParagraphElement>(null)
 
@@ -38,13 +42,19 @@ export default function AvatarStage({
   return (
     <div className={`relative overflow-hidden rounded-xl bg-ink ${className}`}>
       <div className="absolute inset-0 bg-[radial-gradient(60%_55%_at_50%_40%,#2a5c8c_0%,transparent_70%)] opacity-70" />
-      <div className="absolute inset-x-0 top-[7%] mx-auto h-[62%] w-fit">
-        <Avatar signing={signing} className="h-full w-auto" />
-      </div>
+      {modelUrl && actionName ? (
+        <div className="absolute inset-x-0 top-[7%] mx-auto h-[62%] w-fit">
+          <Avatar signing={signing} modelUrl={modelUrl} actionName={actionName} className="h-full w-auto" />
+        </div>
+      ) : (
+        <div className="absolute inset-x-6 top-1/3 text-center text-sm text-paper/60">
+          Animasi BISINDO tervalidasi belum tersedia untuk frasa ini. Teks tetap ditampilkan.
+        </div>
+      )}
       <div className="absolute inset-x-3 top-3 flex items-center justify-between gap-2">
         <span className="flex items-center gap-2 rounded-md bg-ink/60 px-2.5 py-1.5 text-xs text-paper/80 backdrop-blur">
           <span className={`size-1.5 rounded-full ${signing ? 'animate-pulse bg-[#7fd1a8]' : 'bg-paper/40'}`} />
-          {signing ? 'Berisyarat' : 'Avatar BISINDO'}
+          {modelUrl && actionName ? (signing ? 'Berisyarat' : 'Avatar BISINDO') : 'Teks saja'}
         </span>
         {setSpeed && (
           <div className="flex items-center gap-1 rounded-md bg-ink/60 p-1 text-xs text-paper/80 backdrop-blur">

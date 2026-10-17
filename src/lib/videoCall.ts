@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Peer, { type MediaConnection } from 'peerjs'
+import { WS_BASE_URL } from '../api/client'
 
 export type CallStatus = 'initializing' | 'waiting' | 'calling' | 'connected' | 'error'
 
@@ -8,13 +9,6 @@ interface UseVideoCallOptions {
   role: 'tuli' | 'psikolog'
   onPartnerConnected?: () => void
   onPartnerDisconnected?: () => void
-}
-
-/**
- * Clean alphanumeric ID for PeerJS compatibility
- */
-function cleanId(raw: string): string {
-  return raw.replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase()
 }
 
 export function useVideoCall({
@@ -27,245 +21,170 @@ export function useVideoCall({
   const [isCameraOn, setIsCameraOn] = useState(true)
   const [isMicOn, setIsMicOn] = useState(true)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
-
-  const onConnectedRef = useRef(onPartnerConnected)
-  const onDisconnectedRef = useRef(onPartnerDisconnected)
-  useEffect(() => {
-    onConnectedRef.current = onPartnerConnected
-    onDisconnectedRef.current = onPartnerDisconnected
-  }, [onPartnerConnected, onPartnerDisconnected])
-
   const localStreamRef = useRef<MediaStream | null>(null)
   const remoteStreamRef = useRef<MediaStream | null>(null)
   const peerRef = useRef<Peer | null>(null)
   const currentCallRef = useRef<MediaConnection | null>(null)
-
+  const targetPeerRef = useRef<string | null>(null)
   const localVideoRef = useRef<HTMLVideoElement | null>(null)
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null)
 
-  // Normalisasi room ID agar Laptop dan Smartphone selalu terhubung ke ruang konsultasi yang sama persis
-  const sId = cleanId(sessionId || 'bisara_consultation')
-  const myPeerId = role === 'psikolog' ? `bsr-psi-${sId}` : `bsr-tuli-${sId}`
-  const targetPeerId = role === 'psikolog' ? `bsr-tuli-${sId}` : `bsr-psi-${sId}`
-
-  // Attach streams to video elements
   const attachStreams = useCallback(() => {
-    if (localVideoRef.current && localStreamRef.current) {
-      localVideoRef.current.srcObject = localStreamRef.current
-    }
-    if (remoteVideoRef.current && remoteStreamRef.current) {
-      remoteVideoRef.current.srcObject = remoteStreamRef.current
-      remoteVideoRef.current.play().catch(() => {})
-    }
+    if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current
+    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStreamRef.current
   }, [])
 
-  // Call target peer
-  const callPartner = useCallback(() => {
-    if (!peerRef.current || peerRef.current.destroyed) return
-    if (currentCallRef.current && currentCallRef.current.open) return
-
-    setCallStatus('calling')
-    const streamToSend = localStreamRef.current || new MediaStream()
-    const call = peerRef.current.call(targetPeerId, streamToSend)
-    if (!call) return
-
+  const bindCall = useCallback((call: MediaConnection) => {
+    currentCallRef.current?.close()
     currentCallRef.current = call
-
     call.on('stream', (remoteStream) => {
       remoteStreamRef.current = remoteStream
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = remoteStream
-        remoteVideoRef.current.play().catch(() => {})
+        void remoteVideoRef.current.play()
       }
       setCallStatus('connected')
-      onConnectedRef.current?.()
+      onPartnerConnected?.()
     })
-
     call.on('close', () => {
       currentCallRef.current = null
       remoteStreamRef.current = null
       if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null
       setCallStatus('waiting')
-      onDisconnectedRef.current?.()
+      onPartnerDisconnected?.()
     })
+    call.on('error', () => setCallStatus('error'))
+  }, [onPartnerConnected, onPartnerDisconnected])
 
-    call.on('error', (err) => {
-      console.warn('Call attempt error:', err)
-      currentCallRef.current = null
-      setCallStatus('waiting')
-    })
-  }, [targetPeerId])
+  const callPartner = useCallback(() => {
+    const peer = peerRef.current
+    const target = targetPeerRef.current
+    const stream = localStreamRef.current
+    if (!peer || peer.destroyed || !target || !stream || currentCallRef.current?.open) return
+    setCallStatus('calling')
+    const call = peer.call(target, stream)
+    if (call) bindCall(call)
+  }, [bindCall])
 
   useEffect(() => {
     let mounted = true
+    const peerHost = import.meta.env.VITE_PEER_HOST
+    const turnUrl = import.meta.env.VITE_TURN_URL
+    const turnUsername = import.meta.env.VITE_TURN_USERNAME
+    const turnCredential = import.meta.env.VITE_TURN_CREDENTIAL
+    if (!peerHost || !turnUrl || !turnUsername || !turnCredential) {
+      queueMicrotask(() => {
+        if (!mounted) return
+        setCallStatus('error')
+        setErrorMsg('Video dinonaktifkan: PeerServer dan TURN aman belum dikonfigurasi.')
+      })
+      return () => { mounted = false }
+    }
 
-    // 1. Get user media dengan fallback fleksibel untuk smartphone Android / Safari iOS
-    async function startMedia() {
-      let stream: MediaStream | null = null
-
+    const coordination = new WebSocket(WS_BASE_URL)
+    let joined = false
+    let ownPeerId: string | null = null
+    const announcePeer = () => {
+      if (joined && ownPeerId && coordination.readyState === WebSocket.OPEN) {
+        coordination.send(JSON.stringify({
+          type: 'PEER_READY', payload: { sessionId, peerId: ownPeerId },
+        }))
+      }
+    }
+    const start = async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'user',
-            width: { ideal: 640 },
-            height: { ideal: 480 },
-          },
-          audio: true,
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+          audio: { echoCancellation: true, noiseSuppression: true },
         })
-      } catch (err1) {
-        console.warn('getUserMedia audio+video gagal, mencoba video saja:', err1)
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'user' },
-            audio: false,
-          })
-        } catch {
-          try {
-            stream = await navigator.mediaDevices.getUserMedia({ video: true })
-          } catch (err3) {
-            console.warn('Kamera tidak dapat diakses:', err3)
-            setErrorMsg('Izin kamera/mikrofon belum aktif. Mohon izinkan akses kamera di peramban.')
-          }
+        if (!mounted) {
+          stream.getTracks().forEach((track) => track.stop())
+          return
         }
-      }
-
-      if (!mounted) {
-        if (stream) stream.getTracks().forEach((t) => t.stop())
-        return
-      }
-
-      if (stream) {
         localStreamRef.current = stream
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream
-          localVideoRef.current.play().catch(() => {})
+          void localVideoRef.current.play()
         }
-      }
 
-      // 2. Inisialisasi PeerJS client (mendukung custom PeerServer di VPS Coolify)
-      try {
-        const customHost = import.meta.env.VITE_PEER_HOST
-        const customPort = import.meta.env.VITE_PEER_PORT ? Number(import.meta.env.VITE_PEER_PORT) : 443
-        const customPath = import.meta.env.VITE_PEER_PATH || '/'
-        const customSecure = import.meta.env.VITE_PEER_SECURE !== 'false'
-
-        const iceServers = [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' },
-          { urls: 'stun:stun2.l.google.com:19302' },
-        ]
-
-        const peerOptions = customHost
-          ? {
-              host: customHost,
-              port: customPort,
-              path: customPath,
-              secure: customSecure,
-              config: { iceServers },
-            }
-          : {
-              config: { iceServers },
-            }
-
-        const peer = new Peer(myPeerId, peerOptions)
-
+        const peer = new Peer(crypto.randomUUID(), {
+          host: peerHost,
+          port: Number(import.meta.env.VITE_PEER_PORT || 443),
+          path: import.meta.env.VITE_PEER_PATH || '/',
+          secure: import.meta.env.VITE_PEER_SECURE !== 'false',
+          config: {
+            iceServers: [{
+              urls: turnUrl,
+              username: turnUsername,
+              credential: turnCredential,
+            }],
+            iceTransportPolicy: 'relay',
+          },
+        })
         peerRef.current = peer
-
-        peer.on('open', () => {
-          if (!mounted) return
+        peer.on('open', (peerId) => {
           setCallStatus('waiting')
-          // Psikolog bertindak sebagai inisiator utama
-          if (role === 'psikolog') {
-            setTimeout(() => {
-              if (mounted) callPartner()
-            }, 1000)
-          }
+          ownPeerId = peerId
+          announcePeer()
         })
-
-        // Menjawab panggilan masuk
-        peer.on('call', (incomingCall) => {
-          if (!mounted) return
-          currentCallRef.current = incomingCall
-
-          // Jawab dengan stream lokal jika ada
-          incomingCall.answer(localStreamRef.current || undefined)
-
-          incomingCall.on('stream', (remoteStream) => {
-            remoteStreamRef.current = remoteStream
-            if (remoteVideoRef.current) {
-              remoteVideoRef.current.srcObject = remoteStream
-              remoteVideoRef.current.play().catch(() => {})
-            }
-            setCallStatus('connected')
-            onConnectedRef.current?.()
-          })
-
-          incomingCall.on('close', () => {
-            currentCallRef.current = null
-            setCallStatus('waiting')
-            remoteStreamRef.current = null
-            if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null
-            onDisconnectedRef.current?.()
-          })
+        peer.on('call', (incoming) => {
+          incoming.answer(stream)
+          bindCall(incoming)
         })
-
-        peer.on('error', (err) => {
-          console.warn('PeerJS notice:', err.type)
-          if (err.type === 'peer-unavailable') {
-            setCallStatus('waiting')
-          } else {
-            setErrorMsg(err.message)
-          }
+        peer.on('error', (error) => {
+          setCallStatus('error')
+          setErrorMsg(`Koneksi video gagal: ${error.type}`)
         })
-      } catch (peerInitErr) {
-        console.error('PeerJS init failed:', peerInitErr)
+      } catch {
+        setCallStatus('error')
+        setErrorMsg('Akses kamera dan mikrofon diperlukan untuk video konsultasi.')
       }
     }
 
-    startMedia()
-
-    // Polling berkala: Psikolog memanggil berkala sampai terhubung
-    const pollInterval = setInterval(() => {
-      if (peerRef.current && (!currentCallRef.current || !currentCallRef.current.open)) {
-        if (role === 'psikolog') {
-          callPartner()
+    coordination.onopen = () => {
+      coordination.send(JSON.stringify({ type: 'JOIN_ROOM', payload: { sessionId } }))
+      void start()
+    }
+    coordination.onmessage = (event) => {
+      try {
+        const message = JSON.parse(String(event.data)) as {
+          type?: string
+          payload?: { peerId?: string; role?: 'TULI' | 'PSIKOLOG' }
         }
+        const partnerRole = role === 'psikolog' ? 'TULI' : 'PSIKOLOG'
+        if (message.type === 'ROOM_JOINED') {
+          joined = true
+          announcePeer()
+        } else if (message.type === 'PEER_READY' && message.payload?.role === partnerRole && message.payload.peerId) {
+          targetPeerRef.current = message.payload.peerId
+          if (role === 'psikolog') callPartner()
+        }
+      } catch {
+        setErrorMsg('Koordinasi video mengirim data tidak valid.')
       }
-    }, 3000)
+    }
 
     return () => {
       mounted = false
-      clearInterval(pollInterval)
-      if (currentCallRef.current) currentCallRef.current.close()
-      if (peerRef.current) peerRef.current.destroy()
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach((track) => track.stop())
-      }
+      coordination.close()
+      currentCallRef.current?.close()
+      peerRef.current?.destroy()
+      localStreamRef.current?.getTracks().forEach((track) => track.stop())
     }
-  }, [myPeerId, role, callPartner])
+  }, [bindCall, callPartner, role, sessionId])
 
-  // Toggle Camera
   const toggleCamera = useCallback(() => {
-    if (localStreamRef.current) {
-      const videoTracks = localStreamRef.current.getVideoTracks()
-      const nextState = !isCameraOn
-      videoTracks.forEach((track) => {
-        track.enabled = nextState
-      })
-      setIsCameraOn(nextState)
-    }
+    const tracks = localStreamRef.current?.getVideoTracks() ?? []
+    const next = !isCameraOn
+    tracks.forEach((track) => { track.enabled = next })
+    setIsCameraOn(next)
   }, [isCameraOn])
 
-  // Toggle Microphone
   const toggleMic = useCallback(() => {
-    if (localStreamRef.current) {
-      const audioTracks = localStreamRef.current.getAudioTracks()
-      const nextState = !isMicOn
-      audioTracks.forEach((track) => {
-        track.enabled = nextState
-      })
-      setIsMicOn(nextState)
-    }
+    const tracks = localStreamRef.current?.getAudioTracks() ?? []
+    const next = !isMicOn
+    tracks.forEach((track) => { track.enabled = next })
+    setIsMicOn(next)
   }, [isMicOn])
 
   return {
