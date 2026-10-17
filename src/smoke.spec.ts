@@ -19,23 +19,36 @@ test('public service routes load and preserve accessible navigation', async ({ p
 test('USER and ADMIN are paired into an active Ritz room', async ({ browser }) => {
   const email = process.env.BISARA_SMOKE_ADMIN_EMAIL
   const password = process.env.BISARA_SMOKE_ADMIN_PASSWORD
-  test.skip(!email || !password, 'Kredensial admin smoke tidak tersedia')
-  const user = await browser.newContext(); const admin = await browser.newContext()
+  if (!email || !password) {
+    test.skip(true, 'Kredensial admin smoke tidak tersedia')
+    return
+  }
+  const user = await browser.newContext({ permissions: ['camera', 'microphone'] }); const admin = await browser.newContext({ permissions: ['camera', 'microphone'] })
   const userPage = await user.newPage(); const adminPage = await admin.newPage()
   const memberEmail = `smoke-${Date.now()}@example.test`
-  await userPage.goto(`${baseUrl}/register`)
-  await userPage.getByLabel('Nama lengkap').fill('Smoke User')
-  await userPage.getByLabel('Email').fill(memberEmail)
-  await userPage.locator('input[type="password"]').fill('SmokePassword123!')
-  await userPage.getByRole('button', { name: 'Daftar' }).click()
-  await userPage.getByRole('button', { name: 'Masuk antrean layanan' }).click()
-  await expect(userPage.getByText('Menunggu pendamping Ritz.')).toBeVisible()
-  await adminPage.goto(`${baseUrl}/login`)
-  await adminPage.getByLabel('Email').fill(email)
-  await adminPage.locator('input[type="password"]').fill(password)
-  await adminPage.getByRole('button', { name: 'Masuk' }).click()
-  await adminPage.getByRole('button', { name: 'Masuk antrean layanan' }).click()
-  await expect(adminPage.getByText('Pilih jawaban Anda')).toBeVisible({ timeout: 10_000 })
-  await expect(userPage.getByText('Pilih jawaban Anda')).toBeVisible({ timeout: 10_000 })
-  await user.close(); await admin.close()
+  try {
+    await userPage.goto(`${baseUrl}/register`)
+    await userPage.getByLabel('Nama lengkap').fill('Smoke User')
+    await userPage.getByLabel('Email').fill(memberEmail)
+    await userPage.locator('input[type="password"]').fill('SmokePassword123!')
+    await userPage.getByRole('button', { name: 'Daftar' }).click()
+    await userPage.getByRole('button', { name: 'Masuk antrean layanan' }).click()
+    await expect(userPage.getByText('Menunggu pendamping Ritz.')).toBeVisible()
+    await adminPage.goto(`${baseUrl}/login`)
+    await adminPage.getByLabel('Email').fill(email)
+    await adminPage.locator('input[type="password"]').fill(password)
+    await adminPage.getByRole('button', { name: 'Masuk' }).click()
+    await adminPage.getByRole('button', { name: 'Masuk antrean layanan' }).click()
+    await expect(adminPage.getByText('Pilih jawaban Anda')).toBeVisible({ timeout: 10_000 })
+    await expect(userPage.getByText('Pilih jawaban Anda')).toBeVisible({ timeout: 10_000 })
+    await expect(userPage.locator('video')).toHaveCount(2)
+    await userPage.getByLabel('Pesan chat').fill('Pesan smoke sementara')
+    await userPage.getByRole('button', { name: 'Kirim' }).click()
+    await expect(adminPage.getByText('Smoke User: Pesan smoke sementara')).toBeVisible({ timeout: 10_000 })
+    await userPage.getByRole('button', { name: 'Akhiri layanan' }).click()
+    await expect(userPage).toHaveURL(`${baseUrl}/ritz`)
+  } finally {
+    await user.close()
+    await admin.close()
+  }
 })
