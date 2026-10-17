@@ -131,50 +131,74 @@ export default function AvatarCanvas({
         const size = box.getSize(new THREE.Vector3())
         const center = box.getCenter(new THREE.Vector3())
 
-        // Apply prototype visual styling based strictly on material names
+        // Reconstruct exact Blender styling: dark shoes, denim pants, teal shirt, hands/forearms skin, warm skin head/neck, espresso hair
         model.traverse((child) => {
           if (child instanceof THREE.Mesh && child.material) {
             const mats = Array.isArray(child.material) ? child.material : [child.material]
             mats.forEach((mat) => {
               if (mat instanceof THREE.MeshStandardMaterial) {
                 if (mat.name.includes('Outfit')) {
-                  // Teal / Tosca shirt on torso, natural skin tone on neck & head
-                  mat.color.set(new THREE.Color('#5ea6a0'))
-                  mat.roughness = 0.55
-                  mat.onBeforeCompile = (shader) => {
-                    shader.vertexShader = shader.vertexShader.replace(
-                      '#include <common>',
-                      `#include <common>
-                       varying vec3 vLocalPos;`,
-                    )
-                    shader.vertexShader = shader.vertexShader.replace(
-                      '#include <begin_vertex>',
-                      `#include <begin_vertex>
-                       vLocalPos = position;`,
-                    )
-                    shader.fragmentShader = shader.fragmentShader.replace(
-                      '#include <common>',
-                      `#include <common>
-                       varying vec3 vLocalPos;`,
-                    )
-                    shader.fragmentShader = shader.fragmentShader.replace(
-                      '#include <color_fragment>',
-                      `#include <color_fragment>
-                       // Separate head/neck (skin) from shirt (teal)
-                       vec3 skinCol = vec3(0.87, 0.72, 0.61);
-                       vec3 shirtCol = vec3(0.37, 0.65, 0.63);
-                       float isHead = smoothstep(3.45, 3.62, vLocalPos.y);
-                       diffuseColor.rgb = mix(shirtCol, skinCol, isHead);`,
-                    )
+                  const geo = child.geometry
+                  const posAttr = geo.attributes.position
+                  const skinIndices = geo.attributes.skinIndex
+                  const skinWeights = geo.attributes.skinWeight
+
+                  if (posAttr) {
+                    const count = posAttr.count
+                    const colors = new Float32Array(count * 3)
+
+                    const shoesCol = new THREE.Color('#222426')
+                    const pantsCol = new THREE.Color('#3b5773')
+                    const shirtCol = new THREE.Color('#5ea6a0')
+                    const skinCol = new THREE.Color('#deb89b')
+
+                    // Hand and forearm bones (forearm, hand, fingers L & R)
+                    const handJoints = new Set([
+                      7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+                      25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40
+                    ])
+
+                    for (let i = 0; i < count; i++) {
+                      const y = posAttr.getY(i)
+                      let handWeight = 0
+
+                      if (skinIndices && skinWeights) {
+                        for (let s = 0; s < 4; s++) {
+                          const joint = skinIndices.getComponent(i, s)
+                          const weight = skinWeights.getComponent(i, s)
+                          if (handJoints.has(joint)) handWeight += weight
+                        }
+                      }
+
+                      let chosenCol = shirtCol
+                      if (handWeight > 0.35) {
+                        chosenCol = skinCol
+                      } else if (y < 0.25) {
+                        chosenCol = shoesCol
+                      } else if (y < 1.72) {
+                        chosenCol = pantsCol
+                      } else if (y < 3.40) {
+                        chosenCol = shirtCol
+                      } else {
+                        chosenCol = skinCol
+                      }
+
+                      colors[i * 3] = chosenCol.r
+                      colors[i * 3 + 1] = chosenCol.g
+                      colors[i * 3 + 2] = chosenCol.b
+                    }
+
+                    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+                    mat.vertexColors = true
+                    mat.color.setHex(0xffffff)
+                    mat.roughness = 0.55
+                    mat.needsUpdate = true
                   }
-                  mat.needsUpdate = true
                 } else if (mat.name.includes('Skin')) {
-                  // Natural warm sand skin tone from prototype
                   mat.color.set(new THREE.Color('#deb89b'))
                   mat.roughness = 0.5
                   mat.needsUpdate = true
                 } else if (mat.name.includes('Hair')) {
-                  // Soft espresso brown hair from prototype
                   mat.color.set(new THREE.Color('#38241b'))
                   mat.roughness = 0.6
                   mat.needsUpdate = true
@@ -193,7 +217,7 @@ export default function AvatarCanvas({
         model.position.y = -box.min.y * scale
         model.position.z = -center.z * scale
 
-        // Frame upper body (chest, shoulders, face) perfectly centered matching prototype
+        // Frame upper body (chest, shoulders, face) perfectly matching Blender view
         camera.position.set(0, 1.25, 1.55)
         camera.lookAt(0, 1.18, 0)
 
