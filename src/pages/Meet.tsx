@@ -58,7 +58,7 @@ export default function Meet() {
     socket,
     socketJoined,
   })
-  const aiAssist = useAiAssistance(room?.id ?? '', videoCall.localStream)
+  const aiAssist = useAiAssistance(room?.id ?? '', videoCall.localStream, videoCall.playTts)
 
   const videoCallRef = useRef(videoCall)
   useEffect(() => {

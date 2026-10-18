@@ -3,7 +3,7 @@ import { api, ApiError, type AiPrediction } from '../api/client'
 
 export type AiAssistStatus = 'idle' | 'countdown' | 'recording' | 'processing' | 'reviewing' | 'error'
 
-export function useAiAssistance(roomId: string, localStream: MediaStream | null) {
+export function useAiAssistance(roomId: string, localStream: MediaStream | null, playTts: (audio: Blob) => Promise<void>) {
   const [status, setStatus] = useState<AiAssistStatus>('idle')
   const [seconds, setSeconds] = useState(0)
   const [prediction, setPrediction] = useState<AiPrediction | null>(null)
@@ -74,10 +74,8 @@ export function useAiAssistance(roomId: string, localStream: MediaStream | null)
 
   const speak = useCallback(async () => {
     if (!roomId || !text.trim()) return
-    const audio = new Audio(URL.createObjectURL(await api.ai.tts(roomId, text.trim())))
-    audio.onended = () => URL.revokeObjectURL(audio.src)
-    await audio.play()
-  }, [roomId, text])
+    await playTts(await api.ai.tts(roomId, text.trim()))
+  }, [playTts, roomId, text])
 
   return { status, seconds, prediction, text, error, setText, start, reset, speak }
 }

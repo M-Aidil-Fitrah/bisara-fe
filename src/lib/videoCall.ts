@@ -23,7 +23,11 @@ export function useVideoCall({ roomId, socket, socketJoined }: UseVideoCallOptio
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null)
 
   const localStreamRef = useRef<MediaStream | null>(null)
+  const outgoingStreamRef = useRef<MediaStream | null>(null)
   const remoteStreamRef = useRef<MediaStream | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const audioDestinationRef = useRef<MediaStreamAudioDestinationNode | null>(null)
+  const micSourceRef = useRef<MediaStreamAudioSourceNode | null>(null)
   const peerRef = useRef<Peer | null>(null)
   const currentCallRef = useRef<MediaConnection | null>(null)
   const targetPeerRef = useRef<string | null>(null)
@@ -74,6 +78,9 @@ export function useVideoCall({ roomId, socket, socketJoined }: UseVideoCallOptio
       return false
     }
     currentCallRef.current = call
+    const outgoingAudio = audioDestinationRef.current?.stream.getAudioTracks()[0] ?? null
+    const audioSender = call.peerConnection.getSenders().find((sender) => sender.track?.kind === 'audio')
+    if (audioSender && outgoingAudio) void audioSender.replaceTrack(outgoingAudio).catch(() => {})
 
     call.on('stream', (stream) => {
       remoteStreamRef.current = stream
@@ -126,7 +133,7 @@ export function useVideoCall({ roomId, socket, socketJoined }: UseVideoCallOptio
   const callPartner = useCallback(() => {
     const peer = peerRef.current
     const target = targetPeerRef.current
-    const stream = localStreamRef.current
+    const stream = outgoingStreamRef.current
 
     if (!peer || peer.destroyed || !target || !stream) {
       return
@@ -213,6 +220,14 @@ export function useVideoCall({ roomId, socket, socketJoined }: UseVideoCallOptio
         }
 
         localStreamRef.current = stream
+        const audioContext = new AudioContext()
+        const destination = audioContext.createMediaStreamDestination()
+        const micSource = audioContext.createMediaStreamSource(new MediaStream(stream.getAudioTracks()))
+        micSource.connect(destination)
+        audioContextRef.current = audioContext
+        audioDestinationRef.current = destination
+        micSourceRef.current = micSource
+        outgoingStreamRef.current = new MediaStream([...stream.getVideoTracks(), ...destination.stream.getAudioTracks()])
         setLocalStream(stream)
 
         if (localVideoRef.current) {
@@ -244,7 +259,7 @@ export function useVideoCall({ roomId, socket, socketJoined }: UseVideoCallOptio
         peer.on('call', (incoming) => {
           if (!mounted) return
           if (!bindCall(incoming)) return
-          incoming.answer(localStreamRef.current ?? stream)
+          incoming.answer(outgoingStreamRef.current ?? stream)
         })
 
         peer.on('error', (err) => {
@@ -272,6 +287,13 @@ export function useVideoCall({ roomId, socket, socketJoined }: UseVideoCallOptio
       peerRef.current = null
       localStreamRef.current?.getTracks().forEach((track) => track.stop())
       localStreamRef.current = null
+      outgoingStreamRef.current = null
+      micSourceRef.current?.disconnect()
+      micSourceRef.current = null
+      audioDestinationRef.current = null
+      const audioContext = audioContextRef.current
+      audioContextRef.current = null
+      if (audioContext) void audioContext.close()
       remoteStreamRef.current = null
       setLocalStream(null)
       setRemoteStream(null)
@@ -320,6 +342,18 @@ export function useVideoCall({ roomId, socket, socketJoined }: UseVideoCallOptio
     setIsMicOn(next)
   }, [isMicOn])
 
+  const playTts = useCallback(async (audio: Blob): Promise<void> => {
+    const context = audioContextRef.current
+    const destination = audioDestinationRef.current
+    if (!context || !destination) throw new Error('Audio panggilan belum siap')
+    if (context.state === 'suspended') await context.resume()
+    const buffer = await context.decodeAudioData(await audio.arrayBuffer())
+    const source = context.createBufferSource()
+    source.buffer = buffer
+    source.connect(destination)
+    source.start()
+  }, [])
+
   return {
     callStatus,
     isCameraOn,
@@ -331,6 +365,7 @@ export function useVideoCall({ roomId, socket, socketJoined }: UseVideoCallOptio
     remoteVideoRef,
     toggleCamera,
     toggleMic,
+    playTts,
     callPartner,
     handleRemotePeerReady,
     handleRemotePeerLeft,
