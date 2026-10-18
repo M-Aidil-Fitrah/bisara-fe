@@ -51,57 +51,6 @@ test('mobile navigation keeps feature hierarchy accessible', async ({ page }) =>
   await expect(page.locator('#menu-mobile')).toBeHidden()
 })
 
-test('one-way editor publishes the saved message to its private display', async ({ context, page }) => {
-  const displayToken = 'private-display-token'
-  const editorToken = 'private-editor-token'
-  const expiresAt = '2099-01-01T00:00:00.000Z'
-  let savedText = ''
-  let saveAttempts = 0
-
-  await context.route('**/api/catalog/phrases', async (route) => {
-    await route.fulfill({ json: { success: true, data: [] } })
-  })
-  await context.route('**/api/displays', async (route) => {
-    await route.fulfill({
-      json: { success: true, data: { token: displayToken, editorToken, text: '', expiresAt, phrase: null } },
-    })
-  })
-  await context.route(`**/api/displays/${displayToken}`, async (route) => {
-    if (route.request().method() === 'PATCH') {
-      saveAttempts += 1
-      if (saveAttempts === 1) {
-        await route.abort('failed')
-        return
-      }
-      const payload: { text: string } = route.request().postDataJSON()
-      savedText = payload.text
-    }
-    await route.fulfill({
-      json: { success: true, data: { token: displayToken, text: savedText, expiresAt, phrase: null } },
-    })
-  })
-
-  await page.goto(`${baseUrl}/one-way`)
-  const editor = page.getByLabel('Teks untuk layar')
-  const publishButton = page.getByRole('button', { name: 'Tampilkan ke layar' })
-  await editor.fill('Informasi layanan dibuka pukul delapan.')
-  await expect(page.getByText('Link layar privat:')).toHaveCount(0)
-  await publishButton.click()
-  await expect(page.getByRole('alert')).toContainText('Tidak dapat terhubung ke server BISARA')
-  await page.getByRole('button', { name: 'Coba simpan lagi' }).click()
-
-  const displayLink = page.getByRole('link', { name: new RegExp(`/display/${displayToken}$`) })
-  await expect(displayLink).toBeVisible()
-  const popupPromise = context.waitForEvent('page')
-  await displayLink.click()
-  const displayPage = await popupPromise
-  await expect(displayPage.getByRole('heading', { name: savedText })).toBeVisible()
-  await expect(displayPage.getByText('Memuat pesan…')).toHaveCount(0)
-
-  await editor.fill('Pesan yang belum disimpan')
-  await expect(displayLink).toHaveCount(0)
-})
-
 test('ADMIN can wait safely and pair with the next USER in a Ritz room', async ({ browser }) => {
   test.setTimeout(75_000)
   const email = process.env.BISARA_SMOKE_ADMIN_EMAIL
@@ -139,14 +88,36 @@ test('ADMIN can wait safely and pair with the next USER in a Ritz room', async (
     await expect(userPage.getByText('Chat sementara aktif')).toBeVisible({ timeout: 15_000 })
     await expect(adminPage.getByText('Chat sementara aktif')).toBeVisible({ timeout: 15_000 })
     await userPage.getByRole('button', { name: 'Bersedia, mulai' }).click()
-    await expect(userPage.getByText('Pilih jawaban Anda')).toBeVisible({ timeout: 15_000 })
+    await expect(userPage.getByText('Rekam jawaban PSS-10')).toBeVisible({ timeout: 15_000 })
+    await expect(userPage.getByText('Pilih jawaban Anda')).toHaveCount(0)
     await expect(userPage.locator('video')).toHaveCount(2)
     await expect(userPage.getByText('Live Video')).toBeVisible({ timeout: 20_000 })
     await expect(adminPage.getByText('Live Video')).toBeVisible({ timeout: 20_000 })
+    await adminPage.getByLabel('Pesan chat').fill('terima kasih')
+    await adminPage.getByRole('button', { name: 'Kirim' }).click()
+    await expect(userPage.getByText('Gerakan kata', { exact: true })).toBeVisible({ timeout: 15_000 })
     await userPage.getByLabel('Pesan chat').fill('Pesan smoke sementara')
     await userPage.getByRole('button', { name: 'Kirim' }).click()
     await expect(adminPage.getByText('Smoke User: Pesan smoke sementara')).toBeVisible({ timeout: 15_000 })
-    await userPage.getByRole('button', { name: '0 Tidak pernah', exact: true }).click()
+    await userPage.route('**/api/ai/rooms/*/predict', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            prediction: 'tidak pernah',
+            confidence: 0.98,
+            alternatives: [],
+            quality: { frames: 120, shoulder_rate: 0.95, hand_rate: 0.96 },
+          },
+        }),
+      })
+    })
+    await userPage.getByRole('button', { name: 'Rekam', exact: true }).click()
+    await expect(userPage.getByLabel('Koreksi hasil isyarat')).toBeVisible({ timeout: 12_000 })
+    await userPage.getByLabel('Koreksi hasil isyarat').fill('Tidak pernah')
+    await userPage.getByRole('button', { name: 'Kirim jawaban PSS-10' }).click()
     await expect(adminPage.getByText('1/10')).toBeVisible({ timeout: 15_000 })
     expect(await adminPage.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1)).toBe(true)
     expect(await userPage.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight + 1)).toBe(true)

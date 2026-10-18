@@ -13,11 +13,13 @@ import VideoCallStage from '../components/session/VideoCallStage'
 import AvatarStage from '../components/session/AvatarStage'
 import type { ChatMessage } from '../components/session/MessageBubble'
 import ChatPanel from '../components/session/ChatPanel'
-import PssResponseCard from '../components/session/PssResponseCard'
 import WaitingRoom from '../components/session/WaitingRoom'
 import ConsultationGuide from '../components/session/ConsultationGuide'
 import PssSummary from '../components/session/PssSummary'
 import AiSignComposer from '../components/session/AiSignComposer'
+import SignSequencePlayer from '../components/display/SignSequencePlayer'
+import { usePhraseCatalog } from '../lib/catalog'
+import { parsePssAnswer } from '../lib/pssAnswer'
 
 const CONSENT_MESSAGE = 'Bersedia, mulai.'
 
@@ -41,10 +43,12 @@ export default function Meet() {
   const [room, setRoom] = useState<Meeting | null>(null)
   const [pss, setPss] = useState<PssRoom | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
   const [partnerOnline, setPartnerOnline] = useState(false)
   const [remoteCaption, setRemoteCaption] = useState('')
   const [consultationStarted, setConsultationStarted] = useState(false)
+  const [gestureFeedback, setGestureFeedback] = useState<string | null>(null)
+  const [adminSign, setAdminSign] = useState<{ text: string; answerCount: number } | null>(null)
+  const pssAnswerCountRef = useRef(0)
 
   // Avatar stage controls
   const [speed, setSpeed] = useState(1)
@@ -60,6 +64,7 @@ export default function Meet() {
   const chatScrollRef = useRef<HTMLDivElement>(null)
 
   const role: 'USER' | 'ADMIN' = user?.role === 'admin' ? 'ADMIN' : 'USER'
+  const { phrases } = usePhraseCatalog()
 
   // Video Call integration
   const videoCall = useVideoCall({
@@ -157,6 +162,7 @@ export default function Meet() {
         } else if (msg.type === 'CHAT') {
           const { text, sender } = msg.payload
           if (text === CONSENT_MESSAGE) setConsultationStarted(true)
+          if (sender.role === 'ADMIN') setAdminSign({ text, answerCount: pssAnswerCountRef.current })
           setMessages((prev) => [
             ...prev,
             {
@@ -232,6 +238,17 @@ export default function Meet() {
   const itemNumber = current ? current.itemNumber : 10
   const totalItems = pss?.items.length || 10
   const screeningActive = consultationStarted || (pss?.answers.length ?? 0) > 0 || isDone
+  const answerCount = pss?.answers.length ?? 0
+  useEffect(() => {
+    pssAnswerCountRef.current = answerCount
+  }, [answerCount])
+  const signText = isDone
+    ? 'Terima kasih sudah mau berbagi.'
+    : adminSign?.answerCount === answerCount
+      ? adminSign.text
+      : screeningActive
+        ? current?.questionText ?? ''
+        : adminSign?.text ?? ''
 
   // Trigger signing when new question loads
   useEffect(() => {
@@ -244,16 +261,15 @@ export default function Meet() {
     }
   }, [asset, speed])
 
-  const submitAnswer = async (value: number) => {
-    if (!room || !current) return
-    setBusy(true)
+  const submitAnswer = async (value: number): Promise<boolean> => {
+    if (!room || !current) return false
     try {
       const nextPss = await api.pss.answer(room.id, current.id, value)
       setPss(nextPss)
+      return true
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.message : 'Jawaban gagal disimpan')
-    } finally {
-      setBusy(false)
+      return false
     }
   }
 
@@ -268,16 +284,28 @@ export default function Meet() {
     setChatInput('')
   }
 
-  const sendAiMessage = () => {
+  const sendAiMessage = async () => {
     const value = aiAssist.text.trim()
     if (!value || !socket || socket.readyState !== WebSocket.OPEN || !room) return
+
+    if (role === 'USER' && screeningActive && current) {
+      const answer = parsePssAnswer(value)
+      if (answer === null) {
+        setGestureFeedback('Jawaban belum dikenali. Perbaiki teks menjadi salah satu dari lima pilihan PSS-10 sebelum mengirim.')
+        return
+      }
+      if (!(await submitAnswer(answer))) return
+    }
+
     socket.send(JSON.stringify({ type: 'CHAT', payload: { roomId: room.id, text: value, source: 'AI' } }))
+    setGestureFeedback(null)
     aiAssist.reset()
   }
 
   const consentToScreening = () => {
     if (!socket || socket.readyState !== WebSocket.OPEN || !room) return
     socket.send(JSON.stringify({ type: 'CHAT', payload: { roomId: room.id, text: CONSENT_MESSAGE } }))
+    setAdminSign(null)
     setConsultationStarted(true)
   }
 
@@ -341,8 +369,8 @@ export default function Meet() {
         {room?.status === 'WAITING' && <WaitingRoom partnerName={room.partner.name} onCancel={endSession} />}
 
         {/* Role-aware consultation workspace */}
-        {room?.status === 'ACTIVE' && (
-          <div className={`grid min-h-0 flex-1 gap-3 lg:h-[calc(100vh-5.5rem)] ${role === 'ADMIN' ? 'lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,.75fr)_minmax(260px,.6fr)]' : 'lg:grid-cols-[minmax(0,1.35fr)_minmax(330px,.8fr)]'}`}>
+        {room?.status === 'ACTIVE' && role === 'ADMIN' && (
+          <div className="grid min-h-0 flex-1 gap-3 lg:h-[calc(100vh-5.5rem)] lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,.75fr)_minmax(260px,.6fr)]">
             <div className="flex min-h-0 flex-col gap-3">
               <VideoCallStage
                 partnerName={partnerPeerName}
@@ -359,8 +387,6 @@ export default function Meet() {
                 className="min-h-[260px] flex-1"
               />
               <ConsultationGuide role={role} started={screeningActive} canConsent={socketJoined} onConsent={consentToScreening} />
-              {role === 'USER' && <AiSignComposer status={aiAssist.status} seconds={aiAssist.seconds} text={aiAssist.text} confidence={aiAssist.prediction?.confidence ?? 0} error={aiAssist.error} onTextChange={aiAssist.setText} onStart={aiAssist.start} onReset={aiAssist.reset} onSend={sendAiMessage} />}
-              {role === 'USER' && <ChatPanel messages={messages} input={chatInput} status={chatStatus} big={big} mineRole={role} scrollRef={chatScrollRef} onInputChange={setChatInput} onSubmit={sendChat} className="h-56 shrink-0" />}
             </div>
 
             <div className="flex min-h-0 flex-col gap-3">
@@ -379,15 +405,54 @@ export default function Meet() {
                 modelUrl={asset?.glbUrl ?? '/models/avatar.glb'}
                 actionName={asset?.animationName}
               />
-              {role === 'ADMIN' ? (
-                <ChatPanel messages={messages} input={chatInput} status={chatStatus} big={big} mineRole={role} scrollRef={chatScrollRef} onInputChange={setChatInput} onSubmit={sendChat} listening={speechCaption.listening} speechSupported={speechCaption.supported} speechError={speechCaption.error} onToggleSpeech={speechCaption.listening ? speechCaption.stop : speechCaption.start} onSpeakMessage={(text) => void speakMessage(text)} className="flex-1" />
-              ) : screeningActive ? (
-                <PssResponseCard current={current} isDone={isDone} totalItems={totalItems} busy={busy} big={big} score={pss?.score} onAnswer={(value) => void submitAnswer(value)} onEnd={endSession} />
-              ) : (
-                <div className="rounded-2xl border border-line bg-surface p-4 text-sm text-muted">Setelah Anda menekan <strong className="text-ink">Bersedia, mulai</strong>, sepuluh pertanyaan PSS-10 akan tampil di sini.</div>
-              )}
+              <ChatPanel messages={messages} input={chatInput} status={chatStatus} big={big} mineRole={role} scrollRef={chatScrollRef} onInputChange={setChatInput} onSubmit={sendChat} listening={speechCaption.listening} speechSupported={speechCaption.supported} speechError={speechCaption.error} onToggleSpeech={speechCaption.listening ? speechCaption.stop : speechCaption.start} onSpeakMessage={(text) => void speakMessage(text)} className="flex-1" />
             </div>
-            {role === 'ADMIN' && <PssSummary pss={pss} />}
+            <PssSummary pss={pss} />
+          </div>
+        )}
+
+        {room?.status === 'ACTIVE' && role === 'USER' && (
+          <div className="grid min-h-0 flex-1 gap-3 lg:h-[calc(100vh-5.5rem)] lg:grid-cols-[minmax(0,1.08fr)_minmax(420px,.92fr)] lg:grid-rows-[minmax(340px,1fr)_auto]">
+            <VideoCallStage
+              partnerName={partnerPeerName}
+              callStatus={videoCall.callStatus}
+              isCameraOn={videoCall.isCameraOn}
+              isMicOn={videoCall.isMicOn}
+              errorMsg={videoCall.errorMsg}
+              localVideoRef={videoCall.localVideoRef}
+              remoteVideoRef={videoCall.remoteVideoRef}
+              toggleCamera={videoCall.toggleCamera}
+              toggleMic={videoCall.toggleMic}
+              callPartner={videoCall.callPartner}
+              caption={remoteCaption}
+              className="min-h-[340px] h-full lg:aspect-auto"
+            />
+
+            <section className="relative min-h-[340px]" aria-label="Penerjemah BISINDO">
+              <SignSequencePlayer text={signText} phrases={phrases} emptyText="Pesan psikolog yang dikirim akan diterjemahkan menjadi gerakan di sini." className="h-full min-h-[340px]" />
+              <div className="pointer-events-none absolute inset-x-3 top-3 z-20 flex items-start justify-between gap-3">
+                <span className="rounded-lg border border-white/10 bg-ink/80 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-paper backdrop-blur">Avatar BISINDO</span>
+                {screeningActive && current && <p className="max-w-[72%] rounded-lg border border-white/10 bg-ink/80 px-3 py-2 text-right text-xs leading-relaxed text-paper backdrop-blur">Pertanyaan {current.itemNumber}: {current.questionText}</p>}
+              </div>
+            </section>
+
+            <div className="grid gap-3 lg:col-span-2 lg:grid-cols-[minmax(220px,.72fr)_minmax(320px,1fr)_minmax(380px,1.25fr)]">
+              <ConsultationGuide role={role} started={screeningActive} canConsent={socketJoined} onConsent={consentToScreening} />
+              <AiSignComposer
+                status={aiAssist.status}
+                seconds={aiAssist.seconds}
+                text={aiAssist.text}
+                confidence={aiAssist.prediction?.confidence ?? 0}
+                error={aiAssist.error}
+                feedback={gestureFeedback}
+                screeningActive={screeningActive && !isDone}
+                onTextChange={(value) => { setGestureFeedback(null); aiAssist.setText(value) }}
+                onStart={() => { setGestureFeedback(null); aiAssist.start() }}
+                onReset={() => { setGestureFeedback(null); aiAssist.reset() }}
+                onSend={() => void sendAiMessage()}
+              />
+              <ChatPanel messages={messages} input={chatInput} status={chatStatus} big={false} mineRole={role} scrollRef={chatScrollRef} onInputChange={setChatInput} onSubmit={sendChat} className="h-[178px] min-h-0" />
+            </div>
           </div>
         )}
 

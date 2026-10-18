@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { findActiveMotionRange } from '../lib/animationTiming'
 import type { AnimationClipTiming } from '../lib/signSequence'
 
 interface AvatarCanvasProps {
@@ -12,7 +11,6 @@ interface AvatarCanvasProps {
   onAnimationsLoaded?: ((clips: AnimationClipTiming[]) => void) | undefined
   framing?: 'upper-body' | 'thigh-up'
   animationStartOffsetMs?: number
-  animationEndOffsetMs?: number | undefined
   actionKey?: string
 }
 
@@ -21,7 +19,8 @@ const SIGN_TRACK_PATTERN = /(hand|forearm|upper_arm|shoulder|index|middle|ring|p
 function measureMotionRange(clip: THREE.AnimationClip): AnimationClipTiming {
   const tracks = clip.tracks.filter((track) => SIGN_TRACK_PATTERN.test(track.name))
   const selectedTracks = tracks.length > 0 ? tracks : clip.tracks
-  const motionByTime = new Map<number, number>()
+  let activeStart = Number.POSITIVE_INFINITY
+  let activeEnd = 0
 
   for (const track of selectedTracks) {
     const valueSize = track.getValueSize()
@@ -32,22 +31,18 @@ function measureMotionRange(clip: THREE.AnimationClip): AnimationClipTiming {
         const previous = track.values[(frame - 1) * valueSize + offset] ?? 0
         difference += Math.abs(current - previous)
       }
-      const timeMs = Math.round((track.times[frame] ?? clip.duration) * 1_000)
-      motionByTime.set(timeMs, (motionByTime.get(timeMs) ?? 0) + difference)
+      if (difference < 0.0005) continue
+      activeStart = Math.min(activeStart, (track.times[frame - 1] ?? 0) * 1_000)
+      activeEnd = Math.max(activeEnd, (track.times[frame] ?? clip.duration) * 1_000)
     }
   }
 
   const durationMs = clip.duration * 1_000
-  const motionRange = findActiveMotionRange(
-    [...motionByTime.entries()]
-      .sort(([left], [right]) => left - right)
-      .map(([timeMs, motion]) => ({ timeMs, motion })),
-    durationMs,
-  )
   return {
     name: clip.name,
     durationMs,
-    ...motionRange,
+    activeStartMs: Number.isFinite(activeStart) ? activeStart : 0,
+    activeEndMs: activeEnd > 0 ? activeEnd : durationMs,
   }
 }
 
@@ -59,7 +54,6 @@ export default function AvatarCanvas({
   onAnimationsLoaded,
   framing = 'upper-body',
   animationStartOffsetMs = 0,
-  animationEndOffsetMs,
   actionKey = '',
 }: AvatarCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null)
@@ -71,15 +65,13 @@ export default function AvatarCanvas({
   const actionNameRef = useRef(actionName)
   const actionKeyRef = useRef(actionKey)
   const animationStartOffsetRef = useRef(animationStartOffsetMs)
-  const animationEndOffsetRef = useRef(animationEndOffsetMs)
 
   useEffect(() => {
     signingRef.current = signing
     actionNameRef.current = actionName
     actionKeyRef.current = actionKey
     animationStartOffsetRef.current = animationStartOffsetMs
-    animationEndOffsetRef.current = animationEndOffsetMs
-  }, [signing, actionName, actionKey, animationStartOffsetMs, animationEndOffsetMs])
+  }, [signing, actionName, actionKey, animationStartOffsetMs])
 
   useEffect(() => {
     const mount = mountRef.current
@@ -282,18 +274,16 @@ export default function AvatarCanvas({
     )
 
     let reqId = 0
-    const timer = new THREE.Timer()
-    timer.connect(document)
+    const clock = new THREE.Clock()
     let isIntersecting = true
 
-    const animate = (timestamp?: number) => {
+    const animate = () => {
       if (disposed || document.hidden || !isIntersecting) {
         reqId = 0
         return
       }
       reqId = requestAnimationFrame(animate)
-      timer.update(timestamp)
-      const delta = timer.getDelta()
+      const delta = clock.getDelta()
       // GLB Mixer update
       if (mixer) {
         mixer.update(delta)
@@ -319,7 +309,6 @@ export default function AvatarCanvas({
             currentAction.fadeOut(0.25)
           }
           targetAction.reset()
-          targetAction.paused = false
           if (targetAction === signAction) {
             targetAction.setLoop(THREE.LoopOnce, 1)
             targetAction.clampWhenFinished = true
@@ -327,15 +316,6 @@ export default function AvatarCanvas({
           }
           targetAction.fadeIn(0.25).play()
           currentAction = targetAction
-        }
-
-        const activeAction = currentAction
-        if (activeAction && activeAction === signAction && animationEndOffsetRef.current !== undefined) {
-          const endTime = Math.min(animationEndOffsetRef.current / 1_000, activeAction.getClip().duration)
-          if (activeAction.time >= endTime) {
-            activeAction.time = endTime
-            activeAction.paused = true
-          }
         }
       }
 
@@ -345,7 +325,7 @@ export default function AvatarCanvas({
 
     const resumeAnimation = () => {
       if (!reqId && !document.hidden && isIntersecting && !disposed) {
-        timer.reset()
+        clock.start()
         animate()
       }
     }
@@ -388,7 +368,6 @@ export default function AvatarCanvas({
       window.removeEventListener('resize', handleResize)
       document.removeEventListener('visibilitychange', handleVisibility)
       observer.disconnect()
-      timer.dispose()
       renderer.dispose()
       scene.traverse((object) => {
         if (!(object instanceof THREE.Mesh)) return

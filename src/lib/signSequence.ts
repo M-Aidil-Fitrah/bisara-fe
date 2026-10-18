@@ -7,7 +7,6 @@ export type SignStep = {
   actionName: string
   durationMs: number
   startOffsetMs: number
-  endOffsetMs: number
   kind: 'word' | 'letter'
   hasAnimation: boolean
 }
@@ -39,10 +38,10 @@ function findAlphabetAction(letter: string, clips: AnimationClipTiming[]): Anima
   return clips.find((clip) => candidates.includes(normalizeAction(clip.name)))
 }
 
-function playbackTiming(clip: AnimationClipTiming): { durationMs: number; startOffsetMs: number; endOffsetMs: number } {
-  const startOffsetMs = Math.min(Math.max(0, clip.activeStartMs - 80), clip.durationMs)
-  const endOffsetMs = Math.min(clip.durationMs, Math.max(clip.activeEndMs + 80, startOffsetMs + 400))
-  return { startOffsetMs, endOffsetMs, durationMs: endOffsetMs - startOffsetMs + 180 }
+function playbackTiming(clip: AnimationClipTiming): { durationMs: number; startOffsetMs: number } {
+  const startOffsetMs = Math.max(0, clip.activeStartMs - 80)
+  const activeEndMs = Math.max(clip.activeEndMs, startOffsetMs + 400)
+  return { startOffsetMs, durationMs: activeEndMs - startOffsetMs + 550 }
 }
 
 export function buildSignSequence(text: string, phrases: Phrase[], localClips: AnimationClipTiming[]): SignStep[] {
@@ -68,7 +67,7 @@ export function buildSignSequence(text: string, phrases: Phrase[], localClips: A
       const asset = catalogMatch.phrase.animations[0]
       if (asset) {
         const localClip = asset.glbUrl === LOCAL_MODEL_URL ? localActions.get(normalizeAction(asset.animationName)) : undefined
-        const timing = localClip ? playbackTiming(localClip) : { startOffsetMs: 0, endOffsetMs: asset.durationMs, durationMs: Math.max(asset.durationMs + 300, 1_100) }
+        const timing = localClip ? playbackTiming(localClip) : { startOffsetMs: 0, durationMs: Math.max(asset.durationMs + 550, 1_350) }
         steps.push({ id: `word-${index}-${asset.id}`, label: catalogMatch.phrase.text, modelUrl: asset.glbUrl, actionName: asset.animationName, ...timing, kind: 'word', hasAnimation: true })
         index += catalogMatch.words.length
         continue
@@ -90,7 +89,7 @@ export function buildSignSequence(text: string, phrases: Phrase[], localClips: A
     } else {
       for (const [letterIndex, letter] of [...word].entries()) {
         const alphabetClip = findAlphabetAction(letter, localClips)
-        const timing = alphabetClip ? playbackTiming(alphabetClip) : { startOffsetMs: 0, endOffsetMs: 900, durationMs: 1_100 }
+        const timing = alphabetClip ? playbackTiming(alphabetClip) : { startOffsetMs: 0, durationMs: 1_100 }
         steps.push({ id: `letter-${index}-${letterIndex}-${letter}`, label: letter.toLocaleUpperCase('id-ID'), modelUrl: LOCAL_MODEL_URL, actionName: alphabetClip?.name ?? '', ...timing, kind: 'letter', hasAnimation: Boolean(alphabetClip) })
       }
     }

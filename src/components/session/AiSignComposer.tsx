@@ -1,9 +1,41 @@
 import { Camera, RotateCcw, Send } from 'lucide-react'
 import type { AiAssistStatus } from '../../hooks/useAiAssistance'
 
-interface AiSignComposerProps { status: AiAssistStatus; seconds: number; text: string; confidence: number; error: string | null; onTextChange: (value: string) => void; onStart: () => void; onReset: () => void; onSend: () => void }
+interface AiSignComposerProps {
+  status: AiAssistStatus
+  seconds: number
+  text: string
+  confidence: number
+  error: string | null
+  feedback?: string | null
+  screeningActive?: boolean
+  onTextChange: (value: string) => void
+  onStart: () => void
+  onReset: () => void
+  onSend: () => void
+}
 
-export default function AiSignComposer({ status, seconds, text, confidence, error, onTextChange, onStart, onReset, onSend }: AiSignComposerProps) {
+export default function AiSignComposer({ status, seconds, text, confidence, error, feedback, screeningActive = false, onTextChange, onStart, onReset, onSend }: AiSignComposerProps) {
   const busy = status === 'countdown' || status === 'recording' || status === 'processing'
-  return <section className="rounded-2xl border border-line bg-surface p-3" aria-label="Terjemahkan isyarat"><div className="flex items-center justify-between gap-3"><div><h2 className="text-sm font-semibold">Rekam isyarat 4 detik</h2><p className="text-[11px] text-muted">Video tanpa audio, dihapus setelah dianalisis.</p></div>{status === 'idle' || status === 'error' ? <button type="button" onClick={onStart} className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-semibold text-white"><Camera className="size-4" /> Rekam</button> : <button type="button" onClick={onReset} className="inline-flex items-center gap-1 rounded-lg border border-line px-3 py-2 text-xs"><RotateCcw className="size-3.5" /> Batal</button>}</div>{busy && <p className="mt-2 text-xs text-brand" role="status">{status === 'countdown' ? `Mulai dalam ${seconds}…` : status === 'recording' ? 'Merekam selama 4 detik…' : 'Menganalisis isyarat…'}</p>}{error && <p className="mt-2 text-xs text-red-700" role="alert">{error}</p>}{status === 'reviewing' && <div className="mt-2 flex gap-2"><input value={text} onChange={(event) => onTextChange(event.target.value)} maxLength={500} aria-label="Koreksi hasil isyarat" className="min-w-0 flex-1 rounded-lg border border-line bg-paper px-3 py-2 text-sm" /><button type="button" onClick={onSend} disabled={!text.trim()} className="grid size-9 place-items-center rounded-lg bg-brand text-white disabled:opacity-50" aria-label="Kirim hasil isyarat"><Send className="size-4" /></button><span className="sr-only">Kepercayaan {Math.round(confidence * 100)}%</span></div>}</section>
+
+  return <section className="rounded-2xl border border-line bg-surface p-3" aria-label="Terjemahkan isyarat">
+    <div className="flex items-center justify-between gap-3">
+      <div>
+        <h2 className="text-sm font-semibold">{screeningActive ? 'Rekam jawaban PSS-10' : 'Rekam isyarat 4 detik'}</h2>
+        <p className="text-[11px] text-muted">{screeningActive ? 'Rekam 4 detik, periksa teks, lalu kirim jawaban.' : 'Video tanpa audio, dihapus setelah dianalisis.'}</p>
+      </div>
+      {status === 'idle' || status === 'error'
+        ? <button type="button" onClick={onStart} className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3 py-2 text-xs font-semibold text-white"><Camera className="size-4" /> Rekam</button>
+        : <button type="button" onClick={onReset} className="inline-flex items-center gap-1 rounded-lg border border-line px-3 py-2 text-xs"><RotateCcw className="size-3.5" /> Batal</button>}
+    </div>
+    {screeningActive && <p className="mt-2 text-[11px] leading-relaxed text-muted">Jawaban: tidak pernah, hampir tidak pernah, kadang-kadang, cukup sering, atau sangat sering.</p>}
+    {busy && <p className="mt-2 text-xs text-brand" role="status">{status === 'countdown' ? `Mulai dalam ${seconds}…` : status === 'recording' ? 'Merekam selama 4 detik…' : 'Menganalisis isyarat…'}</p>}
+    {error && <p className="mt-2 text-xs text-red-700" role="alert">{error}</p>}
+    {feedback && <p className="mt-2 text-xs text-amber-700" role="alert">{feedback}</p>}
+    {status === 'reviewing' && <div className="mt-2 flex gap-2">
+      <input value={text} onChange={(event) => onTextChange(event.target.value)} maxLength={500} aria-label="Koreksi hasil isyarat" className="min-w-0 flex-1 rounded-lg border border-line bg-paper px-3 py-2 text-sm" />
+      <button type="button" onClick={onSend} disabled={!text.trim()} className="grid size-9 place-items-center rounded-lg bg-brand text-white disabled:opacity-50" aria-label={screeningActive ? 'Kirim jawaban PSS-10' : 'Kirim hasil isyarat'}><Send className="size-4" /></button>
+      <span className="sr-only">Kepercayaan {Math.round(confidence * 100)}%</span>
+    </div>}
+  </section>
 }
