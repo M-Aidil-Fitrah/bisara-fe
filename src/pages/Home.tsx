@@ -1,7 +1,6 @@
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Minus } from 'lucide-react'
 import { Button, Eyebrow, SectionHeader } from '../components/ui'
+import FaqSection from '../components/landing/FaqSection'
 import { IMG } from '../lib/images'
 
 const featureCards: ReadonlyArray<{
@@ -141,7 +140,7 @@ export default function Home({ go }: { go?: (p: string) => void }) {
       <section id="faq" className="border-t border-line">
         <div className="mx-auto grid max-w-7xl gap-12 px-6 py-28 lg:grid-cols-[1fr_1.4fr]">
           <SectionHeader eyebrow="FAQ" title="Pertanyaan yang sering diajukan" />
-          <Faq />
+          <FaqSection />
         </div>
       </section>
     </>
@@ -171,33 +170,6 @@ function Scope({ title, items, muted }: { title: string; items: string[]; muted?
       <ul className="mt-3 divide-y divide-line border-t border-line text-sm">
         {items.map((t) => <li key={t} className={`py-2.5 ${muted ? 'text-muted line-through decoration-line' : ''}`}>{t}</li>)}
       </ul>
-    </div>
-  )
-}
-
-const FAQ = [
-  ['Apa itu BISARA?', 'BISARA adalah platform layanan publik berbasis komunikasi visual dengan One-way Service dan layanan dua arah yang tersedia sesuai kebutuhan.'],
-  ['Perangkat apa yang dibutuhkan?', 'Laptop atau tablet dengan kamera, mikrofon, dan browser modern. Tidak perlu instalasi aplikasi.'],
-  ['Bagaimana data layanan dikelola?', 'Display One-way memakai token privat. Pada layanan psikolog, jawaban PSS hanya tersedia selama room aktif lalu dihapus saat sesi berakhir atau kedaluwarsa.'],
-  ['Apakah video saya disimpan?', 'Backend BISARA tidak menyediakan endpoint penyimpanan rekaman. Media dikirim antarpeserta melalui WebRTC.'],
-  ['Apakah semua layanan sudah tersedia?', 'Belum. Layanan resepsionis dan layanan publik lainnya memiliki halaman persiapan yang dapat diakses dari menu Fitur.'],
-]
-
-function Faq() {
-  const [open, setOpen] = useState(-1)
-  return (
-    <div className="border-t border-ink/80">
-      {FAQ.map(([q, a], i) => (
-        <div key={q} className="border-b border-line">
-          <button onClick={() => setOpen(open === i ? -1 : i)} aria-expanded={open === i} className="flex w-full items-center justify-between gap-4 py-6 text-left text-lg">
-            {q}
-            {open === i ? <Minus className="size-4 shrink-0" /> : <Plus className="size-4 shrink-0" />}
-          </button>
-          <div className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${open === i ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-            <div className="overflow-hidden"><p className="-mt-2 pb-6 pr-10 leading-relaxed text-muted">{a}</p></div>
-          </div>
-        </div>
-      ))}
     </div>
   )
 }
