@@ -124,7 +124,7 @@ test('one-way editor publishes the saved message to its private display', async 
 })
 
 test('ADMIN can wait safely and pair with the next USER in a Ritz room', async ({ browser }) => {
-  test.setTimeout(75_000)
+  test.setTimeout(90_000)
   const email = process.env.BISARA_SMOKE_ADMIN_EMAIL
   const password = process.env.BISARA_SMOKE_ADMIN_PASSWORD
   if (!email || !password) {
@@ -158,9 +158,9 @@ test('ADMIN can wait safely and pair with the next USER in a Ritz room', async (
     await adminPage.getByLabel('Catatan psikolog').fill('Catatan smoke lokal')
     await expect(adminPage.getByRole('button', { name: 'Rekam suara' })).toBeVisible()
     await expect(userPage.getByRole('button', { name: 'Rekam' })).toBeVisible({ timeout: 15_000 })
-    await expect(userPage.getByRole('button', { name: '0.75×' })).toBeVisible()
-    await expect(userPage.getByRole('button', { name: '1.25×' })).toBeVisible()
-    await expect(userPage.getByRole('button', { name: '1.5×' })).toBeVisible()
+    await expect(userPage.getByRole('button', { name: 'Kecepatan 0.75x' })).toBeVisible()
+    await expect(userPage.getByRole('button', { name: 'Kecepatan 1.25x' })).toBeVisible()
+    await expect(userPage.getByRole('button', { name: 'Kecepatan 1.5x' })).toBeVisible()
     await expect(userPage.getByText('Chat sementara aktif')).toBeVisible({ timeout: 15_000 })
     await expect(adminPage.getByText('Chat sementara aktif')).toBeVisible({ timeout: 15_000 })
     await userPage.getByRole('button', { name: 'Bersedia, mulai' }).click()
@@ -176,6 +176,9 @@ test('ADMIN can wait safely and pair with the next USER in a Ritz room', async (
     await userPage.getByLabel('Pesan chat').fill('Pesan smoke sementara')
     await userPage.getByRole('button', { name: 'Kirim' }).click()
     await expect(adminPage.getByText('Smoke User: Pesan smoke sementara')).toBeVisible({ timeout: 15_000 })
+    await adminPage.getByRole('button', { name: 'Bacakan pesan' }).last().click()
+    await adminPage.waitForTimeout(3_000)
+    await expect(adminPage.getByRole('alert')).toHaveCount(0)
     await userPage.route('**/api/ai/rooms/*/predict', async (route) => {
       await route.fulfill({
         status: 200,
