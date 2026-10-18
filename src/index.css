@@ -37,6 +37,8 @@ html {
 @keyframes sign2 { 0%, 100% { transform: rotate(8deg) translateY(-4px); } 50% { transform: rotate(-6deg) translateY(2px); } }
 @keyframes wave { 0%, 100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }
 @keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
+@keyframes menu-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes panel-in { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
 /* ==========================================================================
    WCAG Accessibility Overrides
@@ -72,4 +74,13 @@ html.a11y-reduce-motion *::after {
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
   scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

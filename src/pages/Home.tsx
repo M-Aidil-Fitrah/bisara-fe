@@ -193,7 +193,9 @@ function Faq() {
             {q}
             {open === i ? <Minus className="size-4 shrink-0" /> : <Plus className="size-4 shrink-0" />}
           </button>
-          {open === i && <p className="-mt-2 pb-6 pr-10 leading-relaxed text-muted">{a}</p>}
+          <div className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${open === i ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+            <div className="overflow-hidden"><p className="-mt-2 pb-6 pr-10 leading-relaxed text-muted">{a}</p></div>
+          </div>
         </div>
       ))}
     </div>
