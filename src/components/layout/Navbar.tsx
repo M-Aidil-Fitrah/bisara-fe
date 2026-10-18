@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, LogOut } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import logoFull from '../../assets/logo-full.png'
 import { logout, useAuth } from '../../lib/auth'
@@ -23,14 +23,22 @@ export default function Navbar() {
   const navigate = useNavigate()
   const [features, setFeatures] = useState(false)
   const [mobile, setMobile] = useState(false)
+  const [profile, setProfile] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const onPointerDown = (event: MouseEvent) => {
-      if (event.target instanceof Node && !ref.current?.contains(event.target)) setFeatures(false)
+      if (event.target instanceof Node && !ref.current?.contains(event.target)) {
+        setFeatures(false)
+        setProfile(false)
+      }
     }
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setFeatures(false)
+      if (event.key === 'Escape') {
+        setFeatures(false)
+        setProfile(false)
+      }
     }
     document.addEventListener('mousedown', onPointerDown)
     document.addEventListener('keydown', onKeyDown)
@@ -43,10 +51,18 @@ export default function Navbar() {
   const closeMenus = () => {
     setFeatures(false)
     setMobile(false)
+    setProfile(false)
   }
 
   const signOut = () => {
-    void logout().then(() => navigate('/')).catch(() => triggerVisualToast('Gagal keluar', 'Silakan coba lagi.', 'alert'))
+    setLoggingOut(true)
+    void logout()
+      .then(() => {
+        closeMenus()
+        navigate('/')
+      })
+      .catch(() => triggerVisualToast('Gagal keluar', 'Silakan coba lagi.', 'alert'))
+      .finally(() => setLoggingOut(false))
   }
 
   const isFeatureActive = ['/one-way', '/two-way', '/ritz', '/meet'].some((path) => location.pathname.startsWith(path))
@@ -61,15 +77,10 @@ export default function Navbar() {
           </Link>
 
           <div className="hidden items-center gap-1 md:flex">
-            <div
-              className="relative"
-              onMouseEnter={() => setFeatures(true)}
-              onMouseLeave={() => setFeatures(false)}
-              onBlur={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFeatures(false)
-              }}
-            >
-              <button type="button" onFocus={() => setFeatures(true)} aria-expanded={features} aria-controls="menu-fitur" className={`${itemClass(isFeatureActive)} inline-flex items-center gap-1`}>
+            <div className="relative" onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFeatures(false)
+            }}>
+              <button type="button" onClick={() => { setFeatures((open) => !open); setProfile(false) }} aria-expanded={features} aria-controls="menu-fitur" className={`${itemClass(isFeatureActive)} ${features && !isFeatureActive ? 'bg-brand/10 text-brand' : ''} inline-flex items-center gap-1`}>
                 Fitur <ChevronDown aria-hidden="true" className={`size-4 transition-transform ${features ? 'rotate-180' : ''}`} />
               </button>
               {features && (
@@ -94,7 +105,31 @@ export default function Navbar() {
             </div>
             {links.map(({ path, label }) => <Link key={path} to={path} onClick={closeMenus} className={itemClass(location.pathname === path)}>{label}</Link>)}
             <span className="mx-2 h-5 w-px bg-line" />
-            {user ? <button onClick={signOut} className={itemClass(false)}>Keluar</button> : <Link to="/login" className={itemClass(location.pathname === '/login')}>Masuk</Link>}
+            {user ? (
+              <div className="relative" onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setProfile(false)
+              }}>
+                <button type="button" onClick={() => { setProfile((open) => !open); setFeatures(false) }} aria-expanded={profile} aria-controls="menu-profil" className={`${itemClass(false)} ${profile ? 'bg-brand/10 text-brand' : ''} inline-flex items-center gap-2`}>
+                  <span aria-hidden="true" className="grid size-6 place-items-center rounded-full bg-current/15 text-xs font-semibold">{user.name.charAt(0).toLocaleUpperCase('id-ID')}</span>
+                  Profil <ChevronDown aria-hidden="true" className={`size-4 transition-transform ${profile ? 'rotate-180' : ''}`} />
+                </button>
+                {profile && (
+                  <div id="menu-profil" className="absolute right-0 top-full mt-4 w-72 rounded-xl border border-line bg-surface p-4 shadow-xl">
+                    <div className="flex items-center gap-3">
+                      <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-brand/10 text-sm font-semibold text-brand">{user.name.charAt(0).toLocaleUpperCase('id-ID')}</span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-ink">{user.name}</p>
+                        <p className="truncate text-xs text-muted">{user.email}</p>
+                      </div>
+                    </div>
+                    <div className="my-4 border-t border-line" />
+                    <button type="button" disabled={loggingOut} onClick={signOut} className="flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-3 py-2.5 text-sm font-medium text-white transition hover:bg-brand disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand">
+                      <LogOut aria-hidden="true" className="size-4" /> {loggingOut ? 'Keluar…' : 'Keluar'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : <Link to="/login" className={itemClass(location.pathname === '/login')}>Masuk</Link>}
           </div>
 
           <button type="button" onClick={() => setMobile((open) => !open)} aria-expanded={mobile} className="rounded-md px-3 py-2 text-sm font-medium transition hover:bg-brand/10 hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand md:hidden">
@@ -111,7 +146,13 @@ export default function Navbar() {
               <div className="my-2 border-t border-line" />
               {links.map(({ path, label }) => <Link key={path} to={path} onClick={closeMenus} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand">{label}</Link>)}
               <div className="my-2 border-t border-line" />
-              {user ? <button onClick={signOut} className="block w-full rounded-lg px-3 py-2.5 text-left text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand">Keluar</button> : <Link to="/login" onClick={closeMenus} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand">Masuk</Link>}
+              {user ? (
+                <div className="rounded-lg border border-line p-3">
+                  <p className="text-sm font-semibold text-ink">{user.name}</p>
+                  <p className="mt-1 truncate text-xs text-muted">{user.email}</p>
+                  <button type="button" disabled={loggingOut} onClick={signOut} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-3 py-2.5 text-sm font-medium text-white transition hover:bg-brand disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"><LogOut aria-hidden="true" className="size-4" /> {loggingOut ? 'Keluar…' : 'Keluar'}</button>
+                </div>
+              ) : <Link to="/login" onClick={closeMenus} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand">Masuk</Link>}
             </div>
           </div>
         )}
