@@ -23,7 +23,7 @@ export default function OneWay() {
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
         <DisplayEditor text={text} state={state} displayUrl={display ? url : null} error={error} onTextChange={setText} onSave={() => void save()} />
-        <DisplayPreview text={text} phrase={phrase} />
+        <DisplayPreview text={text} phrases={phrases} />
       </div>
     </section>
   )

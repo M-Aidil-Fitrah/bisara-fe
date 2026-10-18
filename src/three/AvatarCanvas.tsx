@@ -7,6 +7,8 @@ interface AvatarCanvasProps {
   className?: string
   modelUrl: string
   actionName: string
+  onAnimationsLoaded?: ((names: string[]) => void) | undefined
+  framing?: 'upper-body' | 'thigh-up'
 }
 
 export default function AvatarCanvas({
@@ -14,6 +16,8 @@ export default function AvatarCanvas({
   className = '',
   modelUrl,
   actionName,
+  onAnimationsLoaded,
+  framing = 'upper-body',
 }: AvatarCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null)
   const [loading, setLoading] = useState(true)
@@ -173,8 +177,13 @@ export default function AvatarCanvas({
         model.position.z = -center.z * scale
 
         // Frame upper body (chest, shoulders, face) perfectly matching Blender view
-        camera.position.set(0, 1.25, 1.55)
-        camera.lookAt(0, 1.18, 0)
+        if (framing === 'thigh-up') {
+          camera.position.set(0, 1.05, 2.15)
+          camera.lookAt(0, 1.05, 0)
+        } else {
+          camera.position.set(0, 1.25, 1.55)
+          camera.lookAt(0, 1.18, 0)
+        }
 
         // Setup Animations
         if (gltf.animations && gltf.animations.length > 0) {
@@ -182,6 +191,7 @@ export default function AvatarCanvas({
 
           // Find animations
           clips = gltf.animations
+          onAnimationsLoaded?.(clips.map((clip) => clip.name))
           const idleClip =
             clips.find((c) => /idle/i.test(c.name)) ||
             clips.find((c) => /ready/i.test(c.name)) ||
@@ -313,7 +323,7 @@ export default function AvatarCanvas({
         mount.removeChild(renderer.domElement)
       }
     }
-  }, [modelUrl])
+  }, [framing, modelUrl, onAnimationsLoaded])
 
   return (
     <div className={`relative size-full min-h-[240px] ${className}`}>
