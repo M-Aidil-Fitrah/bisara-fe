@@ -28,6 +28,17 @@ type SequencePlaybackProps = {
 
 const PLAYBACK_SPEEDS = [0.75, 1, 1.25, 1.5] as const
 
+type SpeedButtonsProps = {
+  speed: number
+  onSpeedChange: (speed: number) => void
+}
+
+function SpeedButtons({ speed, onSpeedChange }: SpeedButtonsProps) {
+  return <div role="group" aria-label="Kecepatan animasi" className="flex items-center gap-1">
+    {PLAYBACK_SPEEDS.map((value) => <button key={value} type="button" aria-label={`Kecepatan ${value}x`} aria-pressed={speed === value} onClick={() => onSpeedChange(value)} className={`h-8 rounded-lg px-2 font-mono transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-soft ${speed === value ? 'bg-paper text-ink' : 'hover:bg-paper/10 hover:text-paper'}`}>{value}×</button>)}
+  </div>
+}
+
 function SequencePlayback({ sequence, playbackState, speed, showSpeedControls, onPlaybackStateChange, onStop, onSpeedChange, onAnimationsLoaded }: SequencePlaybackProps) {
   const [index, setIndex] = useState(0)
   const elapsedMsRef = useRef(0)
@@ -73,9 +84,7 @@ function SequencePlayback({ sequence, playbackState, speed, showSpeedControls, o
         {!current.hasAnimation && <p className="mt-1 text-xs text-paper/60">Clip alfabet belum tersedia; huruf tetap ditampilkan berurutan.</p>}
       </div>
       {showSpeedControls && <div className="flex w-full shrink-0 items-center justify-between gap-2 rounded-xl bg-ink/80 p-2 text-xs text-paper/70 backdrop-blur-md sm:w-auto sm:flex-col sm:items-end">
-        <div role="group" aria-label="Kecepatan animasi" className="flex items-center gap-1">
-          {PLAYBACK_SPEEDS.map((value) => <button key={value} type="button" aria-label={`Kecepatan ${value}x`} aria-pressed={speed === value} onClick={() => onSpeedChange(value)} className={`h-8 rounded-lg px-2 font-mono transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-soft ${speed === value ? 'bg-paper text-ink' : 'hover:bg-paper/10 hover:text-paper'}`}>{value}x</button>)}
-        </div>
+        <SpeedButtons speed={speed} onSpeedChange={onSpeedChange} />
         <div className="flex items-center gap-1">
           <span className="mr-1 tabular-nums">{index + 1}/{sequence.length}</span>
           <button type="button" onClick={() => onPlaybackStateChange(playbackState === 'playing' ? 'paused' : 'playing')} className="grid size-9 place-items-center rounded-lg border border-paper/20 transition hover:bg-paper/10 hover:text-paper focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-soft" aria-label={playbackState === 'playing' ? 'Jeda animasi' : 'Putar animasi'}>{playbackState === 'playing' ? <Pause aria-hidden="true" className="size-4" /> : <Play aria-hidden="true" className="size-4" />}</button>
@@ -103,7 +112,10 @@ export default function SignSequencePlayer({ text, phrases, className = '', empt
   }
 
   if (sequence.length === 0) {
-    return <div className={`grid min-h-80 place-items-center rounded-2xl border border-white/10 bg-ink px-6 text-center text-paper/60 ${className}`}>{emptyText}</div>
+    return <div className={`relative grid min-h-80 place-items-center rounded-2xl border border-white/10 bg-ink px-6 text-center text-paper/60 ${className}`}>
+      {emptyText}
+      {showSpeedControls && <div className="absolute right-3 top-3 z-20 rounded-lg border border-white/10 bg-ink/80 p-1 text-xs text-paper/75 backdrop-blur-md"><SpeedButtons speed={speed} onSpeedChange={setSpeed} /></div>}
+    </div>
   }
 
   return <div className={`relative min-h-80 overflow-hidden rounded-2xl border border-white/10 bg-ink ${className}`}>

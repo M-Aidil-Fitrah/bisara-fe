@@ -374,7 +374,7 @@ export default function Meet() {
 
             <div className="flex min-h-0 flex-col gap-3">
               <section className="relative h-[42%] min-h-[280px] shrink-0" aria-label="Pratinjau penerjemah BISINDO">
-                <SignSequencePlayer text={signText} phrases={phrases} emptyText="Pesan yang dikirim akan dipratinjau sebagai gerakan BISINDO di sini." className="h-full min-h-[280px]" />
+                <SignSequencePlayer text={signText} phrases={phrases} emptyText="Pesan yang dikirim akan dipratinjau sebagai gerakan BISINDO di sini." showSpeedControls={false} className="h-full min-h-[280px]" />
                 <span className="pointer-events-none absolute left-3 top-3 z-20 rounded-lg border border-white/10 bg-ink/80 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-paper backdrop-blur">Pratinjau avatar</span>
               </section>
               <ChatPanel messages={messages} input={chatInput} status={chatStatus} big={false} mineRole={role} scrollRef={chatScrollRef} onInputChange={setChatInput} onSubmit={sendChat} listening={speechCaption.listening} speechSupported={speechCaption.supported} speechError={speechCaption.error} onToggleSpeech={speechCaption.listening ? speechCaption.stop : speechCaption.start} onSpeakMessage={(text) => void speakMessage(text)} className="flex-1" />
