@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import logoFull from '../../assets/logo-full.png'
 import { logout, useAuth } from '../../lib/auth'
 import { triggerVisualToast } from '../../lib/a11y'
+import ProfileMenu from './ProfileMenu'
 
 const links = [
   { path: '/dictionary', label: 'Kamus' },
@@ -107,30 +108,7 @@ export default function Navbar() {
             </div>
             {links.map(({ path, label }) => <Link key={path} to={path} onClick={closeMenus} className={itemClass(location.pathname === path)}>{label}</Link>)}
             <span className="mx-2 h-5 w-px bg-line" />
-            {user ? (
-              <div className="relative" onBlur={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setProfile(false)
-              }}>
-                <button type="button" onClick={() => { setProfile((open) => !open); setFeatures(false) }} aria-expanded={profile} aria-controls="menu-profil" aria-label="Buka profil" className={`grid size-9 place-items-center rounded-full text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand ${profile ? 'bg-brand text-white' : 'bg-brand/10 text-brand hover:bg-brand/20'}`}>
-                  {user.name.charAt(0).toLocaleUpperCase('id-ID')}
-                </button>
-                {profile && (
-                  <div id="menu-profil" className="absolute right-0 top-full mt-4 w-72 rounded-xl border border-line bg-surface p-4 shadow-xl">
-                    <div className="flex items-center gap-3">
-                      <span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-brand/10 text-sm font-semibold text-brand">{user.name.charAt(0).toLocaleUpperCase('id-ID')}</span>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-ink">{user.name}</p>
-                        <p className="truncate text-xs text-muted">{user.email}</p>
-                      </div>
-                    </div>
-                    <div className="my-4 border-t border-line" />
-                    <button type="button" disabled={loggingOut} onClick={signOut} className="flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-3 py-2.5 text-sm font-medium text-white transition hover:bg-brand disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand">
-                      <LogOut aria-hidden="true" className="size-4" /> {loggingOut ? 'Keluar…' : 'Keluar'}
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : <Link to="/login" className="rounded-md bg-brand px-3 py-2 text-sm font-medium text-white transition hover:bg-brand-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand">Masuk</Link>}
+            {user ? <ProfileMenu user={user} open={profile} loggingOut={loggingOut} onToggle={() => { setProfile((open) => !open); setFeatures(false) }} onClose={() => setProfile(false)} onLogout={signOut} /> : <Link to="/login" className="rounded-md bg-brand px-3 py-2 text-sm font-medium text-white transition hover:bg-brand-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand">Masuk</Link>}
           </div>
 
           <button type="button" onClick={() => { setMobile((open) => !open); setMobileFeatures(false) }} aria-expanded={mobile} aria-controls="menu-mobile" aria-label={mobile ? 'Tutup menu' : 'Buka menu'} className="grid size-10 place-items-center rounded-lg text-ink transition hover:bg-brand/10 hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand md:hidden">

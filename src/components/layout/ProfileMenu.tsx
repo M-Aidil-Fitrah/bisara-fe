@@ -1,0 +1,9 @@
+import { LogOut } from 'lucide-react'
+import type { Account } from '../../types'
+
+type ProfileMenuProps = { user: Account; open: boolean; loggingOut: boolean; onToggle: () => void; onClose: () => void; onLogout: () => void }
+
+export default function ProfileMenu({ user, open, loggingOut, onToggle, onClose, onLogout }: ProfileMenuProps) {
+  const initial = user.name.charAt(0).toLocaleUpperCase('id-ID')
+  return <div className="relative" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) onClose() }}><button type="button" onClick={onToggle} aria-expanded={open} aria-controls="menu-profil" aria-label="Buka profil" className={`grid size-9 place-items-center rounded-full text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand ${open ? 'bg-brand text-white' : 'bg-brand/10 text-brand hover:bg-brand/20'}`}>{initial}</button>{open && <div id="menu-profil" className="absolute right-0 top-full mt-4 w-72 rounded-xl border border-line bg-surface p-4 shadow-xl"><div className="flex items-center gap-3"><span aria-hidden="true" className="grid size-10 shrink-0 place-items-center rounded-full bg-brand/10 text-sm font-semibold text-brand">{initial}</span><div className="min-w-0"><p className="truncate text-sm font-semibold text-ink">{user.name}</p><p className="truncate text-xs text-muted">{user.email}</p></div></div><div className="my-4 border-t border-line" /><button type="button" disabled={loggingOut} onClick={onLogout} className="flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-3 py-2.5 text-sm font-medium text-white transition hover:bg-brand disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"><LogOut aria-hidden="true" className="size-4" /> {loggingOut ? 'Keluar…' : 'Keluar'}</button></div>}</div>
+}
