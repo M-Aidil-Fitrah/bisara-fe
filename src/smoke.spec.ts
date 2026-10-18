@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const baseUrl = 'http://127.0.0.1:5173'
+const baseUrl = 'http://localhost:5173'
 
 test('public service routes load and preserve accessible navigation', async ({ page }) => {
   await page.goto(baseUrl)
@@ -39,6 +39,7 @@ test('mobile navigation keeps feature hierarchy accessible', async ({ page }) =>
 })
 
 test('ADMIN can wait safely and pair with the next USER in a Ritz room', async ({ browser }) => {
+  test.setTimeout(75_000)
   const email = process.env.BISARA_SMOKE_ADMIN_EMAIL
   const password = process.env.BISARA_SMOKE_ADMIN_PASSWORD
   if (!email || !password) {
@@ -53,7 +54,9 @@ test('ADMIN can wait safely and pair with the next USER in a Ritz room', async (
     await adminPage.getByLabel('Email').fill(email)
     await adminPage.locator('input[type="password"]').fill(password)
     await adminPage.getByRole('button', { name: 'Masuk' }).click()
-    await adminPage.getByRole('button', { name: 'Masuk antrean layanan' }).click()
+    await expect(adminPage).toHaveURL(`${baseUrl}/two-way`)
+    await adminPage.goto(`${baseUrl}/ritz`)
+    await adminPage.getByRole('button', { name: 'Masuk layanan psikolog' }).click()
     await expect(adminPage.getByText('Mencari pendamping Ritz…')).toBeVisible()
     await expect(adminPage.getByRole('alert')).toHaveCount(0)
 
@@ -62,7 +65,9 @@ test('ADMIN can wait safely and pair with the next USER in a Ritz room', async (
     await userPage.getByLabel('Email').fill(memberEmail)
     await userPage.locator('input[type="password"]').fill('SmokePassword123!')
     await userPage.getByRole('button', { name: 'Daftar' }).click()
-    await userPage.getByRole('button', { name: 'Masuk antrean layanan' }).click()
+    await expect(userPage).toHaveURL(`${baseUrl}/two-way`)
+    await userPage.goto(`${baseUrl}/ritz`)
+    await userPage.getByRole('button', { name: 'Masuk layanan psikolog' }).click()
     await expect(userPage.getByText('Menunggu pendamping Ritz.')).toBeVisible()
     await expect(adminPage.getByText('Pilih jawaban Anda')).toBeVisible({ timeout: 15_000 })
     await expect(userPage.getByText('Pilih jawaban Anda')).toBeVisible({ timeout: 15_000 })
@@ -77,7 +82,6 @@ test('ADMIN can wait safely and pair with the next USER in a Ritz room', async (
     await userPage.getByRole('button', { name: 'Akhiri layanan' }).click()
     await expect(userPage).toHaveURL(`${baseUrl}/ritz`)
   } finally {
-    await user.close()
-    await admin.close()
+    await Promise.allSettled([user.close(), admin.close()])
   }
 })

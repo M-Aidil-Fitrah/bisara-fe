@@ -79,7 +79,7 @@ export function useVideoCall({ roomId, socket, socketJoined }: UseVideoCallOptio
     }
     currentCallRef.current = call
     const outgoingAudio = audioDestinationRef.current?.stream.getAudioTracks()[0] ?? null
-    const audioSender = call.peerConnection.getSenders().find((sender) => sender.track?.kind === 'audio')
+    const audioSender = call.peerConnection?.getSenders().find((sender) => sender.track?.kind === 'audio')
     if (audioSender && outgoingAudio) void audioSender.replaceTrack(outgoingAudio).catch(() => {})
 
     call.on('stream', (stream) => {
