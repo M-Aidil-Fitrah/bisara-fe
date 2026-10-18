@@ -6,6 +6,7 @@ import { api, ApiError, WS_BASE_URL, type Meeting, type PssRoom } from '../api/c
 import { useAuth } from '../lib/auth'
 import { useVideoCall } from '../lib/videoCall'
 import { useAiAssistance } from '../hooks/useAiAssistance'
+import { useMessageSpeech } from '../hooks/useMessageSpeech'
 import { useSpeechCaption } from '../hooks/useSpeechCaption'
 import { formatMsgTime } from '../lib/time'
 import SessionHeader from '../components/session/SessionHeader'
@@ -66,6 +67,7 @@ export default function Meet() {
     socketJoined,
   })
   const aiAssist = useAiAssistance(room?.id ?? '', videoCall.localStream, videoCall.playTts)
+  const messageSpeech = useMessageSpeech(room?.id ?? '')
   const sendCaption = useCallback((text: string, isFinal: boolean) => {
     if (role !== 'ADMIN' || !room || !socket || socket.readyState !== WebSocket.OPEN) return
     setChatInput(text)
@@ -292,11 +294,6 @@ export default function Meet() {
     setConsultationStarted(true)
   }
 
-  const speakMessage = async (text: string) => {
-    if (!room) return
-    try { await videoCall.playTts(await api.ai.tts(room.id, text)) } catch { setError('Pesan belum dapat dibacakan.') }
-  }
-
   const endSession = async () => {
     if (room) {
       try {
@@ -377,7 +374,9 @@ export default function Meet() {
                 <SignSequencePlayer text={signText} phrases={phrases} emptyText="Pesan yang dikirim akan dipratinjau sebagai gerakan BISINDO di sini." showSpeedControls={false} className="h-full min-h-[280px]" />
                 <span className="pointer-events-none absolute left-3 top-3 z-20 rounded-lg border border-white/10 bg-ink/80 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-paper backdrop-blur">Pratinjau avatar</span>
               </section>
-              <ChatPanel messages={messages} input={chatInput} status={chatStatus} big={false} mineRole={role} scrollRef={chatScrollRef} onInputChange={setChatInput} onSubmit={sendChat} listening={speechCaption.listening} speechSupported={speechCaption.supported} speechError={speechCaption.error} onToggleSpeech={speechCaption.listening ? speechCaption.stop : speechCaption.start} onSpeakMessage={(text) => void speakMessage(text)} className="flex-1" />
+              {messageSpeech.status && <p role="status" className="text-sm text-brand">{messageSpeech.status}</p>}
+              {messageSpeech.error && <p role="alert" className="text-sm text-red-700">{messageSpeech.error}</p>}
+              <ChatPanel messages={messages} input={chatInput} status={chatStatus} big={false} mineRole={role} scrollRef={chatScrollRef} onInputChange={setChatInput} onSubmit={sendChat} listening={speechCaption.listening} speechSupported={speechCaption.supported} speechError={speechCaption.error} onToggleSpeech={speechCaption.listening ? speechCaption.stop : speechCaption.start} onSpeakMessage={(text) => void messageSpeech.speak(text)} className="flex-1" />
             </div>
           </div>
         )}

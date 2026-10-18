@@ -2,6 +2,48 @@ import { test, expect } from '@playwright/test'
 
 const baseUrl = 'http://localhost:5173'
 
+test('message speech plays on the listener speaker and exposes AI failures', async ({ page }) => {
+  await page.route('**/ai/rooms/test-room/tts', (route) => route.fulfill({ status: 200, contentType: 'audio/wav', body: 'test-audio' }))
+  await page.goto(baseUrl)
+  await page.evaluate(async () => {
+    const reactPath = '/node_modules/.vite/deps/react.js'
+    const domPath = '/node_modules/.vite/deps/react-dom_client.js'
+    const hookPath = '/src/hooks/useMessageSpeech.ts'
+    const { default: React } = await import(reactPath)
+    const { default: ReactDOM } = await import(domPath)
+    const { useMessageSpeech } = await import(hookPath)
+    const events: string[] = []
+    class TestAudioContext {
+      state = 'running'
+      destination = { name: 'local-speaker' }
+      resume() { events.push('resume'); return Promise.resolve() }
+      close() { return Promise.resolve() }
+      decodeAudioData() { return Promise.resolve({}) }
+      createBufferSource() {
+        return { buffer: null, onended: null, connect(target: { name: string }) { events.push(target.name) }, start() { events.push('start') }, stop() {}, disconnect() {} }
+      }
+    }
+    Object.defineProperty(window, 'AudioContext', { configurable: true, value: TestAudioContext })
+    function Harness() {
+      const speech = useMessageSpeech('test-room')
+      return React.createElement('div', null,
+        React.createElement('button', { onClick: () => void speech.speak('Terima kasih') }, 'Uji suara pesan'),
+        React.createElement('p', { role: 'status' }, speech.status),
+        React.createElement('p', { role: 'alert' }, speech.error),
+        React.createElement('output', null, events.join(',')))
+    }
+    const mount = document.createElement('div')
+    document.body.replaceChildren(mount)
+    ReactDOM.createRoot(mount).render(React.createElement(Harness))
+  })
+  await page.getByRole('button', { name: 'Uji suara pesan' }).click()
+  await expect(page.getByText('Memutar suara…', { exact: true })).toBeVisible()
+  await expect(page.locator('output')).toHaveText('resume,local-speaker,start')
+  await page.route('**/ai/rooms/test-room/tts', (route) => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ success: false, error: { code: 'AI_CONNECTION_FAILED', message: 'Backend tidak dapat terhubung ke AI' } }) }))
+  await page.getByRole('button', { name: 'Uji suara pesan' }).click()
+  await expect(page.getByRole('alert')).toHaveText('Backend tidak dapat terhubung ke AI')
+})
+
 test('public service routes load and preserve accessible navigation', async ({ page }) => {
   await page.goto(baseUrl)
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
