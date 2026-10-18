@@ -51,6 +51,49 @@ test('mobile navigation keeps feature hierarchy accessible', async ({ page }) =>
   await expect(page.locator('#menu-mobile')).toBeHidden()
 })
 
+test('one-way editor publishes the saved message to its private display', async ({ context, page }) => {
+  const displayToken = 'private-display-token'
+  const editorToken = 'private-editor-token'
+  const expiresAt = '2099-01-01T00:00:00.000Z'
+  let savedText = ''
+
+  await context.route('**/api/catalog/phrases', async (route) => {
+    await route.fulfill({ json: { success: true, data: [] } })
+  })
+  await context.route('**/api/displays', async (route) => {
+    await route.fulfill({
+      json: { success: true, data: { token: displayToken, editorToken, text: '', expiresAt, phrase: null } },
+    })
+  })
+  await context.route(`**/api/displays/${displayToken}`, async (route) => {
+    if (route.request().method() === 'PATCH') {
+      const payload: { text: string } = route.request().postDataJSON()
+      savedText = payload.text
+    }
+    await route.fulfill({
+      json: { success: true, data: { token: displayToken, text: savedText, expiresAt, phrase: null } },
+    })
+  })
+
+  await page.goto(`${baseUrl}/one-way`)
+  const editor = page.getByLabel('Teks untuk layar')
+  const publishButton = page.getByRole('button', { name: 'Tampilkan ke layar' })
+  await editor.fill('Informasi layanan dibuka pukul delapan.')
+  await expect(page.getByText('Link layar privat:')).toHaveCount(0)
+  await publishButton.click()
+
+  const displayLink = page.getByRole('link', { name: new RegExp(`/display/${displayToken}$`) })
+  await expect(displayLink).toBeVisible()
+  const popupPromise = context.waitForEvent('page')
+  await displayLink.click()
+  const displayPage = await popupPromise
+  await expect(displayPage.getByRole('heading', { name: savedText })).toBeVisible()
+  await expect(displayPage.getByText('Memuat pesan…')).toHaveCount(0)
+
+  await editor.fill('Pesan yang belum disimpan')
+  await expect(displayLink).toHaveCount(0)
+})
+
 test('ADMIN can wait safely and pair with the next USER in a Ritz room', async ({ browser }) => {
   test.setTimeout(75_000)
   const email = process.env.BISARA_SMOKE_ADMIN_EMAIL
