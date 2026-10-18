@@ -25,7 +25,7 @@ export default function PssResponseCard({
 }: PssResponseCardProps) {
   if (isDone) {
     return (
-      <div className="rounded-2xl border border-line bg-surface p-6 text-center shadow-sm">
+      <div className="rounded-2xl border border-line bg-surface p-4 text-center shadow-sm">
         <span className="mb-3 inline-flex size-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600">✓</span>
         <h2 className="text-2xl font-semibold tracking-tight text-ink">Skrining selesai</h2>
         <p className="mt-2 text-sm text-muted">Seluruh 10 pertanyaan PSS-10 telah dijawab.</p>
@@ -48,20 +48,20 @@ export default function PssResponseCard({
   }
 
   return (
-    <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm">
-      <div className="mb-4 border-b border-line pb-4">
+    <div className="rounded-2xl border border-line bg-surface p-4 shadow-sm">
+      <div className="mb-3 border-b border-line pb-3">
         <p className="text-xs font-semibold uppercase tracking-wider text-brand">PSS-10 · Pertanyaan {current.itemNumber} dari {totalItems}</p>
         <h2 className="mt-1 text-xl font-semibold tracking-tight text-ink">Pilih jawaban Anda</h2>
         <p className="mt-1 text-xs text-muted">Jawaban Anda tersinkronisasi langsung ke pasangan room dan dihapus setelah sesi berakhir.</p>
       </div>
-      <div className="grid gap-2.5">
+      <div className="grid gap-2">
         {ANSWERS.map((label, index) => (
           <button
             key={label}
             type="button"
             disabled={busy}
             onClick={() => onAnswer(index)}
-            className="group flex items-center gap-3.5 rounded-xl border border-line bg-paper px-4 py-3 text-left shadow-sm transition hover:border-brand hover:bg-brand hover:text-white disabled:opacity-50"
+            className="group flex items-center gap-3 rounded-xl border border-line bg-paper px-3 py-2 text-left shadow-sm transition hover:border-brand hover:bg-brand hover:text-white disabled:opacity-50"
           >
             <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-xs font-bold text-brand transition group-hover:bg-white/20 group-hover:text-white">{index}</span>
             <span className={`${big ? 'text-base font-semibold' : 'text-sm font-medium'} leading-snug`}>{label}</span>

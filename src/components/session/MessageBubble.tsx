@@ -1,4 +1,4 @@
-import { CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, Volume2 } from 'lucide-react'
 
 export interface ChatMessage {
   id: string
@@ -12,9 +12,10 @@ export interface MessageBubbleProps {
   m: ChatMessage
   mine: boolean
   big?: boolean
+  onSpeak?: (() => void) | undefined
 }
 
-export default function MessageBubble({ m, mine, big }: MessageBubbleProps) {
+export default function MessageBubble({ m, mine, big, onSpeak }: MessageBubbleProps) {
   return (
     <div className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
       <div
@@ -38,6 +39,7 @@ export default function MessageBubble({ m, mine, big }: MessageBubbleProps) {
         <div className={`mt-1.5 flex items-center gap-1.5 text-[10px] ${mine ? 'text-white/70' : 'text-muted'}`}>
           <CheckCircle2 className={`size-3 ${mine ? 'text-emerald-300' : 'text-emerald-600'}`} />
           <span>{m.time || 'Terkirim'}</span>
+          {onSpeak && <button type="button" onClick={onSpeak} className="ml-auto inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-brand/10" aria-label="Bacakan pesan"><Volume2 className="size-3" /> Putar</button>}
           <span>· Pesan Sementara</span>
         </div>
       </div>

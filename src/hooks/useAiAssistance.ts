@@ -68,7 +68,7 @@ export function useAiAssistance(roomId: string, localStream: MediaStream | null,
       }
       recorder.start()
       setStatus('recording')
-      window.setTimeout(() => { if (recorder.state === 'recording') recorder.stop() }, 3_000)
+      window.setTimeout(() => { if (recorder.state === 'recording') recorder.stop() }, 4_000)
     }, 1_000)
   }, [clearTimer, localStream, roomId])
 

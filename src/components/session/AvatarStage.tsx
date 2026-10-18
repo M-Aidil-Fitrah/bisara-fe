@@ -41,12 +41,12 @@ export default function AvatarStage({
   }, [caption])
 
   return (
-    <div className={`relative overflow-hidden rounded-2xl bg-ink min-h-[360px] lg:min-h-[420px] border border-line/20 shadow-xl ${className}`}>
+    <div className={`relative min-h-[260px] overflow-hidden rounded-2xl border border-line/20 bg-ink shadow-xl ${className}`}>
       <div className="absolute inset-0 bg-[radial-gradient(60%_55%_at_50%_40%,#2a5c8c_0%,transparent_70%)] opacity-70" />
-      {modelUrl && actionName ? (
+      {modelUrl ? (
         <div className="absolute inset-x-0 top-[6%] mx-auto h-[62%] w-full flex items-center justify-center">
           <Suspense fallback={<p className="text-sm text-paper/60">Memuat avatar 3D…</p>}>
-            <Avatar signing={signing} modelUrl={modelUrl} actionName={actionName} className="h-full w-auto" />
+            <Avatar signing={signing} modelUrl={modelUrl} actionName={actionName ?? ''} className="h-full w-auto" />
           </Suspense>
         </div>
       ) : (
@@ -59,7 +59,7 @@ export default function AvatarStage({
       <div className="absolute inset-x-3 top-3 flex items-center justify-between gap-2 z-10">
         <span className="flex items-center gap-2 rounded-lg bg-ink/70 px-2.5 py-1.5 text-xs text-paper/85 backdrop-blur-md border border-white/10 shadow-md">
           <span className={`size-1.5 rounded-full ${signing ? 'animate-pulse bg-emerald-400' : 'bg-paper/40'}`} />
-          {modelUrl && actionName ? (signing ? 'Berisyarat' : 'Avatar BISINDO') : 'Teks saja'}
+          {modelUrl ? (signing ? 'Berisyarat' : 'Avatar BISINDO') : 'Teks saja'}
         </span>
         {setSpeed && (
           <div className="flex items-center gap-1 rounded-lg bg-ink/70 p-1 text-xs text-paper/80 backdrop-blur-md border border-white/10 shadow-md">
