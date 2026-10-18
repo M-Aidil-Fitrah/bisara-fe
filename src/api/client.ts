@@ -30,11 +30,13 @@ export type PssRoom = z.infer<typeof PssRoomSchema>
 export type AiPrediction = z.infer<typeof AiPredictionSchema>
 export const WS_BASE_URL = frontendEnv.VITE_WS_URL
 
-async function request<T>(path: string, schema: z.ZodType<T>, init?: RequestInit): Promise<T>
+const AI_REQUEST_TIMEOUT_MS = 135_000
+
+async function request<T>(path: string, schema: z.ZodType<T>, init?: RequestInit, allowNoContent?: false, timeoutMs?: number): Promise<T>
 async function request<T>(path: string, schema: z.ZodType<T>, init: RequestInit, allowNoContent: true): Promise<T | undefined>
-async function request<T>(path: string, schema: z.ZodType<T>, init: RequestInit = {}, allowNoContent = false): Promise<T | undefined> {
+async function request<T>(path: string, schema: z.ZodType<T>, init: RequestInit = {}, allowNoContent = false, timeoutMs = 12_000): Promise<T | undefined> {
   const controller = new AbortController()
-  const timeout = window.setTimeout(() => controller.abort(), 12_000)
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs)
   try {
     const response = await fetch(`${frontendEnv.VITE_API_URL}${path}`, { ...init, credentials: 'include', signal: controller.signal, headers: { ...(init.body && !(init.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}), ...init.headers } })
     if (!response.ok) {
@@ -82,21 +84,23 @@ export const api = {
   ai: {
     predict: async (roomId: string, video: Blob): Promise<AiPrediction> => {
       const form = new FormData()
-      form.append('video', video, 'bisara-sign.webm')
-      return (await request(`/ai/rooms/${roomId}/predict`, Envelope(AiPredictionSchema), { method: 'POST', body: form })).data
+      form.append('video', video, video.type.startsWith('video/mp4') ? 'bisara-sign.mp4' : 'bisara-sign.webm')
+      return (await request(`/ai/rooms/${roomId}/predict`, Envelope(AiPredictionSchema), { method: 'POST', body: form }, false, AI_REQUEST_TIMEOUT_MS)).data
     },
     tts: async (roomId: string, text: string): Promise<Blob> => {
       const controller = new AbortController()
-      const timeout = window.setTimeout(() => controller.abort(), 45_000)
+      const timeout = window.setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS)
       try {
         const response = await fetch(`${frontendEnv.VITE_API_URL}/ai/rooms/${roomId}/tts`, { method: 'POST', credentials: 'include', signal: controller.signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) })
         if (!response.ok) {
           const parsed = ErrorSchema.safeParse(await response.json().catch(() => null))
           throw new ApiError(response.status, parsed.success ? parsed.data.error.code : 'REQUEST_FAILED', parsed.success ? parsed.data.error.message : 'Sintesis suara gagal')
         }
-        return response.blob()
+        if (!response.headers.get('content-type')?.startsWith('audio/wav')) throw new ApiError(502, 'INVALID_AUDIO', 'Respons suara tidak valid')
+        return await response.blob()
       } catch (cause) {
         if (cause instanceof ApiError) throw cause
+        if (cause instanceof DOMException && cause.name === 'AbortError') throw new ApiError(408, 'REQUEST_TIMEOUT', 'Layanan suara tidak merespons tepat waktu')
         throw new ApiError(0, 'NETWORK_ERROR', 'Tidak dapat terhubung ke layanan suara')
       } finally { window.clearTimeout(timeout) }
     },
