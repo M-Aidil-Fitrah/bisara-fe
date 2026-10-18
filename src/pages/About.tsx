@@ -6,7 +6,7 @@ const ITEMS = [
   ['02', 'Jawaban eksplisit', 'Data layanan hanya dikirim ketika pengguna melakukan tindakan yang jelas, bukan berdasarkan prediksi browser.'],
   ['03', 'Akses terbatas', 'Room dua arah hanya dapat diakses pengguna dan admin mitra yang telah dipasangkan oleh backend.'],
   ['04', 'Identitas server', 'Cookie sesi bersifat HttpOnly dan WebSocket memverifikasi identitas serta keanggotaan room melalui backend.'],
-  ['05', 'Data sementara', 'Chat tidak disimpan. Jawaban PSS pada layanan Ritz hanya tersedia dalam room aktif dan dihapus saat room berakhir atau kedaluwarsa.'],
+  ['05', 'Data sementara', 'Chat tidak disimpan. Jawaban PSS pada layanan psikolog hanya tersedia dalam room aktif dan dihapus saat room berakhir atau kedaluwarsa.'],
   ['06', 'Peran sederhana', 'Pendaftaran publik membuat akun pengguna. Admin mitra dikelola melalui environment deployment untuk mendampingi room yang sesuai.'],
 ]
 

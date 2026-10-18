@@ -56,7 +56,7 @@ export default function Home({ go }: { go?: (p: string) => void }) {
           flip image={IMG.signing} alt="Perempuan memperagakan isyarat tangan"
           eyebrow="Layanan dua arah"
           title="Ruang privat untuk layanan yang membutuhkan percakapan"
-          body="Setiap mitra memiliki alur layanan sendiri. Ritz adalah mitra psikologi yang saat ini tersedia dengan room privat, PSS-10, chat sementara, dan video langsung."
+          body="Setiap layanan memiliki alur sendiri. Layanan psikolog tersedia dengan room privat, PSS-10, chat sementara, dan video langsung."
           cta="Lihat layanan dua arah" onClick={() => handleNav('/two-way')}
         />
         <Story
@@ -111,7 +111,7 @@ export default function Home({ go }: { go?: (p: string) => void }) {
         <dl className="mt-16 grid border-t border-line md:grid-cols-3">
           {[
             ['01', 'Display privat, katalog, partner, dan room layanan berasal dari API; browser tidak membuat data pengganti.'],
-            ['02', 'Layanan psikolog Ritz menghitung PSS-10 dari jawaban room aktif dan menghapusnya saat sesi selesai.'],
+            ['02', 'Layanan psikolog menghitung PSS-10 dari jawaban room aktif dan menghapusnya saat sesi selesai.'],
             ['03', 'Animasi hanya tampil ketika katalog backend menunjuk aset dan nama klip yang benar-benar tersedia.'],
           ].map(([number, text]) => (
             <div data-reveal key={number} className="border-b border-line py-10 md:border-b-0 md:border-r md:px-8 md:last:border-r-0 md:first:pl-0">
@@ -130,7 +130,7 @@ export default function Home({ go }: { go?: (p: string) => void }) {
             <Eyebrow>Cakupan prototipe</Eyebrow>
             <h2 className="mt-4 text-3xl font-normal leading-tight sm:text-4xl">Jelas apa yang bisa, dan yang belum</h2>
             <div className="mt-8 grid gap-8 sm:grid-cols-2">
-              <Scope title="Tersedia saat ini" items={['Layar informasi privat One-way', 'Kamus frasa dan status aset', 'Layanan psikolog Ritz', 'Video WebRTC P2P di room aktif']} />
+              <Scope title="Tersedia saat ini" items={['Layar informasi privat One-way', 'Kamus frasa dan status aset', 'Layanan psikolog', 'Video WebRTC P2P di room aktif']} />
               <Scope muted title="Dalam persiapan" items={['Layanan resepsionis', 'Layanan publik lain', 'Pengenalan isyarat otomatis', 'Seluruh variasi BISINDO']} />
             </div>
           </div>
@@ -176,15 +176,15 @@ function Scope({ title, items, muted }: { title: string; items: string[]; muted?
 }
 
 const FAQ = [
-  ['Apa itu BISARA?', 'BISARA adalah platform layanan publik berbasis komunikasi visual. Layanan psikolog Ritz adalah salah satu layanan dua arah yang tersedia saat ini.'],
+  ['Apa itu BISARA?', 'BISARA adalah platform layanan publik berbasis komunikasi visual dengan One-way Service dan layanan dua arah yang tersedia sesuai kebutuhan.'],
   ['Perangkat apa yang dibutuhkan?', 'Laptop atau tablet dengan kamera, mikrofon, dan browser modern. Tidak perlu instalasi aplikasi.'],
-  ['Bagaimana data layanan dikelola?', 'Display One-way memakai token privat. Pada layanan Ritz, jawaban PSS hanya tersedia selama room aktif lalu dihapus saat sesi berakhir atau kedaluwarsa.'],
+  ['Bagaimana data layanan dikelola?', 'Display One-way memakai token privat. Pada layanan psikolog, jawaban PSS hanya tersedia selama room aktif lalu dihapus saat sesi berakhir atau kedaluwarsa.'],
   ['Apakah video saya disimpan?', 'Backend BISARA tidak menyediakan endpoint penyimpanan rekaman. Media dikirim antarpeserta melalui WebRTC.'],
   ['Apakah semua layanan sudah tersedia?', 'Belum. Layanan resepsionis dan layanan publik lainnya memiliki halaman persiapan yang dapat diakses dari menu Fitur.'],
 ]
 
 function Faq() {
-  const [open, setOpen] = useState(0)
+  const [open, setOpen] = useState(-1)
   return (
     <div className="border-t border-ink/80">
       {FAQ.map(([q, a], i) => (

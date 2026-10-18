@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import ritzLogo from '../assets/logo_ritz.png'
 import Breadcrumb from '../components/common/Breadcrumb'
 
 const services = [
@@ -15,13 +14,12 @@ export default function Services() {
       <div className="max-w-3xl">
         <p className="text-sm font-medium text-brand">Two-way Service</p>
         <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">Layanan publik yang mempertemukan orang.</h1>
-        <p className="mt-5 text-lg leading-relaxed text-muted">BISARA menyiapkan layanan dua arah yang dapat dipakai mitra sesuai konteksnya. Ritz adalah mitra psikologi yang tersedia saat ini, bukan keseluruhan produk BISARA.</p>
+        <p className="mt-5 text-lg leading-relaxed text-muted">BISARA menyiapkan layanan dua arah yang dapat dipakai sesuai konteks layanan dan kebutuhan pengguna.</p>
       </div>
       <div className="mt-12 divide-y divide-line border-y border-line">
         {services.map((service) => (
           <Link key={service.path} to={service.path} className="grid gap-4 py-7 transition hover:bg-surface sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-4">
             <div>
-              {service.title === 'Layanan Psikolog' && <img src={ritzLogo} alt="Ritz Konsultan Psikologi" className="mb-4 h-10 w-auto object-contain" />}
               <h2 className="text-xl font-semibold text-ink">{service.title}</h2>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">{service.description}</p>
             </div>
