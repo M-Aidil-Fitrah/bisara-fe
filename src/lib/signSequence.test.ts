@@ -25,7 +25,7 @@ describe('sign sequence planner', () => {
   it('uses a direct model action for a known word', () => {
     const sequence = buildSignSequence('air', [], [clip('air'), clip('idle_ready')])
     expect(sequence[0]).toMatchObject({ label: 'air', actionName: 'air', kind: 'word', hasAnimation: true })
-    expect(sequence[0]).toMatchObject({ startOffsetMs: 420, endOffsetMs: 3_580, durationMs: 3_340 })
+    expect(sequence[0]).toMatchObject({ startOffsetMs: 450, endOffsetMs: 3_550, durationMs: 3_240 })
   })
 
   it('matches a multiword action embedded in the local model', () => {

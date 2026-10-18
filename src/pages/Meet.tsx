@@ -10,12 +10,10 @@ import { useSpeechCaption } from '../hooks/useSpeechCaption'
 import { formatMsgTime } from '../lib/time'
 import SessionHeader from '../components/session/SessionHeader'
 import VideoCallStage from '../components/session/VideoCallStage'
-import AvatarStage from '../components/session/AvatarStage'
 import type { ChatMessage } from '../components/session/MessageBubble'
 import ChatPanel from '../components/session/ChatPanel'
 import WaitingRoom from '../components/session/WaitingRoom'
 import ConsultationGuide from '../components/session/ConsultationGuide'
-import PssSummary from '../components/session/PssSummary'
 import AiSignComposer from '../components/session/AiSignComposer'
 import SignSequencePlayer from '../components/display/SignSequencePlayer'
 import { usePhraseCatalog } from '../lib/catalog'
@@ -49,11 +47,6 @@ export default function Meet() {
   const [gestureFeedback, setGestureFeedback] = useState<string | null>(null)
   const [adminSign, setAdminSign] = useState<{ text: string; answerCount: number } | null>(null)
   const pssAnswerCountRef = useRef(0)
-
-  // Avatar stage controls
-  const [speed, setSpeed] = useState(1)
-  const [big, setBig] = useState(false)
-  const [signing, setSigning] = useState(false)
 
   // Realtime Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -231,9 +224,8 @@ export default function Meet() {
     }
   }, [role, room?.id, room?.status])
 
-  // Current PSS Question & Asset
+  // Current PSS Question
   const current = pss?.items.find((item) => !pss.answers.some((answer) => answer.itemId === item.id))
-  const asset = current?.phrase.animations[0]
   const isDone = Boolean(pss && !current)
   const itemNumber = current ? current.itemNumber : 10
   const totalItems = pss?.items.length || 10
@@ -242,24 +234,15 @@ export default function Meet() {
   useEffect(() => {
     pssAnswerCountRef.current = answerCount
   }, [answerCount])
-  const signText = isDone
-    ? 'Terima kasih sudah mau berbagi.'
-    : adminSign?.answerCount === answerCount
-      ? adminSign.text
-      : screeningActive
-        ? current?.questionText ?? ''
-        : adminSign?.text ?? ''
-
-  // Trigger signing when new question loads
-  useEffect(() => {
-    if (!asset) {
-      return undefined
-    }
-    const timer = window.setTimeout(() => setSigning(false), (asset.durationMs || 3000) / speed)
-    return () => {
-      window.clearTimeout(timer)
-    }
-  }, [asset, speed])
+  const signText = role === 'ADMIN'
+    ? adminSign?.text ?? ''
+    : isDone
+      ? 'Terima kasih sudah mau berbagi.'
+      : adminSign?.answerCount === answerCount
+        ? adminSign.text
+        : screeningActive
+          ? current?.questionText ?? ''
+          : adminSign?.text ?? ''
 
   const submitAnswer = async (value: number): Promise<boolean> => {
     if (!room || !current) return false
@@ -370,7 +353,7 @@ export default function Meet() {
 
         {/* Role-aware consultation workspace */}
         {room?.status === 'ACTIVE' && role === 'ADMIN' && (
-          <div className="grid min-h-0 flex-1 gap-3 lg:h-[calc(100vh-5.5rem)] lg:grid-cols-[minmax(0,1.35fr)_minmax(300px,.75fr)_minmax(260px,.6fr)]">
+          <div className="grid min-h-0 flex-1 gap-3 lg:h-[calc(100vh-5.5rem)] lg:grid-cols-[minmax(0,1.4fr)_minmax(380px,.8fr)]">
             <div className="flex min-h-0 flex-col gap-3">
               <VideoCallStage
                 partnerName={partnerPeerName}
@@ -390,24 +373,12 @@ export default function Meet() {
             </div>
 
             <div className="flex min-h-0 flex-col gap-3">
-              <AvatarStage
-                signing={signing}
-                caption={isDone
-                  ? 'Terima kasih sudah mau berbagi.'
-                  : role === 'ADMIN'
-                    ? messages.findLast((message) => message.role === 'ADMIN')?.text ?? 'Pratinjau avatar penerjemah untuk pesan psikolog.'
-                    : messages.findLast((message) => message.role === 'ADMIN')?.text ?? (screeningActive ? current?.questionText : undefined) ?? 'Pesan psikolog akan diterjemahkan di sini.'}
-                speed={speed}
-                setSpeed={setSpeed}
-                big={big}
-                setBig={setBig}
-                onReplay={asset ? () => setSigning(true) : undefined}
-                modelUrl={asset?.glbUrl ?? '/models/avatar.glb'}
-                actionName={asset?.animationName}
-              />
-              <ChatPanel messages={messages} input={chatInput} status={chatStatus} big={big} mineRole={role} scrollRef={chatScrollRef} onInputChange={setChatInput} onSubmit={sendChat} listening={speechCaption.listening} speechSupported={speechCaption.supported} speechError={speechCaption.error} onToggleSpeech={speechCaption.listening ? speechCaption.stop : speechCaption.start} onSpeakMessage={(text) => void speakMessage(text)} className="flex-1" />
+              <section className="relative h-[42%] min-h-[280px] shrink-0" aria-label="Pratinjau penerjemah BISINDO">
+                <SignSequencePlayer text={signText} phrases={phrases} emptyText="Pesan yang dikirim akan dipratinjau sebagai gerakan BISINDO di sini." className="h-full min-h-[280px]" />
+                <span className="pointer-events-none absolute left-3 top-3 z-20 rounded-lg border border-white/10 bg-ink/80 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-paper backdrop-blur">Pratinjau avatar</span>
+              </section>
+              <ChatPanel messages={messages} input={chatInput} status={chatStatus} big={false} mineRole={role} scrollRef={chatScrollRef} onInputChange={setChatInput} onSubmit={sendChat} listening={speechCaption.listening} speechSupported={speechCaption.supported} speechError={speechCaption.error} onToggleSpeech={speechCaption.listening ? speechCaption.stop : speechCaption.start} onSpeakMessage={(text) => void speakMessage(text)} className="flex-1" />
             </div>
-            <PssSummary pss={pss} />
           </div>
         )}
 
@@ -429,11 +400,9 @@ export default function Meet() {
             />
 
             <section className="relative min-h-[340px]" aria-label="Penerjemah BISINDO">
-              <SignSequencePlayer text={signText} phrases={phrases} emptyText="Pesan psikolog yang dikirim akan diterjemahkan menjadi gerakan di sini." className="h-full min-h-[340px]" />
-              <div className="pointer-events-none absolute inset-x-3 top-3 z-20 flex items-start justify-between gap-3">
-                <span className="rounded-lg border border-white/10 bg-ink/80 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-paper backdrop-blur">Avatar BISINDO</span>
-                {screeningActive && current && <p className="max-w-[72%] rounded-lg border border-white/10 bg-ink/80 px-3 py-2 text-right text-xs leading-relaxed text-paper backdrop-blur">Pertanyaan {current.itemNumber}: {current.questionText}</p>}
-              </div>
+              <SignSequencePlayer text={signText} phrases={phrases} emptyText="Pesan psikolog yang dikirim akan diterjemahkan menjadi gerakan di sini." showSpeedControls className="h-full min-h-[340px]" />
+              <span className="pointer-events-none absolute left-3 top-3 z-20 rounded-lg border border-white/10 bg-ink/80 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-paper backdrop-blur">Avatar BISINDO</span>
+              {screeningActive && current && <p className="pointer-events-none absolute inset-x-3 top-14 z-20 max-w-[72%] rounded-lg border border-white/10 bg-ink/80 px-3 py-2 text-xs leading-relaxed text-paper backdrop-blur">Pertanyaan {current.itemNumber}: {current.questionText}</p>}
             </section>
 
             <div className="grid gap-3 lg:col-span-2 lg:grid-cols-[minmax(220px,.72fr)_minmax(320px,1fr)_minmax(380px,1.25fr)]">

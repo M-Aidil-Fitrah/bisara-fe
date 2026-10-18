@@ -40,9 +40,9 @@ function findAlphabetAction(letter: string, clips: AnimationClipTiming[]): Anima
 }
 
 function playbackTiming(clip: AnimationClipTiming): { durationMs: number; startOffsetMs: number; endOffsetMs: number } {
-  const startOffsetMs = Math.min(Math.max(0, clip.activeStartMs - 80), clip.durationMs)
-  const endOffsetMs = Math.min(clip.durationMs, Math.max(clip.activeEndMs + 80, startOffsetMs + 400))
-  return { startOffsetMs, endOffsetMs, durationMs: endOffsetMs - startOffsetMs + 180 }
+  const startOffsetMs = Math.min(Math.max(0, clip.activeStartMs - 50), clip.durationMs)
+  const endOffsetMs = Math.min(clip.durationMs, Math.max(clip.activeEndMs + 50, startOffsetMs + 400))
+  return { startOffsetMs, endOffsetMs, durationMs: endOffsetMs - startOffsetMs + 140 }
 }
 
 export function buildSignSequence(text: string, phrases: Phrase[], localClips: AnimationClipTiming[]): SignStep[] {

@@ -1,5 +1,5 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Pause, Play, Square } from 'lucide-react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { RotateCcw } from 'lucide-react'
 import type { Phrase } from '../../api/client'
 import { buildSignSequence, type AnimationClipTiming, type SignStep } from '../../lib/signSequence'
 
@@ -10,102 +10,79 @@ type SignSequencePlayerProps = {
   phrases: Phrase[]
   className?: string
   emptyText?: string
+  showSpeedControls?: boolean
 }
 
 type SequencePlaybackProps = {
   sequence: SignStep[]
-  playbackState: PlaybackState
-  speed: number
-  onPlaybackStateChange: (state: PlaybackState) => void
-  onStop: () => void
-  onSpeedChange: (speed: number) => void
+  onRestart: () => void
   onAnimationsLoaded: (clips: AnimationClipTiming[]) => void
+  playbackSpeed: number
 }
 
-type PlaybackState = 'playing' | 'paused' | 'stopped'
+type SpeedControlsProps = {
+  playbackSpeed: number
+  onChange: (speed: number) => void
+}
 
-const PLAYBACK_SPEEDS = [0.5, 1, 1.5] as const
+function SpeedControls({ playbackSpeed, onChange }: SpeedControlsProps) {
+  return <div className="absolute right-3 top-3 z-30 flex items-center gap-1 rounded-lg border border-white/10 bg-ink/80 p-1 text-xs text-paper/75 backdrop-blur-md" aria-label="Kecepatan avatar">
+    {[0.75, 1, 1.25, 1.5].map((speed) => <button
+      key={speed}
+      type="button"
+      onClick={() => onChange(speed)}
+      aria-pressed={playbackSpeed === speed}
+      className={`h-8 rounded-md px-2 font-mono transition ${playbackSpeed === speed ? 'bg-paper font-semibold text-ink' : 'hover:bg-paper/10 hover:text-paper'}`}
+    >{speed}×</button>)}
+  </div>
+}
 
-function SequencePlayback({ sequence, playbackState, speed, onPlaybackStateChange, onStop, onSpeedChange, onAnimationsLoaded }: SequencePlaybackProps) {
+function SequencePlayback({ sequence, onRestart, onAnimationsLoaded, playbackSpeed }: SequencePlaybackProps) {
   const [index, setIndex] = useState(0)
-  const elapsedMsRef = useRef(0)
-  const previousTimestampRef = useRef<number | null>(null)
   const current = sequence[index] ?? sequence[0]
 
   useEffect(() => {
-    elapsedMsRef.current = 0
-    previousTimestampRef.current = null
-  }, [current?.id])
-
-  useEffect(() => {
-    if (playbackState !== 'playing' || sequence.length < 2 || !current) {
-      previousTimestampRef.current = null
-      return
-    }
-
-    let frameId = 0
-    const tick = (timestamp: number) => {
-      const previousTimestamp = previousTimestampRef.current
-      previousTimestampRef.current = timestamp
-      if (previousTimestamp !== null) elapsedMsRef.current += (timestamp - previousTimestamp) * speed
-      if (elapsedMsRef.current >= current.durationMs) {
-        elapsedMsRef.current = 0
-        previousTimestampRef.current = timestamp
-        setIndex((value) => (value + 1) % sequence.length)
-      }
-      frameId = window.requestAnimationFrame(tick)
-    }
-    frameId = window.requestAnimationFrame(tick)
-    return () => window.cancelAnimationFrame(frameId)
-  }, [current, playbackState, sequence.length, speed])
+    if (sequence.length < 2 || !current) return
+    const timer = window.setTimeout(() => setIndex((value) => (value + 1) % sequence.length), current.durationMs / playbackSpeed)
+    return () => window.clearTimeout(timer)
+  }, [current, playbackSpeed, sequence.length])
 
   if (!current) return null
 
   return <>
     <Suspense fallback={<p className="grid h-full min-h-80 place-items-center text-sm text-paper/60">Memuat avatar…</p>}>
-      <Avatar key={current.modelUrl} signing={current.hasAnimation} modelUrl={current.modelUrl} actionName={current.actionName} animationStartOffsetMs={current.startOffsetMs} animationEndOffsetMs={current.endOffsetMs} playbackState={playbackState} playbackSpeed={speed} actionKey={`${current.id}-${index}`} onAnimationsLoaded={current.modelUrl === '/models/avatar.glb' ? onAnimationsLoaded : undefined} framing="thigh-up" className="absolute inset-0 size-full" />
+      <Avatar key={current.modelUrl} signing={current.hasAnimation} modelUrl={current.modelUrl} actionName={current.actionName} animationStartOffsetMs={current.startOffsetMs} animationEndOffsetMs={current.endOffsetMs} actionKey={`${current.id}-${index}`} animationSpeed={playbackSpeed} onAnimationsLoaded={current.modelUrl === '/models/avatar.glb' ? onAnimationsLoaded : undefined} framing="thigh-up" className="absolute inset-0 size-full" />
     </Suspense>
-    <div className="absolute inset-x-3 bottom-3 z-10 flex flex-col items-stretch gap-2 text-paper sm:flex-row sm:items-end sm:justify-between sm:gap-4">
-        <div className="max-w-full rounded-xl border border-white/10 bg-ink/85 px-4 py-3 shadow-xl backdrop-blur-md sm:max-w-[65%]">
+    <div className="absolute inset-x-3 bottom-3 z-10 flex items-end justify-between gap-4 text-paper">
+        <div className="max-w-[75%] rounded-xl border border-white/10 bg-ink/85 px-4 py-3 shadow-xl backdrop-blur-md">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-soft">{current.kind === 'word' ? 'Gerakan kata' : 'Ejaan huruf'}</p>
           <p data-testid="sign-step-label" data-start-offset-ms={Math.round(current.startOffsetMs)} data-end-offset-ms={Math.round(current.endOffsetMs)} data-duration-ms={Math.round(current.durationMs)} className="mt-1 text-3xl font-semibold">{current.label}</p>
           {!current.hasAnimation && <p className="mt-1 text-xs text-paper/60">Clip alfabet belum tersedia; huruf tetap ditampilkan berurutan.</p>}
         </div>
-        <div className="flex w-full shrink-0 items-center justify-between gap-2 rounded-xl bg-ink/80 p-2 text-xs text-paper/70 backdrop-blur-md sm:w-auto sm:flex-col sm:items-end">
-          <div role="group" aria-label="Kecepatan animasi" className="flex items-center gap-1">
-            {PLAYBACK_SPEEDS.map((value) => <button key={value} type="button" aria-label={`Kecepatan ${value}x`} aria-pressed={speed === value} onClick={() => onSpeedChange(value)} className={`h-8 rounded-lg px-2 font-mono transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-soft ${speed === value ? 'bg-paper text-ink' : 'hover:bg-paper/10 hover:text-paper'}`}>{value}x</button>)}
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="mr-1 tabular-nums">{index + 1}/{sequence.length}</span>
-            <button type="button" onClick={() => onPlaybackStateChange(playbackState === 'playing' ? 'paused' : 'playing')} className="grid size-9 place-items-center rounded-lg border border-paper/20 transition hover:bg-paper/10 hover:text-paper focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-soft" aria-label={playbackState === 'playing' ? 'Jeda animasi' : 'Putar animasi'}>{playbackState === 'playing' ? <Pause aria-hidden="true" className="size-4" /> : <Play aria-hidden="true" className="size-4" />}</button>
-            <button type="button" onClick={onStop} disabled={playbackState === 'stopped'} className="grid size-9 place-items-center rounded-lg border border-paper/20 transition hover:bg-paper/10 hover:text-paper focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-soft disabled:cursor-not-allowed disabled:opacity-40" aria-label="Hentikan animasi"><Square aria-hidden="true" className="size-3.5 fill-current" /></button>
-          </div>
-        </div>
+        <div className="flex shrink-0 items-center gap-3 rounded-xl bg-ink/75 p-2 text-xs text-paper/70 backdrop-blur-md"><span>{index + 1}/{sequence.length}</span><button type="button" onClick={onRestart} className="grid size-9 place-items-center rounded-lg border border-paper/20 hover:bg-paper/10" aria-label="Ulangi terjemahan"><RotateCcw className="size-4" /></button></div>
     </div>
   </>
 }
 
-export default function SignSequencePlayer({ text, phrases, className = '', emptyText = 'Mulai mengetik untuk menampilkan avatar.' }: SignSequencePlayerProps) {
+export default function SignSequencePlayer({ text, phrases, className = '', emptyText = 'Mulai mengetik untuk menampilkan avatar.', showSpeedControls = false }: SignSequencePlayerProps) {
   const [animationClips, setAnimationClips] = useState<AnimationClipTiming[]>([])
   const [restartKey, setRestartKey] = useState(0)
-  const [playbackState, setPlaybackState] = useState<PlaybackState>('playing')
-  const [speed, setSpeed] = useState(1)
+  const [playbackSpeed, setPlaybackSpeed] = useState(1)
   const sequence = useMemo(() => buildSignSequence(text, phrases, animationClips), [animationClips, phrases, text])
   const signature = sequence.map((step) => step.id).join('|')
   const handleAnimationsLoaded = useCallback((clips: AnimationClipTiming[]) => {
     setAnimationClips((previous) => previous.map((clip) => `${clip.name}:${clip.durationMs}:${clip.activeStartMs}:${clip.activeEndMs}`).join('|') === clips.map((clip) => `${clip.name}:${clip.durationMs}:${clip.activeStartMs}:${clip.activeEndMs}`).join('|') ? previous : clips)
   }, [])
 
-  const stop = () => {
-    setPlaybackState('stopped')
-    setRestartKey((value) => value + 1)
-  }
-
   if (sequence.length === 0) {
-    return <div className={`grid min-h-80 place-items-center rounded-2xl border border-white/10 bg-ink px-6 text-center text-paper/60 ${className}`}>{emptyText}</div>
+    return <div className={`relative grid min-h-80 place-items-center rounded-2xl border border-white/10 bg-ink px-6 text-center text-paper/60 ${className}`}>
+      {emptyText}
+      {showSpeedControls && <SpeedControls playbackSpeed={playbackSpeed} onChange={setPlaybackSpeed} />}
+    </div>
   }
 
   return <div className={`relative min-h-80 overflow-hidden rounded-2xl border border-white/10 bg-ink ${className}`}>
-    <SequencePlayback key={`${signature}-${restartKey}`} sequence={sequence} playbackState={playbackState} speed={speed} onPlaybackStateChange={setPlaybackState} onStop={stop} onSpeedChange={setSpeed} onAnimationsLoaded={handleAnimationsLoaded} />
+    <SequencePlayback key={`${signature}-${restartKey}`} sequence={sequence} playbackSpeed={playbackSpeed} onRestart={() => setRestartKey((value) => value + 1)} onAnimationsLoaded={handleAnimationsLoaded} />
+    {showSpeedControls && <SpeedControls playbackSpeed={playbackSpeed} onChange={setPlaybackSpeed} />}
   </div>
 }
