@@ -5,6 +5,7 @@ import { AlertCircle } from 'lucide-react'
 import { api, ApiError, WS_BASE_URL, type Meeting, type PssRoom } from '../api/client'
 import { useAuth } from '../lib/auth'
 import { useVideoCall } from '../lib/videoCall'
+import { useAiAssistance } from '../hooks/useAiAssistance'
 import { formatMsgTime } from '../lib/time'
 import SessionHeader from '../components/session/SessionHeader'
 import VideoCallStage from '../components/session/VideoCallStage'
@@ -57,6 +58,7 @@ export default function Meet() {
     socket,
     socketJoined,
   })
+  const aiAssist = useAiAssistance(room?.id ?? '', videoCall.localStream)
 
   const videoCallRef = useRef(videoCall)
   useEffect(() => {
@@ -217,6 +219,13 @@ export default function Meet() {
     setChatInput('')
   }
 
+  const sendAiMessage = () => {
+    const value = aiAssist.text.trim()
+    if (!value || !socket || socket.readyState !== WebSocket.OPEN || !room) return
+    socket.send(JSON.stringify({ type: 'CHAT', payload: { roomId: room.id, text: value, source: 'AI' } }))
+    aiAssist.reset()
+  }
+
   const endSession = async () => {
     if (room) {
       try {
@@ -298,6 +307,35 @@ export default function Meet() {
                 onInputChange={setChatInput}
                 onSubmit={sendChat}
               />
+
+              <section className="rounded-2xl border border-line bg-surface p-4" aria-label="Bantuan komunikasi AI">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h2 className="font-semibold">Terjemahkan isyarat</h2>
+                    <p className="text-xs text-muted">Menggunakan kamera panggilan yang sama, tanpa merekam audio.</p>
+                  </div>
+                  {aiAssist.status === 'idle' || aiAssist.status === 'error' ? (
+                    <button type="button" onClick={aiAssist.start} className="rounded-lg bg-brand px-3 py-2 text-sm text-white">Mulai</button>
+                  ) : (
+                    <button type="button" onClick={aiAssist.reset} className="rounded-lg border border-line px-3 py-2 text-sm">Batal</button>
+                  )}
+                </div>
+                {aiAssist.status === 'countdown' && <p className="mt-3 text-sm" role="status">Mulai dalam {aiAssist.seconds}…</p>}
+                {aiAssist.status === 'recording' && <p className="mt-3 text-sm" role="status">Merekam isyarat selama 3 detik…</p>}
+                {aiAssist.status === 'processing' && <p className="mt-3 text-sm" role="status">Memproses video secara aman…</p>}
+                {aiAssist.error && <p className="mt-3 text-sm text-red-700" role="alert">{aiAssist.error}</p>}
+                {aiAssist.status === 'reviewing' && (
+                  <div className="mt-3 space-y-3">
+                    <label className="block text-sm font-medium" htmlFor="ai-message">Tinjau dan koreksi hasil sebelum dikirim</label>
+                    <input id="ai-message" value={aiAssist.text} onChange={(event) => aiAssist.setText(event.target.value)} maxLength={500} className="w-full rounded-lg border border-line bg-paper px-3 py-2" />
+                    <p className="text-xs text-muted">Kepercayaan {Math.round((aiAssist.prediction?.confidence ?? 0) * 100)}% · video dihapus setelah inferensi.</p>
+                    <div className="flex flex-wrap gap-2">
+                      <button type="button" onClick={sendAiMessage} className="rounded-lg bg-brand px-3 py-2 text-sm text-white">Kirim ke chat</button>
+                      <button type="button" onClick={() => void aiAssist.speak()} className="rounded-lg border border-line px-3 py-2 text-sm">Bacakan</button>
+                    </div>
+                  </div>
+                )}
+              </section>
             </div>
 
             {/* Right Column: 3D Avatar Stage + Question & Answer Card */}

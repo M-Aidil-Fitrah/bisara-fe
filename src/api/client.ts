@@ -19,6 +19,7 @@ export const MeetingSchema = z.object({
 })
 export const DisplaySchema = z.object({ token: z.string(), text: z.string(), expiresAt: z.string().or(z.date()), phrase: PhraseSchema.nullable() })
 export const PssRoomSchema = z.object({ items: z.array(z.object({ id: z.string(), itemNumber: z.number().int(), questionText: z.string(), isReversed: z.boolean(), phrase: z.object({ id: z.string(), text: z.string(), animations: z.array(AssetSchema) }) })), answers: z.array(z.object({ itemId: z.string(), value: z.number().int() })), score: z.number().int().nullable() })
+export const AiPredictionSchema = z.object({ prediction: z.string(), confidence: z.number().min(0).max(1), alternatives: z.array(z.object({ label: z.string(), confidence: z.number().min(0).max(1) })), quality: z.object({ frames: z.number().int().positive(), shoulder_rate: z.number().min(0).max(1), hand_rate: z.number().min(0).max(1) }) })
 export type Phrase = z.infer<typeof PhraseSchema>
 export type CatalogPhrase = Phrase
 export type Partner = z.infer<typeof PartnerSchema>
@@ -26,6 +27,7 @@ export type AuthUser = z.infer<typeof AuthUserSchema>
 export type Meeting = z.infer<typeof MeetingSchema>
 export type Display = z.infer<typeof DisplaySchema>
 export type PssRoom = z.infer<typeof PssRoomSchema>
+export type AiPrediction = z.infer<typeof AiPredictionSchema>
 export const WS_BASE_URL = frontendEnv.VITE_WS_URL
 
 async function request<T>(path: string, schema: z.ZodType<T>, init?: RequestInit): Promise<T>
@@ -34,7 +36,7 @@ async function request<T>(path: string, schema: z.ZodType<T>, init: RequestInit 
   const controller = new AbortController()
   const timeout = window.setTimeout(() => controller.abort(), 12_000)
   try {
-    const response = await fetch(`${frontendEnv.VITE_API_URL}${path}`, { ...init, credentials: 'include', signal: controller.signal, headers: { ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...init.headers } })
+    const response = await fetch(`${frontendEnv.VITE_API_URL}${path}`, { ...init, credentials: 'include', signal: controller.signal, headers: { ...(init.body && !(init.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}), ...init.headers } })
     if (!response.ok) {
       const parsed = ErrorSchema.safeParse(await response.json().catch(() => null))
       throw new ApiError(response.status, parsed.success ? parsed.data.error.code : 'REQUEST_FAILED', parsed.success ? parsed.data.error.message : `Permintaan gagal (${response.status})`)
@@ -76,5 +78,27 @@ export const api = {
   pss: {
     get: async (roomId: string) => (await request(`/pss/rooms/${roomId}`, Envelope(PssRoomSchema))).data,
     answer: async (roomId: string, itemId: string, value: number) => (await request(`/pss/rooms/${roomId}/answers`, Envelope(PssRoomSchema), { method: 'PUT', body: JSON.stringify({ itemId, value }) })).data,
+  },
+  ai: {
+    predict: async (roomId: string, video: Blob): Promise<AiPrediction> => {
+      const form = new FormData()
+      form.append('video', video, 'bisara-sign.webm')
+      return (await request(`/ai/rooms/${roomId}/predict`, Envelope(AiPredictionSchema), { method: 'POST', body: form })).data
+    },
+    tts: async (roomId: string, text: string): Promise<Blob> => {
+      const controller = new AbortController()
+      const timeout = window.setTimeout(() => controller.abort(), 45_000)
+      try {
+        const response = await fetch(`${frontendEnv.VITE_API_URL}/ai/rooms/${roomId}/tts`, { method: 'POST', credentials: 'include', signal: controller.signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) })
+        if (!response.ok) {
+          const parsed = ErrorSchema.safeParse(await response.json().catch(() => null))
+          throw new ApiError(response.status, parsed.success ? parsed.data.error.code : 'REQUEST_FAILED', parsed.success ? parsed.data.error.message : 'Sintesis suara gagal')
+        }
+        return response.blob()
+      } catch (cause) {
+        if (cause instanceof ApiError) throw cause
+        throw new ApiError(0, 'NETWORK_ERROR', 'Tidak dapat terhubung ke layanan suara')
+      } finally { window.clearTimeout(timeout) }
+    },
   },
 }
