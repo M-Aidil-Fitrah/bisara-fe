@@ -282,16 +282,18 @@ export default function AvatarCanvas({
     )
 
     let reqId = 0
-    const clock = new THREE.Clock()
+    const timer = new THREE.Timer()
+    timer.connect(document)
     let isIntersecting = true
 
-    const animate = () => {
+    const animate = (timestamp?: number) => {
       if (disposed || document.hidden || !isIntersecting) {
         reqId = 0
         return
       }
       reqId = requestAnimationFrame(animate)
-      const delta = clock.getDelta()
+      timer.update(timestamp)
+      const delta = timer.getDelta()
       // GLB Mixer update
       if (mixer) {
         mixer.update(delta)
@@ -343,7 +345,7 @@ export default function AvatarCanvas({
 
     const resumeAnimation = () => {
       if (!reqId && !document.hidden && isIntersecting && !disposed) {
-        clock.start()
+        timer.reset()
         animate()
       }
     }
@@ -386,6 +388,7 @@ export default function AvatarCanvas({
       window.removeEventListener('resize', handleResize)
       document.removeEventListener('visibilitychange', handleVisibility)
       observer.disconnect()
+      timer.dispose()
       renderer.dispose()
       scene.traverse((object) => {
         if (!(object instanceof THREE.Mesh)) return
