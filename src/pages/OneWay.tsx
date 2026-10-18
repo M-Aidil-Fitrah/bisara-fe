@@ -8,7 +8,7 @@ export default function OneWay() {
   const [display, setDisplay] = useState<(Display & { editorToken: string }) | null>(null)
   const [phrases, setPhrases] = useState<Phrase[]>([])
   const [text, setText] = useState('')
-  const [state, setState] = useState<'creating' | 'ready' | 'saving' | 'error'>('creating')
+  const [state, setState] = useState<'creating' | 'ready' | 'saving' | 'create-error' | 'save-error'>('creating')
   const [error, setError] = useState<string | null>(null)
   const [catalogWarning, setCatalogWarning] = useState<string | null>(null)
   const [savedText, setSavedText] = useState<string | null>(null)
@@ -24,7 +24,7 @@ export default function OneWay() {
     } catch (cause) {
       setDisplay(null)
       setError(cause instanceof ApiError ? cause.message : 'Layanan display tidak dapat disiapkan')
-      setState('error')
+      setState('create-error')
     }
   }, [])
 
@@ -41,7 +41,7 @@ export default function OneWay() {
         if (cancelled) return
         setDisplay(null)
         setError(cause instanceof ApiError ? cause.message : 'Layanan display tidak dapat disiapkan')
-        setState('error')
+        setState('create-error')
       })
     void api.catalog.phrases()
       .then((items) => {
@@ -72,7 +72,7 @@ export default function OneWay() {
       setState('ready')
     } catch (cause) {
       setError(cause instanceof ApiError ? cause.message : 'Perubahan gagal disimpan')
-      setState('error')
+      setState('save-error')
     }
   }
   const url = display ? `${window.location.origin}/display/${display.token}` : ''
