@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const baseUrl = 'http://localhost:5173'
+const baseUrl = 'http://127.0.0.1:5173'
 
 test('public service routes load and preserve accessible navigation', async ({ page }) => {
   await page.goto(baseUrl)
@@ -9,8 +9,9 @@ test('public service routes load and preserve accessible navigation', async ({ p
   const featureMenu = page.locator('#menu-fitur')
   const featureLink = featureMenu.getByRole('link', { name: /One-way Service/ })
   await expect(featureLink).toBeVisible()
-  await expect(featureMenu.getByText('Fitur layanan two-way')).toBeVisible()
   await expect(featureMenu.getByRole('link', { name: /Two-way Service/ })).toBeVisible()
+  await expect(featureMenu.getByRole('link', { name: 'Layanan Psikolog' })).toBeVisible()
+  await expect(featureMenu.getByRole('link', { name: 'Layanan Resepsionis' })).toBeVisible()
   await page.keyboard.press('Escape')
   await expect(featureLink).toBeHidden()
   await page.goto(`${baseUrl}/one-way`)
@@ -21,6 +22,20 @@ test('public service routes load and preserve accessible navigation', async ({ p
   await expect(page.getByRole('heading', { name: 'Layanan psikolog BISARA.' })).toBeVisible()
   await page.goto(`${baseUrl}/two-way/resepsionis`)
   await expect(page.getByRole('heading', { name: 'Layanan Resepsionis' })).toBeVisible()
+})
+
+test('mobile navigation keeps feature hierarchy accessible', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(baseUrl)
+  await page.getByRole('button', { name: 'Buka menu' }).click()
+  await expect(page.locator('#menu-mobile')).toBeVisible()
+  await page.getByRole('button', { name: 'Fitur' }).click()
+  const features = page.locator('#menu-mobile-fitur')
+  await expect(features.getByRole('link', { name: 'One-way Service' })).toBeVisible()
+  await expect(features.getByRole('link', { name: 'Two-way Service' })).toBeVisible()
+  await expect(features.getByRole('link', { name: 'Layanan Psikolog' })).toBeVisible()
+  await page.getByRole('button', { name: 'Tutup menu' }).click()
+  await expect(page.locator('#menu-mobile')).toBeHidden()
 })
 
 test('ADMIN can wait safely and pair with the next USER in a Ritz room', async ({ browser }) => {
