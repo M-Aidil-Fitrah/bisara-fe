@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import logoFull from '../assets/logo-full.png'
-import AuthHero from '../components/auth/AuthHero'
+import AuthPageLayout from '../components/auth/AuthPageLayout'
 import { Button } from '../components/ui'
 import { IMG } from '../lib/images'
 import { login } from '../lib/auth'
@@ -57,28 +56,7 @@ export default function Login({ onGoRegister, onGoHome, onSuccess }: LoginProps)
   }
 
   return (
-    <div className="grid h-screen max-h-screen w-full overflow-hidden lg:grid-cols-2">
-      {/* Visual branding half */}
-      <AuthHero
-        imageSrc={IMG.hero}
-        eyebrow="BISARA"
-        title="Saling paham, sana sini."
-        desc="Masuk untuk menggunakan layanan publik BISARA sesuai kebutuhan Anda."
-        onBack={handleGoHome}
-      />
-
-      {/* Form half */}
-      <div className="flex h-full flex-col justify-between overflow-y-auto px-6 py-6 sm:px-12 sm:py-8">
-        <div>
-          <button
-            onClick={handleGoHome}
-            aria-label="Kembali ke Beranda"
-            className="h-9 w-[100px] overflow-hidden"
-          >
-            <img src={logoFull} alt="Bisara" className="size-full scale-[1.9] object-contain" />
-          </button>
-          <button onClick={handleGoHome} className="mt-4 text-xs text-muted transition hover:text-ink lg:hidden">← Beranda</button>
-        </div>
+    <AuthPageLayout hero={{ imageSrc: IMG.hero, eyebrow: 'BISARA', title: 'Saling paham, sana sini.', desc: 'Masuk untuk menggunakan layanan publik BISARA sesuai kebutuhan Anda.' }} onBack={handleGoHome} footer={<p className="text-xs text-muted">Data sesi diproses sesuai kebijakan privasi BISARA.</p>}>
 
         <div className="mx-auto my-auto w-full max-w-sm py-4">
           <h1 className="text-4xl font-semibold tracking-tight text-ink">Masuk</h1>
@@ -140,12 +118,6 @@ export default function Login({ onGoRegister, onGoHome, onSuccess }: LoginProps)
           </div>
         </div>
 
-        <div className="text-center sm:text-left">
-          <p className="text-xs text-muted">
-            Data sesi diproses sesuai kebijakan privasi BISARA.
-          </p>
-        </div>
-      </div>
-    </div>
+    </AuthPageLayout>
   )
 }

@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import logoFull from '../assets/logo-full.png'
-import AuthHero from '../components/auth/AuthHero'
+import AuthPageLayout from '../components/auth/AuthPageLayout'
 import { Button } from '../components/ui'
 import { IMG } from '../lib/images'
 import { register } from '../lib/auth'
@@ -61,30 +60,7 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
   }
 
   return (
-    <div className="grid h-screen max-h-screen w-full overflow-hidden lg:grid-cols-2">
-      {/* Visual branding half */}
-      <AuthHero
-        imageSrc={IMG.signing}
-        imageAlt="Komunikasi BISINDO"
-        imageOpacityClass="opacity-60"
-        eyebrow="BISARA"
-        title="Layanan Inklusif, Ruang Aman."
-        desc="Daftarkan akun untuk menggunakan layanan publik BISARA sesuai kebutuhan Anda."
-        onBack={handleGoHome}
-      />
-
-      {/* Form half */}
-      <div className="flex h-full flex-col justify-between overflow-y-auto px-6 py-6 sm:px-12 sm:py-8">
-        <div>
-          <button
-            onClick={handleGoHome}
-            aria-label="Kembali ke Beranda"
-            className="h-9 w-[100px] overflow-hidden"
-          >
-            <img src={logoFull} alt="Bisara" className="size-full scale-[1.9] object-contain" />
-          </button>
-          <button onClick={handleGoHome} className="mt-4 text-xs text-muted transition hover:text-ink lg:hidden">← Beranda</button>
-        </div>
+    <AuthPageLayout hero={{ imageSrc: IMG.signing, imageAlt: 'Komunikasi BISINDO', imageOpacityClass: 'opacity-60', eyebrow: 'BISARA', title: 'Layanan Inklusif, Ruang Aman.', desc: 'Daftarkan akun untuk menggunakan layanan publik BISARA sesuai kebutuhan Anda.' }} onBack={handleGoHome} footer={<p className="text-xs text-muted">Akun admin dikelola melalui deployment untuk mendampingi layanan yang sesuai.</p>}>
 
         <div className="mx-auto my-auto w-full max-w-sm py-4">
           <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Daftar Akun</h1>
@@ -160,12 +136,6 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
           </div>
         </div>
 
-        <div className="text-center sm:text-left">
-          <p className="text-xs text-muted">
-            Akun admin dikelola melalui deployment untuk mendampingi layanan yang sesuai.
-          </p>
-        </div>
-      </div>
-    </div>
+    </AuthPageLayout>
   )
 }
