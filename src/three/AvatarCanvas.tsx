@@ -1,14 +1,49 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import type { AnimationClipTiming } from '../lib/signSequence'
 
 interface AvatarCanvasProps {
   signing?: boolean
   className?: string
   modelUrl: string
   actionName: string
-  onAnimationsLoaded?: ((names: string[]) => void) | undefined
+  onAnimationsLoaded?: ((clips: AnimationClipTiming[]) => void) | undefined
   framing?: 'upper-body' | 'thigh-up'
+  animationStartOffsetMs?: number
+  actionKey?: string
+}
+
+const SIGN_TRACK_PATTERN = /(hand|forearm|upper_arm|shoulder|index|middle|ring|pinky|thumb)/i
+
+function measureMotionRange(clip: THREE.AnimationClip): AnimationClipTiming {
+  const tracks = clip.tracks.filter((track) => SIGN_TRACK_PATTERN.test(track.name))
+  const selectedTracks = tracks.length > 0 ? tracks : clip.tracks
+  let activeStart = Number.POSITIVE_INFINITY
+  let activeEnd = 0
+
+  for (const track of selectedTracks) {
+    const valueSize = track.getValueSize()
+    for (let frame = 1; frame < track.times.length; frame += 1) {
+      let difference = 0
+      for (let offset = 0; offset < valueSize; offset += 1) {
+        const current = track.values[frame * valueSize + offset] ?? 0
+        const previous = track.values[(frame - 1) * valueSize + offset] ?? 0
+        difference += Math.abs(current - previous)
+      }
+      if (difference < 0.0005) continue
+      activeStart = Math.min(activeStart, (track.times[frame - 1] ?? 0) * 1_000)
+      activeEnd = Math.max(activeEnd, (track.times[frame] ?? clip.duration) * 1_000)
+    }
+  }
+
+  const durationMs = clip.duration * 1_000
+  return {
+    name: clip.name,
+    durationMs,
+    activeStartMs: Number.isFinite(activeStart) ? activeStart : 0,
+    activeEndMs: activeEnd > 0 ? activeEnd : durationMs,
+  }
 }
 
 export default function AvatarCanvas({
@@ -18,6 +53,8 @@ export default function AvatarCanvas({
   actionName,
   onAnimationsLoaded,
   framing = 'upper-body',
+  animationStartOffsetMs = 0,
+  actionKey = '',
 }: AvatarCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null)
   const [loading, setLoading] = useState(true)
@@ -26,11 +63,15 @@ export default function AvatarCanvas({
 
   const signingRef = useRef(signing)
   const actionNameRef = useRef(actionName)
+  const actionKeyRef = useRef(actionKey)
+  const animationStartOffsetRef = useRef(animationStartOffsetMs)
 
   useEffect(() => {
     signingRef.current = signing
     actionNameRef.current = actionName
-  }, [signing, actionName])
+    actionKeyRef.current = actionKey
+    animationStartOffsetRef.current = animationStartOffsetMs
+  }, [signing, actionName, actionKey, animationStartOffsetMs])
 
   useEffect(() => {
     const mount = mountRef.current
@@ -71,8 +112,9 @@ export default function AvatarCanvas({
     let idleAction: THREE.AnimationAction | null = null
     let signAction: THREE.AnimationAction | null = null
     let currentAction: THREE.AnimationAction | null = null
-    let clips: THREE.AnimationClip[] = []
-    let selectedActionName: string | undefined
+      let clips: THREE.AnimationClip[] = []
+      let selectedActionName: string | undefined
+      let selectedActionKey = actionKeyRef.current
     // Try to load GLB model
     const loader = new GLTFLoader()
     let disposed = false
@@ -191,7 +233,7 @@ export default function AvatarCanvas({
 
           // Find animations
           clips = gltf.animations
-          onAnimationsLoaded?.(clips.map((clip) => clip.name))
+          onAnimationsLoaded?.(clips.map(measureMotionRange))
           const idleClip =
             clips.find((c) => /idle/i.test(c.name)) ||
             clips.find((c) => /ready/i.test(c.name)) ||
@@ -206,9 +248,14 @@ export default function AvatarCanvas({
 
           if (idleClip) idleAction = mixer.clipAction(idleClip)
           if (signClip) signAction = mixer.clipAction(signClip)
+          idleAction?.setLoop(THREE.LoopRepeat, Number.POSITIVE_INFINITY)
 
           // Start initial action
           if (signingRef.current && signAction) {
+            signAction.setLoop(THREE.LoopOnce, 1)
+            signAction.clampWhenFinished = true
+            signAction.reset()
+            signAction.time = Math.min(animationStartOffsetRef.current / 1_000, Math.max(signAction.getClip().duration - 0.05, 0))
             signAction.play()
             currentAction = signAction
           } else if (idleAction) {
@@ -241,12 +288,15 @@ export default function AvatarCanvas({
       if (mixer) {
         mixer.update(delta)
 
-        if (selectedActionName !== actionNameRef.current) {
+        if (selectedActionName !== actionNameRef.current || selectedActionKey !== actionKeyRef.current) {
           selectedActionName = actionNameRef.current
+          selectedActionKey = actionKeyRef.current
           const requestedClip = selectedActionName
             ? clips.find((clip) => clip.name.toLowerCase() === selectedActionName?.toLowerCase())
             : undefined
+          currentAction?.fadeOut(0.25)
           signAction = requestedClip ? mixer.clipAction(requestedClip) : null
+          currentAction = null
           setLoadError(selectedActionName && !requestedClip ? `Animasi “${selectedActionName}” tidak ditemukan dalam aset` : null)
         }
 
@@ -258,7 +308,13 @@ export default function AvatarCanvas({
           if (currentAction) {
             currentAction.fadeOut(0.25)
           }
-          targetAction.reset().fadeIn(0.25).play()
+          targetAction.reset()
+          if (targetAction === signAction) {
+            targetAction.setLoop(THREE.LoopOnce, 1)
+            targetAction.clampWhenFinished = true
+            targetAction.time = Math.min(animationStartOffsetRef.current / 1_000, Math.max(targetAction.getClip().duration - 0.05, 0))
+          }
+          targetAction.fadeIn(0.25).play()
           currentAction = targetAction
         }
       }

@@ -6,8 +6,16 @@ export type SignStep = {
   modelUrl: string
   actionName: string
   durationMs: number
+  startOffsetMs: number
   kind: 'word' | 'letter'
   hasAnimation: boolean
+}
+
+export type AnimationClipTiming = {
+  name: string
+  durationMs: number
+  activeStartMs: number
+  activeEndMs: number
 }
 
 const LOCAL_MODEL_URL = '/models/avatar.glb'
@@ -25,12 +33,18 @@ function normalizeAction(value: string): string {
   return normalizeSignText(value).replace(/\s+/g, '_')
 }
 
-function findAlphabetAction(letter: string, animationNames: string[]): string {
+function findAlphabetAction(letter: string, clips: AnimationClipTiming[]): AnimationClipTiming | undefined {
   const candidates = [letter, `huruf_${letter}`, `letter_${letter}`, `alphabet_${letter}`]
-  return animationNames.find((name) => candidates.includes(normalizeAction(name))) ?? ''
+  return clips.find((clip) => candidates.includes(normalizeAction(clip.name)))
 }
 
-export function buildSignSequence(text: string, phrases: Phrase[], localAnimationNames: string[]): SignStep[] {
+function playbackTiming(clip: AnimationClipTiming): { durationMs: number; startOffsetMs: number } {
+  const startOffsetMs = Math.max(0, clip.activeStartMs - 80)
+  const activeEndMs = Math.max(clip.activeEndMs, startOffsetMs + 400)
+  return { startOffsetMs, durationMs: activeEndMs - startOffsetMs + 550 }
+}
+
+export function buildSignSequence(text: string, phrases: Phrase[], localClips: AnimationClipTiming[]): SignStep[] {
   const normalized = normalizeSignText(text)
   if (!normalized) return []
 
@@ -40,10 +54,10 @@ export function buildSignSequence(text: string, phrases: Phrase[], localAnimatio
     .map((phrase) => ({ phrase, words: normalizeSignText(phrase.text).split(' ') }))
     .filter((entry) => entry.words[0] !== '')
     .sort((left, right) => right.words.length - left.words.length)
-  const localActions = new Map(localAnimationNames.map((name) => [normalizeAction(name), name]))
-  const localEntries = localAnimationNames
-    .filter((name) => !/idle|ready/i.test(name))
-    .map((name) => ({ name, words: normalizeSignText(name.replaceAll('_', ' ')).split(' ') }))
+  const localActions = new Map(localClips.map((clip) => [normalizeAction(clip.name), clip]))
+  const localEntries = localClips
+    .filter((clip) => !/idle|ready|test|not_bisindo/i.test(clip.name))
+    .map((clip) => ({ clip, words: normalizeSignText(clip.name.replaceAll('_', ' ')).split(' ') }))
     .sort((left, right) => right.words.length - left.words.length)
   const steps: SignStep[] = []
 
@@ -52,7 +66,9 @@ export function buildSignSequence(text: string, phrases: Phrase[], localAnimatio
     if (catalogMatch) {
       const asset = catalogMatch.phrase.animations[0]
       if (asset) {
-        steps.push({ id: `word-${index}-${asset.id}`, label: catalogMatch.phrase.text, modelUrl: asset.glbUrl, actionName: asset.animationName, durationMs: Math.max(asset.durationMs, 800), kind: 'word', hasAnimation: true })
+        const localClip = asset.glbUrl === LOCAL_MODEL_URL ? localActions.get(normalizeAction(asset.animationName)) : undefined
+        const timing = localClip ? playbackTiming(localClip) : { startOffsetMs: 0, durationMs: Math.max(asset.durationMs + 550, 1_350) }
+        steps.push({ id: `word-${index}-${asset.id}`, label: catalogMatch.phrase.text, modelUrl: asset.glbUrl, actionName: asset.animationName, ...timing, kind: 'word', hasAnimation: true })
         index += catalogMatch.words.length
         continue
       }
@@ -60,7 +76,8 @@ export function buildSignSequence(text: string, phrases: Phrase[], localAnimatio
 
     const localPhrase = localEntries.find((entry) => entry.words.every((word, offset) => words[index + offset] === word))
     if (localPhrase) {
-      steps.push({ id: `word-${index}-${localPhrase.name}`, label: localPhrase.words.join(' '), modelUrl: LOCAL_MODEL_URL, actionName: localPhrase.name, durationMs: 1_800, kind: 'word', hasAnimation: true })
+      const timing = playbackTiming(localPhrase.clip)
+      steps.push({ id: `word-${index}-${localPhrase.clip.name}`, label: localPhrase.words.join(' '), modelUrl: LOCAL_MODEL_URL, actionName: localPhrase.clip.name, ...timing, kind: 'word', hasAnimation: true })
       index += localPhrase.words.length
       continue
     }
@@ -68,11 +85,12 @@ export function buildSignSequence(text: string, phrases: Phrase[], localAnimatio
     const word = words[index] ?? ''
     const localAction = localActions.get(normalizeAction(word))
     if (localAction) {
-      steps.push({ id: `word-${index}-${word}`, label: word, modelUrl: LOCAL_MODEL_URL, actionName: localAction, durationMs: 1_800, kind: 'word', hasAnimation: true })
+      steps.push({ id: `word-${index}-${word}`, label: word, modelUrl: LOCAL_MODEL_URL, actionName: localAction.name, ...playbackTiming(localAction), kind: 'word', hasAnimation: true })
     } else {
       for (const [letterIndex, letter] of [...word].entries()) {
-        const actionName = findAlphabetAction(letter, localAnimationNames)
-        steps.push({ id: `letter-${index}-${letterIndex}-${letter}`, label: letter.toLocaleUpperCase('id-ID'), modelUrl: LOCAL_MODEL_URL, actionName, durationMs: 750, kind: 'letter', hasAnimation: Boolean(actionName) })
+        const alphabetClip = findAlphabetAction(letter, localClips)
+        const timing = alphabetClip ? playbackTiming(alphabetClip) : { startOffsetMs: 0, durationMs: 1_100 }
+        steps.push({ id: `letter-${index}-${letterIndex}-${letter}`, label: letter.toLocaleUpperCase('id-ID'), modelUrl: LOCAL_MODEL_URL, actionName: alphabetClip?.name ?? '', ...timing, kind: 'letter', hasAnimation: Boolean(alphabetClip) })
       }
     }
     index += 1
