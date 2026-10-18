@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { Button, Eyebrow, SectionHeader } from '../components/ui'
 import FaqSection from '../components/landing/FaqSection'
+import { LandingStory, ScopeList } from '../components/landing/LandingSections'
 import { IMG } from '../lib/images'
 
 const featureCards: ReadonlyArray<{
@@ -26,7 +27,7 @@ export default function Home({ go }: { go?: (p: string) => void }) {
     <>
       {/* HERO */}
       <section className="relative flex min-h-[92vh] items-center justify-center overflow-hidden bg-ink">
-        <img src={IMG.hero} alt="Psikolog berbincang dengan klien di ruang konsultasi" data-hero-bg className="absolute inset-0 size-full object-cover" />
+        <img src={IMG.hero} alt="Pengguna memakai perangkat untuk mengakses layanan publik digital" data-hero-bg className="absolute inset-0 size-full object-cover" />
         <div className="absolute inset-0 bg-ink/55" />
         <div data-hero className="relative px-6 pt-24 text-center">
           <h1 className="mx-auto max-w-4xl text-5xl font-normal leading-[1.05] tracking-tight text-paper sm:text-7xl">
@@ -44,26 +45,26 @@ export default function Home({ go }: { go?: (p: string) => void }) {
 
       {/* STORY BLOCKS */}
       <section id="cara-kerja" className="mx-auto max-w-7xl space-y-24 px-6 py-24 md:space-y-32 md:py-32">
-        <Story
+        <LandingStory
           image={IMG.consult} alt="Dua orang berkomunikasi di ruang layanan"
           eyebrow="Layanan publik"
           title="Pesan teks yang dapat dibagikan ke layar"
           body="One-way Service membuat layar privat untuk monitor lain. Teks selalu tampil; avatar 3D hanya digunakan bila katalog backend memiliki asset yang cocok."
-          cta="Lihat kosakata" onClick={() => handleNav('/dictionary')}
+          callToAction="Lihat kosakata" onClick={() => handleNav('/dictionary')}
         />
-        <Story
+        <LandingStory
           flip image={IMG.signing} alt="Perempuan memperagakan isyarat tangan"
           eyebrow="Layanan dua arah"
           title="Ruang privat untuk layanan yang membutuhkan percakapan"
           body="Setiap layanan memiliki alur sendiri. Layanan psikolog tersedia dengan room privat, PSS-10, chat sementara, dan video langsung."
-          cta="Lihat layanan dua arah" onClick={() => handleNav('/two-way')}
+          callToAction="Lihat layanan dua arah" onClick={() => handleNav('/two-way')}
         />
-        <Story
+        <LandingStory
           image={IMG.hands} alt="Dua tangan saling menggenggam"
           eyebrow="Konfirmasi pengguna"
           title="Jawaban berada dalam kendali Anda"
           body="Tidak ada nilai prediksi yang dikarang di browser. Skor PSS-10 dihitung backend dari sepuluh jawaban yang benar-benar tersimpan."
-          cta="Baca soal privasi" onClick={() => handleNav('/about')}
+          callToAction="Baca soal privasi" onClick={() => handleNav('/about')}
         />
       </section>
 
@@ -129,8 +130,8 @@ export default function Home({ go }: { go?: (p: string) => void }) {
             <Eyebrow>Cakupan prototipe</Eyebrow>
             <h2 className="mt-4 text-3xl font-normal leading-tight sm:text-4xl">Jelas apa yang bisa, dan yang belum</h2>
             <div className="mt-8 grid gap-8 sm:grid-cols-2">
-              <Scope title="Tersedia saat ini" items={['Layar informasi privat One-way', 'Kamus frasa dan status aset', 'Layanan psikolog', 'Video WebRTC P2P di room aktif']} />
-              <Scope muted title="Dalam persiapan" items={['Layanan resepsionis', 'Layanan publik lain', 'Pengenalan isyarat otomatis', 'Seluruh variasi BISINDO']} />
+              <ScopeList title="Tersedia saat ini" items={['Layar informasi privat One-way', 'Kamus frasa dan status aset', 'Layanan psikolog', 'Video WebRTC P2P di room aktif']} />
+              <ScopeList muted title="Dalam persiapan" items={['Layanan resepsionis', 'Layanan publik lain', 'Pengenalan isyarat otomatis', 'Seluruh variasi BISINDO']} />
             </div>
           </div>
         </div>
@@ -144,32 +145,5 @@ export default function Home({ go }: { go?: (p: string) => void }) {
         </div>
       </section>
     </>
-  )
-}
-
-function Story({ image, alt, eyebrow, title, body, cta, onClick, flip }: { image: string; alt: string; eyebrow: string; title: string; body: string; cta: string; onClick: () => void; flip?: boolean }) {
-  return (
-    <div className="relative grid items-center md:grid-cols-12">
-      <div data-reveal className={`aspect-[4/3] w-full overflow-hidden rounded-lg md:col-span-7 md:row-start-1 ${flip ? 'md:col-start-6' : 'md:col-start-1'}`}>
-        <img src={image} alt={alt} data-parallax className="size-full scale-[1.18] object-cover" />
-      </div>
-      <div data-reveal className={`relative -mt-16 mx-4 rounded-lg bg-ink p-8 text-paper md:mx-0 md:mt-0 md:row-start-1 md:col-span-6 md:p-10 ${flip ? 'md:col-start-1 md:translate-y-16' : 'md:col-start-7 md:-translate-y-12'}`}>
-        <Eyebrow light>{eyebrow}</Eyebrow>
-        <h3 className="mt-4 text-3xl font-normal leading-[1.1] tracking-tight sm:text-4xl">{title}</h3>
-        <p className="mt-5 leading-relaxed text-paper/75">{body}</p>
-        <Button variant="light" arrow className="mt-8" onClick={onClick}>{cta}</Button>
-      </div>
-    </div>
-  )
-}
-
-function Scope({ title, items, muted }: { title: string; items: string[]; muted?: boolean }) {
-  return (
-    <div>
-      <p className="text-sm font-semibold">{title}</p>
-      <ul className="mt-3 divide-y divide-line border-t border-line text-sm">
-        {items.map((t) => <li key={t} className={`py-2.5 ${muted ? 'text-muted line-through decoration-line' : ''}`}>{t}</li>)}
-      </ul>
-    </div>
   )
 }
