@@ -12,6 +12,7 @@ import AvatarStage from '../components/session/AvatarStage'
 import type { ChatMessage } from '../components/session/MessageBubble'
 import ChatPanel from '../components/session/ChatPanel'
 import PssResponseCard from '../components/session/PssResponseCard'
+import WaitingRoom from '../components/session/WaitingRoom'
 
 const ChatEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('CHAT'), payload: z.object({ text: z.string(), sender: z.object({ name: z.string(), role: z.enum(['USER', 'ADMIN']) }) }) }),
@@ -267,27 +268,7 @@ export default function Meet() {
           </div>
         )}
 
-        {room?.status === 'WAITING' && (
-          <section className="my-12 mx-auto max-w-2xl rounded-2xl bg-ink p-8 text-paper shadow-2xl border border-white/10 text-center">
-            <span className="inline-flex items-center gap-2 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-300 border border-amber-500/20">
-              <span className="size-2 rounded-full bg-amber-400 animate-ping" />
-              Antrean Privat Aktif
-            </span>
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight">Menunggu pendamping Ritz.</h1>
-            <p className="mt-3 text-sm text-paper/70 leading-relaxed">
-              Anda berada di urutan antrean teratas. Pendamping Ritz akan otomatis dipasangkan ke dalam ruangan ini. Status diperbarui otomatis.
-            </p>
-            <div className="mt-8 flex justify-center">
-              <button
-                type="button"
-                onClick={endSession}
-                className="rounded-xl border border-paper/30 px-5 py-2.5 text-sm font-medium hover:bg-paper hover:text-ink transition"
-              >
-                Batalkan antrean
-              </button>
-            </div>
-          </section>
-        )}
+        {room?.status === 'WAITING' && <WaitingRoom partnerName={room.partner.name} onCancel={endSession} />}
 
         {/* 3. Active Consultation Grid (Exact Restored 2-Column Layout) */}
         {room?.status === 'ACTIVE' && (
