@@ -23,7 +23,7 @@ export default function Dictionary() {
   return (
     <>
       <PageHeader image={IMG.signing} eyebrow="Kamus" title="Katalog frasa BISARA" desc="Frasa resmi dan status aset animasi yang tersedia pada server BISARA." />
-      <div className="mx-auto max-w-6xl px-6 py-20">
+      <div className="mx-auto max-w-7xl px-6 py-20">
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari frasa" aria-label="Cari frasa" className="w-full border-b border-ink/80 bg-transparent pb-3 text-2xl outline-none placeholder:text-muted/60 md:max-w-sm" />
           <div className="flex gap-1 overflow-x-auto">

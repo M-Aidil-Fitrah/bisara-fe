@@ -41,7 +41,7 @@ export function PageHeader({ eyebrow, title, desc, image }: { eyebrow: string; t
     <header className="relative overflow-hidden bg-ink">
       <img src={image} alt="" data-hero-bg className="absolute inset-0 size-full object-cover opacity-45" />
       <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/80 to-ink/20" />
-      <div data-hero className="relative mx-auto max-w-6xl px-6 pb-16 pt-40">
+      <div data-hero className="relative mx-auto max-w-7xl px-6 pb-16 pt-40">
         <Eyebrow light>{eyebrow}</Eyebrow>
         <h1 className="mt-4 max-w-2xl text-5xl font-normal leading-[1.05] tracking-tight text-paper sm:text-6xl">{title}</h1>
         <p className="mt-5 max-w-xl text-lg leading-relaxed text-paper/75">{desc}</p>

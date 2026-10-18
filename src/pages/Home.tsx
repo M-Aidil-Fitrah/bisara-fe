@@ -44,7 +44,7 @@ export default function Home({ go }: { go?: (p: string) => void }) {
       </section>
 
       {/* STORY BLOCKS */}
-      <section id="cara-kerja" className="mx-auto max-w-6xl space-y-24 px-6 py-24 md:space-y-32 md:py-32">
+      <section id="cara-kerja" className="mx-auto max-w-7xl space-y-24 px-6 py-24 md:space-y-32 md:py-32">
         <Story
           image={IMG.consult} alt="Dua orang berkomunikasi di ruang layanan"
           eyebrow="Layanan publik"
@@ -69,7 +69,7 @@ export default function Home({ go }: { go?: (p: string) => void }) {
       </section>
 
       {/* CARDS */}
-      <section className="mx-auto grid max-w-6xl gap-5 px-6 pb-28 md:grid-cols-3">
+      <section className="mx-auto grid max-w-7xl gap-5 px-6 pb-28 md:grid-cols-3">
         {featureCards.map((card) => (
           <article data-reveal key={card.title} className="flex flex-col rounded-xl bg-ink p-3 text-paper">
             <img src={card.image} alt="" className="aspect-[4/3] w-full rounded-lg object-cover" />
@@ -85,7 +85,7 @@ export default function Home({ go }: { go?: (p: string) => void }) {
 
       {/* AUDIENCE – dark band */}
       <section id="untuk-siapa" className="notch-top bg-ink pb-28 pt-40">
-        <div className="mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-7xl px-6">
           <SectionHeader light align="center" eyebrow="Untuk siapa" title="Satu alat, tiga pihak terbantu" desc="Hambatan komunikasi menjadi tanggung jawab sistem, bukan beban pengguna Tuli." />
           <div className="mt-16 grid gap-5 md:grid-cols-3">
             {[
@@ -106,7 +106,7 @@ export default function Home({ go }: { go?: (p: string) => void }) {
       </section>
 
       {/* VERIFIED CAPABILITIES */}
-      <section className="mx-auto max-w-6xl px-6 py-28">
+      <section className="mx-auto max-w-7xl px-6 py-28">
         <SectionHeader align="center" eyebrow="Cara sistem bekerja" title="Data operasional berasal dari backend" />
         <dl className="mt-16 grid border-t border-line md:grid-cols-3">
           {[
@@ -123,7 +123,7 @@ export default function Home({ go }: { go?: (p: string) => void }) {
       </section>
 
       {/* SCOPE */}
-      <section id="cakupan" className="mx-auto max-w-6xl px-6 pb-28">
+      <section id="cakupan" className="mx-auto max-w-7xl px-6 pb-28">
         <div data-reveal className="grid overflow-hidden rounded-xl bg-surface md:grid-cols-2">
           <img src={IMG.device} alt="Seseorang memakai tablet di sofa" className="h-full min-h-[320px] w-full object-cover" />
           <div className="p-8 md:p-12">
@@ -139,7 +139,7 @@ export default function Home({ go }: { go?: (p: string) => void }) {
 
       {/* FAQ */}
       <section id="faq" className="border-t border-line">
-        <div className="mx-auto grid max-w-6xl gap-12 px-6 py-28 lg:grid-cols-[1fr_1.4fr]">
+        <div className="mx-auto grid max-w-7xl gap-12 px-6 py-28 lg:grid-cols-[1fr_1.4fr]">
           <SectionHeader eyebrow="FAQ" title="Pertanyaan yang sering diajukan" />
           <Faq />
         </div>

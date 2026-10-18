@@ -16,7 +16,7 @@ export default function ComingSoon() {
   const { service } = useParams()
   const content = services[service as keyof typeof services] ?? services['layanan-lainnya']
   return (
-    <section className="mx-auto max-w-6xl px-6 pb-24 pt-36">
+    <section className="mx-auto max-w-7xl px-6 pb-24 pt-36">
       <Breadcrumb items={[{ label: 'Fitur', to: '/two-way' }, { label: 'Two-way Service', to: '/two-way' }, { label: content.title }]} />
       <p className="text-sm font-medium text-brand">Dalam persiapan</p>
       <h1 className="mt-3 max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">{content.title}</h1>

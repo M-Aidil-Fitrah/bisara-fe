@@ -10,7 +10,7 @@ const services = [
 
 export default function Services() {
   return (
-    <section className="mx-auto max-w-6xl px-6 pb-24 pt-36">
+    <section className="mx-auto max-w-7xl px-6 pb-24 pt-36">
       <Breadcrumb items={[{ label: 'Fitur' }, { label: 'Two-way Service' }]} />
       <div className="max-w-3xl">
         <p className="text-sm font-medium text-brand">Two-way Service</p>

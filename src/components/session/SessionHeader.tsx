@@ -19,7 +19,7 @@ export default function SessionHeader({
 }: SessionHeaderProps) {
   return (
     <header className="bg-ink pb-6 pt-24 text-paper border-b border-white/10 shadow-md">
-      <div className="mx-auto max-w-6xl px-6">
+      <div className="mx-auto max-w-7xl px-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-brand-soft">

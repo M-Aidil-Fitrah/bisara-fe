@@ -4,7 +4,7 @@ import Breadcrumb from '../components/common/Breadcrumb'
 
 export default function LayananPsikolog() {
   return (
-    <section className="mx-auto max-w-6xl px-6 pb-24 pt-36">
+    <section className="mx-auto max-w-7xl px-6 pb-24 pt-36">
       <Breadcrumb items={[{ label: 'Fitur', to: '/two-way' }, { label: 'Two-way Service', to: '/two-way' }, { label: 'Layanan Psikolog' }]} />
       <div className="max-w-3xl">
         <p className="text-sm font-medium text-brand">Layanan psikolog</p>

@@ -252,7 +252,7 @@ export default function Meet() {
         onLeave={endSession}
       />
 
-      <main className="mx-auto flex-1 w-full max-w-6xl px-6 py-6">
+      <main className="mx-auto flex-1 w-full max-w-7xl px-6 py-6">
         {error && (
           <div role="alert" className="mb-6 flex items-center gap-3 rounded-xl bg-red-50 p-4 text-sm text-red-700 border border-red-200">
             <AlertCircle className="size-5 shrink-0" />

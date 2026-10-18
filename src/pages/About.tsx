@@ -19,7 +19,7 @@ export default function About() {
         title="Privasi & keamanan data"
         desc="Berikut cara BISARA memperlakukan data pada layanan publik dan layanan mitra."
       />
-      <div className="mx-auto max-w-6xl px-6 py-24">
+      <div className="mx-auto max-w-7xl px-6 py-24">
         <div className="grid border-t border-ink/80 md:grid-cols-2">
           {ITEMS.map(([n, t, d]) => (
             <div

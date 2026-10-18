@@ -23,7 +23,7 @@ export default function Guide({ go }: { go?: (p: string) => void }) {
         title="Siap dalam tiga menit"
         desc="Cara memakai layar informasi dan layanan dua arah BISARA dengan jelas dan nyaman."
       />
-      <div className="mx-auto max-w-6xl px-6 py-24">
+      <div className="mx-auto max-w-7xl px-6 py-24">
         <Eyebrow>Sebelum menggunakan layanan</Eyebrow>
         <ol className="mt-6 grid border-t border-ink/80 sm:grid-cols-2 lg:grid-cols-4">
           {PREP.map(([t, d], i) => (

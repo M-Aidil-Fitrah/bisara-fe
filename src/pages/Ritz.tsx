@@ -8,7 +8,7 @@ export default function Ritz() {
   const navigate = useNavigate()
 
   return (
-    <section className="mx-auto max-w-6xl px-6 pb-24 pt-36">
+    <section className="mx-auto max-w-7xl px-6 pb-24 pt-36">
       <Breadcrumb items={[{ label: 'Fitur', to: '/two-way' }, { label: 'Two-way Service', to: '/two-way' }, { label: 'Layanan Psikolog', to: '/two-way/layanan-psikolog' }, { label: 'Ritz' }]} />
       <div className="border-b border-line pb-10">
         <p className="text-sm font-medium text-brand">Layanan psikolog BISARA</p>
