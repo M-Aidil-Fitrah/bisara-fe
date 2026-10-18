@@ -23,6 +23,7 @@ export default function Navbar() {
   const navigate = useNavigate()
   const [features, setFeatures] = useState(false)
   const [mobile, setMobile] = useState(false)
+  const [mobileFeatures, setMobileFeatures] = useState(false)
   const [profile, setProfile] = useState(false)
   const [loggingOut, setLoggingOut] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -51,6 +52,7 @@ export default function Navbar() {
   const closeMenus = () => {
     setFeatures(false)
     setMobile(false)
+    setMobileFeatures(false)
     setProfile(false)
   }
 
@@ -70,7 +72,7 @@ export default function Navbar() {
 
   return (
     <div ref={ref} className="fixed inset-x-0 top-4 z-50 px-4">
-      <div className="relative mx-auto max-w-6xl">
+      <div className="relative mx-auto max-w-7xl">
         <nav aria-label="Navigasi utama" className="flex h-14 items-center justify-between rounded-xl border border-line bg-surface px-3 pl-4 shadow-sm">
           <Link to="/" aria-label="BISARA, ke beranda" className="h-9 w-[100px] overflow-hidden">
             <img src={logoFull} alt="BISARA" className="size-full scale-[1.9] object-contain" />
@@ -131,7 +133,7 @@ export default function Navbar() {
             ) : <Link to="/login" className={itemClass(location.pathname === '/login')}>Masuk</Link>}
           </div>
 
-          <button type="button" onClick={() => setMobile((open) => !open)} aria-expanded={mobile} aria-controls="menu-mobile" aria-label={mobile ? 'Tutup menu' : 'Buka menu'} className="grid size-10 place-items-center rounded-lg text-ink transition hover:bg-brand/10 hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand md:hidden">
+          <button type="button" onClick={() => { setMobile((open) => !open); setMobileFeatures(false) }} aria-expanded={mobile} aria-controls="menu-mobile" aria-label={mobile ? 'Tutup menu' : 'Buka menu'} className="grid size-10 place-items-center rounded-lg text-ink transition hover:bg-brand/10 hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand md:hidden">
             {mobile ? <X aria-hidden="true" className="size-5" /> : <Menu aria-hidden="true" className="size-5" />}
           </button>
         </nav>
@@ -139,10 +141,16 @@ export default function Navbar() {
         {mobile && (
           <div id="menu-mobile" className="absolute inset-x-0 top-16 origin-top rounded-xl border border-line bg-surface p-3 shadow-xl animate-[menu-in_180ms_ease-out] md:hidden">
             <div className="space-y-1">
-              <p className="px-3 pb-1 pt-1 text-xs font-semibold uppercase tracking-[0.12em] text-muted">Fitur</p>
-              <Link to="/one-way" onClick={closeMenus} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand">One-way Service</Link>
-              <Link to="/two-way" onClick={closeMenus} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand">Two-way Service</Link>
-              <div className="ml-3 border-l border-line pl-2">{twoWayLinks.map((feature) => <Link key={feature.path} to={feature.path} onClick={closeMenus} className="block rounded-lg px-3 py-2 text-sm text-muted transition hover:bg-brand/10 hover:text-brand">{feature.title}</Link>)}</div>
+              <button type="button" onClick={() => setMobileFeatures((open) => !open)} aria-expanded={mobileFeatures} aria-controls="menu-mobile-fitur" className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand">Fitur <ChevronDown aria-hidden="true" className={`size-4 transition-transform ${mobileFeatures ? 'rotate-180' : ''}`} /></button>
+              <div id="menu-mobile-fitur" className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${mobileFeatures ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                <div className="overflow-hidden">
+                  <div className="ml-3 space-y-1 border-l border-line py-1 pl-2">
+                    <Link to="/one-way" onClick={closeMenus} className="block rounded-lg px-3 py-2 text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand">One-way Service</Link>
+                    <Link to="/two-way" onClick={closeMenus} className="block rounded-lg px-3 py-2 text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand">Two-way Service</Link>
+                    <div className="ml-3 border-l border-line pl-2">{twoWayLinks.map((feature) => <Link key={feature.path} to={feature.path} onClick={closeMenus} className="block rounded-lg px-3 py-2 text-sm text-muted transition hover:bg-brand/10 hover:text-brand">{feature.title}</Link>)}</div>
+                  </div>
+                </div>
+              </div>
               <div className="my-2 border-t border-line" />
               {links.map(({ path, label }) => <Link key={path} to={path} onClick={closeMenus} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand">{label}</Link>)}
               <div className="my-2 border-t border-line" />
