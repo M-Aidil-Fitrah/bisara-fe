@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, LogOut } from 'lucide-react'
+import { ChevronDown, LogOut, Menu, X } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import logoFull from '../../assets/logo-full.png'
 import { logout, useAuth } from '../../lib/auth'
@@ -109,9 +109,8 @@ export default function Navbar() {
               <div className="relative" onBlur={(event) => {
                 if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setProfile(false)
               }}>
-                <button type="button" onClick={() => { setProfile((open) => !open); setFeatures(false) }} aria-expanded={profile} aria-controls="menu-profil" className={`${itemClass(false)} ${profile ? 'bg-brand/10 text-brand' : ''} inline-flex items-center gap-2`}>
-                  <span aria-hidden="true" className="grid size-6 place-items-center rounded-full bg-current/15 text-xs font-semibold">{user.name.charAt(0).toLocaleUpperCase('id-ID')}</span>
-                  Profil <ChevronDown aria-hidden="true" className={`size-4 transition-transform ${profile ? 'rotate-180' : ''}`} />
+                <button type="button" onClick={() => { setProfile((open) => !open); setFeatures(false) }} aria-expanded={profile} aria-controls="menu-profil" aria-label="Buka profil" className={`grid size-9 place-items-center rounded-full text-sm font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand ${profile ? 'bg-brand text-white' : 'bg-brand/10 text-brand hover:bg-brand/20'}`}>
+                  {user.name.charAt(0).toLocaleUpperCase('id-ID')}
                 </button>
                 {profile && (
                   <div id="menu-profil" className="absolute right-0 top-full mt-4 w-72 rounded-xl border border-line bg-surface p-4 shadow-xl">
@@ -132,17 +131,18 @@ export default function Navbar() {
             ) : <Link to="/login" className={itemClass(location.pathname === '/login')}>Masuk</Link>}
           </div>
 
-          <button type="button" onClick={() => setMobile((open) => !open)} aria-expanded={mobile} className="rounded-md px-3 py-2 text-sm font-medium transition hover:bg-brand/10 hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand md:hidden">
-            {mobile ? 'Tutup' : 'Menu'}
+          <button type="button" onClick={() => setMobile((open) => !open)} aria-expanded={mobile} aria-controls="menu-mobile" aria-label={mobile ? 'Tutup menu' : 'Buka menu'} className="grid size-10 place-items-center rounded-lg text-ink transition hover:bg-brand/10 hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand md:hidden">
+            {mobile ? <X aria-hidden="true" className="size-5" /> : <Menu aria-hidden="true" className="size-5" />}
           </button>
         </nav>
 
         {mobile && (
-          <div className="absolute inset-x-0 top-16 rounded-xl border border-line bg-surface p-3 shadow-xl md:hidden">
+          <div id="menu-mobile" className="absolute inset-x-0 top-16 origin-top rounded-xl border border-line bg-surface p-3 shadow-xl animate-[menu-in_180ms_ease-out] md:hidden">
             <div className="space-y-1">
+              <p className="px-3 pb-1 pt-1 text-xs font-semibold uppercase tracking-[0.12em] text-muted">Fitur</p>
               <Link to="/one-way" onClick={closeMenus} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand">One-way Service</Link>
               <Link to="/two-way" onClick={closeMenus} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand">Two-way Service</Link>
-              {twoWayLinks.map((feature) => <Link key={feature.path} to={feature.path} onClick={closeMenus} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand">{feature.title}</Link>)}
+              <div className="ml-3 border-l border-line pl-2">{twoWayLinks.map((feature) => <Link key={feature.path} to={feature.path} onClick={closeMenus} className="block rounded-lg px-3 py-2 text-sm text-muted transition hover:bg-brand/10 hover:text-brand">{feature.title}</Link>)}</div>
               <div className="my-2 border-t border-line" />
               {links.map(({ path, label }) => <Link key={path} to={path} onClick={closeMenus} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand">{label}</Link>)}
               <div className="my-2 border-t border-line" />

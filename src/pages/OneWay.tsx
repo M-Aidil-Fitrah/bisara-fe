@@ -15,7 +15,7 @@ export default function OneWay() {
   const save = async () => { if (!display) return; setState('saving'); try { const updated = await api.displays.update(display.token, display.editorToken, { text, phraseId: phrase?.id ?? null }); setDisplay({ ...updated, editorToken: display.editorToken }); setState('idle') } catch (cause) { setError(cause instanceof ApiError ? cause.message : 'Perubahan gagal disimpan'); setState('error') } }
   const url = display ? `${window.location.origin}/display/${display.token}` : ''
   return (
-    <section className="mx-auto max-w-7xl px-4 pb-12 pt-32 sm:px-6">
+    <section className="mx-auto max-w-6xl px-6 pb-12 pt-32">
       <Breadcrumb items={[{ label: 'Fitur', to: '/two-way' }, { label: 'One-way Service' }]} />
       <div className="mb-6">
         <p className="text-sm font-semibold text-brand">One-way Service</p>
