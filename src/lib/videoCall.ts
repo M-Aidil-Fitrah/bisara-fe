@@ -14,6 +14,29 @@ export function shouldInitiateCall(ownPeerId: string, remotePeerId: string): boo
   return ownPeerId.localeCompare(remotePeerId) < 0
 }
 
+const CAMERA_CONSTRAINTS: MediaTrackConstraints = {
+  facingMode: 'user',
+  width: { ideal: 640 },
+  height: { ideal: 480 },
+}
+
+async function getCameraFirstStream(): Promise<{ stream: MediaStream; microphoneUnavailable: boolean }> {
+  try {
+    return {
+      stream: await navigator.mediaDevices.getUserMedia({
+        video: CAMERA_CONSTRAINTS,
+        audio: { echoCancellation: true, noiseSuppression: true },
+      }),
+      microphoneUnavailable: false,
+    }
+  } catch {
+    return {
+      stream: await navigator.mediaDevices.getUserMedia({ video: CAMERA_CONSTRAINTS, audio: false }),
+      microphoneUnavailable: true,
+    }
+  }
+}
+
 export function useVideoCall({ roomId, socket, socketJoined }: UseVideoCallOptions) {
   const [callStatus, setCallStatus] = useState<CallStatus>('initializing')
   const [isCameraOn, setIsCameraOn] = useState(true)
@@ -136,6 +159,9 @@ export function useVideoCall({ roomId, socket, socketJoined }: UseVideoCallOptio
     const stream = outgoingStreamRef.current
 
     if (!peer || peer.destroyed || !target || !stream) {
+      setErrorMsg(!stream
+        ? 'Kamera belum siap. Izinkan kamera lalu coba hubungkan ulang.'
+        : 'Lawan bicara belum siap untuk dihubungkan.')
       return
     }
 
@@ -202,17 +228,7 @@ export function useVideoCall({ roomId, socket, socketJoined }: UseVideoCallOptio
         setCallStatus('initializing')
         setErrorMsg(null)
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'user',
-            width: { ideal: 640 },
-            height: { ideal: 480 },
-          },
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-          },
-        })
+        const { stream, microphoneUnavailable } = await getCameraFirstStream()
 
         if (!mounted) {
           stream.getTracks().forEach((track) => track.stop())
@@ -222,12 +238,18 @@ export function useVideoCall({ roomId, socket, socketJoined }: UseVideoCallOptio
         localStreamRef.current = stream
         const audioContext = new AudioContext()
         const destination = audioContext.createMediaStreamDestination()
-        const micSource = audioContext.createMediaStreamSource(new MediaStream(stream.getAudioTracks()))
-        micSource.connect(destination)
+        const microphoneTracks = stream.getAudioTracks()
+        const micSource = microphoneTracks.length > 0
+          ? audioContext.createMediaStreamSource(new MediaStream(microphoneTracks))
+          : null
+        micSource?.connect(destination)
         audioContextRef.current = audioContext
         audioDestinationRef.current = destination
         micSourceRef.current = micSource
         outgoingStreamRef.current = new MediaStream([...stream.getVideoTracks(), ...destination.stream.getAudioTracks()])
+        setIsCameraOn(stream.getVideoTracks().some((track) => track.enabled))
+        setIsMicOn(microphoneTracks.some((track) => track.enabled))
+        if (microphoneUnavailable) setErrorMsg('Mikrofon tidak tersedia. Kamera tetap dapat digunakan untuk panggilan video.')
         setLocalStream(stream)
 
         if (localVideoRef.current) {
@@ -272,7 +294,7 @@ export function useVideoCall({ roomId, socket, socketJoined }: UseVideoCallOptio
         if (!mounted) return
         callStatusRef.current = 'error'
         setCallStatus('error')
-        setErrorMsg('Izin kamera dan mikrofon diperlukan untuk panggilan video.')
+        setErrorMsg('Kamera tidak dapat dibuka. Periksa izin kamera browser lalu coba lagi.')
       }
     }
 
@@ -326,6 +348,10 @@ export function useVideoCall({ roomId, socket, socketJoined }: UseVideoCallOptio
 
   const toggleCamera = useCallback(() => {
     const tracks = localStreamRef.current?.getVideoTracks() ?? []
+    if (tracks.length === 0) {
+      setErrorMsg('Kamera belum tersedia di perangkat ini.')
+      return
+    }
     const next = !isCameraOn
     tracks.forEach((track) => {
       track.enabled = next
@@ -335,6 +361,10 @@ export function useVideoCall({ roomId, socket, socketJoined }: UseVideoCallOptio
 
   const toggleMic = useCallback(() => {
     const tracks = localStreamRef.current?.getAudioTracks() ?? []
+    if (tracks.length === 0) {
+      setErrorMsg('Mikrofon belum tersedia di perangkat ini.')
+      return
+    }
     const next = !isMicOn
     tracks.forEach((track) => {
       track.enabled = next
