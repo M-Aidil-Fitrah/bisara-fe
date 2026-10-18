@@ -1,7 +1,8 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { api, ApiError, type Display, type Phrase } from '../api/client'
 import Breadcrumb from '../components/common/Breadcrumb'
-const Avatar = lazy(() => import('../components/Avatar'))
+import DisplayEditor from '../components/display/DisplayEditor'
+import DisplayPreview from '../components/display/DisplayPreview'
 
 export default function OneWay() {
   const [display, setDisplay] = useState<(Display & { editorToken: string }) | null>(null)
@@ -11,7 +12,6 @@ export default function OneWay() {
   const [error, setError] = useState<string | null>(null)
   useEffect(() => { void Promise.all([api.displays.create(), api.catalog.phrases()]).then(([created, items]) => { setDisplay(created); setPhrases(items); setState('idle') }).catch((cause) => { setError(cause instanceof ApiError ? cause.message : 'Layanan display tidak dapat disiapkan'); setState('error') }) }, [])
   const phrase = useMemo(() => phrases.find((item) => item.text.trim().toLocaleLowerCase('id-ID') === text.trim().toLocaleLowerCase('id-ID')) ?? null, [phrases, text])
-  const asset = phrase?.animations[0]
   const save = async () => { if (!display) return; setState('saving'); try { const updated = await api.displays.update(display.token, display.editorToken, { text, phraseId: phrase?.id ?? null }); setDisplay({ ...updated, editorToken: display.editorToken }); setState('idle') } catch (cause) { setError(cause instanceof ApiError ? cause.message : 'Perubahan gagal disimpan'); setState('error') } }
   const url = display ? `${window.location.origin}/display/${display.token}` : ''
   return (
@@ -22,20 +22,8 @@ export default function OneWay() {
         <h1 className="mt-2 text-3xl font-semibold">Editor dan layar publik privat</h1>
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-line bg-surface p-5">
-          <label className="text-sm font-semibold" htmlFor="display-text">Teks untuk layar</label>
-          <textarea id="display-text" value={text} onChange={(event) => setText(event.target.value)} maxLength={2000} className="mt-3 min-h-64 w-full rounded-xl border border-line bg-paper p-4 outline-none focus:border-brand focus:ring-2 focus:ring-brand/20" placeholder="Tulis pesan yang ingin ditampilkan…" />
-          <button disabled={state === 'creating' || state === 'saving'} onClick={() => void save()} className="mt-4 rounded-lg bg-brand px-4 py-3 text-sm font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60">{state === 'saving' ? 'Menyimpan…' : state === 'creating' ? 'Menyiapkan…' : 'Tampilkan ke layar'}</button>
-          {display && <p className="mt-4 break-all text-sm text-muted">Link layar privat: <a className="text-brand underline" href={url} target="_blank" rel="noreferrer">{url}</a></p>}
-          {error && <p role="alert" className="mt-3 text-sm text-[#b8483e]">{error}</p>}
-        </div>
-        <div className="grid min-h-96 place-items-center rounded-2xl bg-ink p-8 text-center text-paper">
-          <div className="w-full">
-            <p className="text-sm text-paper/60">Preview layar</p>
-            <p className="mt-5 text-3xl font-semibold">{text || 'Pesan Anda akan muncul di sini.'}</p>
-            {asset ? <Suspense fallback={<p className="mt-5 text-sm text-paper/60">Memuat avatar…</p>}><Avatar signing modelUrl={asset.glbUrl} actionName={asset.animationName} className="mx-auto mt-5 h-56 max-w-sm" /></Suspense> : <p className="mt-8 text-sm text-paper/60">{text ? 'Tidak ada aset animasi untuk teks ini; layar tetap menampilkan teks.' : 'Avatar akan dimuat hanya jika teks tepat cocok dengan katalog backend.'}</p>}
-          </div>
-        </div>
+        <DisplayEditor text={text} state={state} displayUrl={display ? url : null} error={error} onTextChange={setText} onSave={() => void save()} />
+        <DisplayPreview text={text} phrase={phrase} />
       </div>
     </section>
   )
