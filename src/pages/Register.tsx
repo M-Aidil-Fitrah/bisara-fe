@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
 import logoFull from '../assets/logo-full.png'
 import AuthHero from '../components/auth/AuthHero'
 import { Button } from '../components/ui'
@@ -53,7 +52,7 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
       } else {
         setBusy(false)
         if (onSuccess) onSuccess()
-        else navigate('/ritz')
+        else navigate('/two-way')
       }
     } catch {
       setError('Terjadi kendala koneksi ke server. Silakan coba sesaat lagi.')
@@ -68,14 +67,15 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
         imageSrc={IMG.signing}
         imageAlt="Komunikasi BISINDO"
         imageOpacityClass="opacity-60"
-        eyebrow="BISARA · PENGGUNA"
+        eyebrow="BISARA"
         title="Layanan Inklusif, Ruang Aman."
-        desc="Daftarkan akun pengguna untuk mengakses layanan publik BISARA dan layanan mitra yang tersedia."
+        desc="Daftarkan akun untuk menggunakan layanan publik BISARA sesuai kebutuhan Anda."
+        onBack={handleGoHome}
       />
 
       {/* Form half */}
       <div className="flex h-full flex-col justify-between overflow-y-auto px-6 py-6 sm:px-12 sm:py-8">
-        <div className="flex items-center justify-between">
+        <div>
           <button
             onClick={handleGoHome}
             aria-label="Kembali ke Beranda"
@@ -83,21 +83,13 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
           >
             <img src={logoFull} alt="Bisara" className="size-full scale-[1.9] object-contain" />
           </button>
-          <button
-            onClick={handleGoHome}
-            className="flex items-center gap-1.5 text-xs text-muted transition hover:text-ink"
-          >
-            <ArrowLeft className="size-3.5" /> Beranda
-          </button>
+          <button onClick={handleGoHome} className="mt-4 text-xs text-muted transition hover:text-ink lg:hidden">← Beranda</button>
         </div>
 
         <div className="mx-auto my-auto w-full max-w-sm py-4">
-          <div className="inline-flex items-center gap-2 rounded-full bg-brand/10 px-3 py-1 text-xs font-semibold text-brand mb-3">
-            Pendaftaran pengguna
-          </div>
           <h1 className="text-3xl font-semibold tracking-tight text-ink sm:text-4xl">Daftar Akun</h1>
           <p className="mt-2 text-sm text-muted">
-            Buat akun untuk melanjutkan layanan publik dan layanan psikolog melalui Ritz.
+            Buat akun untuk melanjutkan layanan publik BISARA.
           </p>
 
           <form onSubmit={submit} className="mt-6 space-y-4" noValidate>
@@ -170,7 +162,7 @@ export default function Register({ onGoLogin, onGoHome, onSuccess }: RegisterPro
 
         <div className="text-center sm:text-left">
           <p className="text-xs text-muted">
-            Pendamping Ritz menggunakan akun admin yang dikelola melalui deployment.
+            Akun admin dikelola melalui deployment untuk mendampingi layanan yang sesuai.
           </p>
         </div>
       </div>

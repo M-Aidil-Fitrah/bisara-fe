@@ -1,6 +1,5 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
 import logoFull from '../assets/logo-full.png'
 import AuthHero from '../components/auth/AuthHero'
 import { Button } from '../components/ui'
@@ -48,7 +47,7 @@ export default function Login({ onGoRegister, onGoHome, onSuccess }: LoginProps)
         if (onSuccess) {
           onSuccess()
         } else {
-          navigate('/ritz')
+          navigate('/two-way')
         }
       }
     } catch {
@@ -64,12 +63,13 @@ export default function Login({ onGoRegister, onGoHome, onSuccess }: LoginProps)
         imageSrc={IMG.hero}
         eyebrow="BISARA"
         title="Saling paham, sana sini."
-        desc="Masuk untuk menggunakan layanan publik BISARA atau melanjutkan layanan bersama mitra Ritz."
+        desc="Masuk untuk menggunakan layanan publik BISARA sesuai kebutuhan Anda."
+        onBack={handleGoHome}
       />
 
       {/* Form half */}
       <div className="flex h-full flex-col justify-between overflow-y-auto px-6 py-6 sm:px-12 sm:py-8">
-        <div className="flex items-center justify-between">
+        <div>
           <button
             onClick={handleGoHome}
             aria-label="Kembali ke Beranda"
@@ -77,12 +77,7 @@ export default function Login({ onGoRegister, onGoHome, onSuccess }: LoginProps)
           >
             <img src={logoFull} alt="Bisara" className="size-full scale-[1.9] object-contain" />
           </button>
-          <button
-            onClick={handleGoHome}
-            className="flex items-center gap-1.5 text-xs text-muted transition hover:text-ink"
-          >
-            <ArrowLeft className="size-3.5" /> Beranda
-          </button>
+          <button onClick={handleGoHome} className="mt-4 text-xs text-muted transition hover:text-ink lg:hidden">← Beranda</button>
         </div>
 
         <div className="mx-auto my-auto w-full max-w-sm py-4">

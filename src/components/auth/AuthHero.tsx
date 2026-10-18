@@ -5,6 +5,7 @@ export interface AuthHeroProps {
   title: string
   desc: string
   imageOpacityClass?: string
+  onBack?: () => void
 }
 
 export default function AuthHero({
@@ -14,6 +15,7 @@ export default function AuthHero({
   title,
   desc,
   imageOpacityClass = '',
+  onBack,
 }: AuthHeroProps) {
   return (
     <div className="relative hidden h-full overflow-hidden bg-ink lg:block">
@@ -24,6 +26,7 @@ export default function AuthHero({
         className={`absolute inset-0 size-full object-cover ${imageOpacityClass}`}
       />
       <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/60 to-ink/20" />
+      {onBack && <button type="button" onClick={onBack} className="absolute left-8 top-8 text-sm text-paper/80 transition hover:text-paper focus-visible:outline focus-visible:outline-2 focus-visible:outline-paper">← Beranda</button>}
       <div data-hero className="absolute inset-x-0 bottom-0 p-12">
         <p className="text-xs uppercase tracking-[0.14em] text-brand-soft">{eyebrow}</p>
         <p className="mt-4 max-w-md text-5xl font-normal leading-[1.05] tracking-tight text-paper">
