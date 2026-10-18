@@ -35,7 +35,7 @@ export default function Footer() {
           </div>
 
           {FOOTER_SECTIONS.map((section) => (
-            <div key={section.title}>
+            <div key={section.title} className="md:justify-self-end">
               <p className="text-sm font-semibold text-ink">{section.title}</p>
               <ul className="mt-3 space-y-2 text-sm">
                 {section.links?.map((link) => (

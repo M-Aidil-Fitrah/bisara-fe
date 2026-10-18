@@ -130,7 +130,7 @@ export default function Navbar() {
                   </div>
                 )}
               </div>
-            ) : <Link to="/login" className={itemClass(location.pathname === '/login')}>Masuk</Link>}
+            ) : <Link to="/login" className="rounded-md bg-brand px-3 py-2 text-sm font-medium text-white transition hover:bg-brand-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand">Masuk</Link>}
           </div>
 
           <button type="button" onClick={() => { setMobile((open) => !open); setMobileFeatures(false) }} aria-expanded={mobile} aria-controls="menu-mobile" aria-label={mobile ? 'Tutup menu' : 'Buka menu'} className="grid size-10 place-items-center rounded-lg text-ink transition hover:bg-brand/10 hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand md:hidden">
@@ -151,16 +151,14 @@ export default function Navbar() {
                   </div>
                 </div>
               </div>
-              <div className="my-2 border-t border-line" />
               {links.map(({ path, label }) => <Link key={path} to={path} onClick={closeMenus} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand">{label}</Link>)}
-              <div className="my-2 border-t border-line" />
               {user ? (
                 <div className="rounded-lg border border-line p-3">
                   <p className="text-sm font-semibold text-ink">{user.name}</p>
                   <p className="mt-1 truncate text-xs text-muted">{user.email}</p>
                   <button type="button" disabled={loggingOut} onClick={signOut} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-3 py-2.5 text-sm font-medium text-white transition hover:bg-brand disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"><LogOut aria-hidden="true" className="size-4" /> {loggingOut ? 'Keluar…' : 'Keluar'}</button>
                 </div>
-              ) : <Link to="/login" onClick={closeMenus} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand">Masuk</Link>}
+              ) : <Link to="/login" onClick={closeMenus} className="mt-2 block rounded-lg bg-brand px-3 py-2.5 text-center text-sm font-medium text-white transition hover:bg-brand-strong">Masuk</Link>}
             </div>
           </div>
         )}
