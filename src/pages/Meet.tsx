@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
-import { Send, MessageSquare, AlertCircle } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 import { api, ApiError, WS_BASE_URL, type Meeting, type PssRoom } from '../api/client'
 import { useAuth } from '../lib/auth'
 import { useVideoCall } from '../lib/videoCall'
@@ -9,9 +9,9 @@ import { formatMsgTime } from '../lib/time'
 import SessionHeader from '../components/session/SessionHeader'
 import VideoCallStage from '../components/session/VideoCallStage'
 import AvatarStage from '../components/session/AvatarStage'
-import MessageBubble, { type ChatMessage } from '../components/session/MessageBubble'
-
-const answers = ['Tidak pernah', 'Hampir tidak pernah', 'Kadang-kadang', 'Cukup sering', 'Sangat sering']
+import type { ChatMessage } from '../components/session/MessageBubble'
+import ChatPanel from '../components/session/ChatPanel'
+import PssResponseCard from '../components/session/PssResponseCard'
 
 const ChatEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('CHAT'), payload: z.object({ text: z.string(), sender: z.object({ name: z.string(), role: z.enum(['USER', 'ADMIN']) }) }) }),
@@ -307,61 +307,16 @@ export default function Meet() {
                 callPartner={videoCall.callPartner}
               />
 
-              {/* Chat Card */}
-              <div className="flex flex-col rounded-2xl border border-line bg-surface shadow-sm overflow-hidden min-h-[340px]">
-                <div className="flex items-center justify-between border-b border-line px-5 py-3.5 bg-paper/50">
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="size-4 text-brand" />
-                    <span className="text-xs font-semibold uppercase tracking-[0.14em] text-brand">
-                      Percakapan
-                    </span>
-                  </div>
-                  <span role="status" className="text-xs text-muted font-mono">
-                    {chatStatus}
-                  </span>
-                </div>
-
-                {/* Message list */}
-                <div ref={chatScrollRef} className="flex-1 max-h-[300px] overflow-y-auto p-4 space-y-3">
-                  {messages.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center py-10 text-center">
-                      <p className="text-sm text-muted">
-                        Pesan bersifat sementara dan tidak disimpan sebagai riwayat.
-                      </p>
-                    </div>
-                  ) : (
-                    messages.map((m) => (
-                      <MessageBubble
-                        key={m.id}
-                        m={m}
-                        mine={m.role === (user.role === 'admin' ? 'ADMIN' : 'USER')}
-                        big={big}
-                      />
-                    ))
-                  )}
-                </div>
-
-                {/* Chat Form */}
-                <form onSubmit={sendChat} className="border-t border-line p-3 bg-paper/50 flex gap-2">
-                  <label className="sr-only" htmlFor="room-chat-message">Pesan chat</label>
-                  <input
-                    id="room-chat-message"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    maxLength={2000}
-                    placeholder="Tulis pesan sementara…"
-                    className="flex-1 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!chatInput.trim()}
-                    className="flex items-center gap-1.5 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:brightness-95 disabled:opacity-50 transition"
-                  >
-                    <Send className="size-4" />
-                    <span>Kirim</span>
-                  </button>
-                </form>
-              </div>
+              <ChatPanel
+                messages={messages}
+                input={chatInput}
+                status={chatStatus}
+                big={big}
+                mineRole={role}
+                scrollRef={chatScrollRef}
+                onInputChange={setChatInput}
+                onSubmit={sendChat}
+              />
             </div>
 
             {/* Right Column: 3D Avatar Stage + Question & Answer Card */}
@@ -384,71 +339,16 @@ export default function Meet() {
                 actionName={asset?.animationName}
               />
 
-              {/* Response Card */}
-              <div className="rounded-2xl border border-line bg-surface p-6 shadow-sm">
-                {!isDone && current ? (
-                  <>
-                    <div className="border-b border-line pb-4 mb-4">
-                      <p className="text-xs uppercase tracking-wider font-semibold text-brand">
-                        PSS-10 · Pertanyaan {current.itemNumber} dari {totalItems}
-                      </p>
-                      <h2 className="mt-1 text-xl font-semibold tracking-tight text-ink">
-                        Pilih jawaban Anda
-                      </h2>
-                      <p className="mt-1 text-xs text-muted">
-                        Jawaban Anda tersinkronisasi langsung ke pasangan room dan dihapus setelah sesi berakhir.
-                      </p>
-                    </div>
-
-                    <div className="grid gap-2.5">
-                      {answers.map((label, index) => (
-                        <button
-                          key={label}
-                          type="button"
-                          disabled={busy}
-                          onClick={() => void submitAnswer(index)}
-                          className="group flex items-center gap-3.5 rounded-xl border border-line bg-paper px-4 py-3 text-left transition hover:border-brand hover:bg-brand hover:text-white disabled:opacity-50 shadow-sm"
-                        >
-                          <span className="flex size-6 shrink-0 items-center justify-center rounded-lg bg-brand/10 text-xs font-bold text-brand group-hover:bg-white/20 group-hover:text-white transition">
-                            {index}
-                          </span>
-                          <span className={`${big ? 'text-base font-semibold' : 'text-sm font-medium'} leading-snug`}>
-                            {label}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-6">
-                    <span className="inline-flex size-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 mb-3">
-                      ✓
-                    </span>
-                    <h2 className="text-2xl font-semibold tracking-tight text-ink">
-                      Skrining selesai
-                    </h2>
-                    <p className="mt-2 text-sm text-muted">
-                      Seluruh 10 pertanyaan PSS-10 telah dijawab.
-                    </p>
-                    <div className="mt-5 inline-flex items-baseline gap-2 rounded-2xl bg-paper px-6 py-4 border border-line">
-                      <span className="text-xs uppercase tracking-wider text-muted font-medium">Skor PSS-10:</span>
-                      <span className="text-4xl font-light text-brand tracking-tight">
-                        {pss?.score ?? '…'}
-                      </span>
-                      <span className="text-xs text-muted">/ 40</span>
-                    </div>
-                    <div className="mt-6">
-                      <button
-                        type="button"
-                        onClick={endSession}
-                        className="rounded-xl bg-[#b8483e] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#a03d34] transition shadow-md"
-                      >
-                        Akhiri layanan
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <PssResponseCard
+                current={current}
+                isDone={isDone}
+                totalItems={totalItems}
+                busy={busy}
+                big={big}
+                score={pss?.score}
+                onAnswer={(value) => void submitAnswer(value)}
+                onEnd={endSession}
+              />
             </div>
           </div>
         )}
