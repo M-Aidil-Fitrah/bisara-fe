@@ -52,6 +52,8 @@ test('mobile navigation keeps feature hierarchy accessible', async ({ page }) =>
 })
 
 test('one-way editor publishes the saved message to its private display', async ({ context, page }) => {
+  test.setTimeout(60_000)
+  await page.setViewportSize({ width: 390, height: 844 })
   const displayToken = 'private-display-token'
   const editorToken = 'private-editor-token'
   const expiresAt = '2099-01-01T00:00:00.000Z'
@@ -85,7 +87,26 @@ test('one-way editor publishes the saved message to its private display', async 
   const editor = page.getByLabel('Teks untuk layar')
   const publishButton = page.getByRole('button', { name: 'Tampilkan ke layar' })
   await editor.fill('Informasi layanan dibuka pukul delapan.')
+  const speedControls = page.getByRole('group', { name: 'Kecepatan animasi' })
+  await expect(speedControls).toBeVisible()
+  await speedControls.getByRole('button', { name: 'Kecepatan 1.5x' }).click()
+  await expect(speedControls.getByRole('button', { name: 'Kecepatan 1.5x' })).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: 'Jeda animasi' }).click()
+  await expect(page.getByRole('button', { name: 'Putar animasi' })).toBeVisible()
+  const pausedStep = await page.getByTestId('sign-step-label').textContent()
+  await page.waitForTimeout(1_200)
+  await expect(page.getByTestId('sign-step-label')).toHaveText(pausedStep ?? '')
+  const stopButton = page.getByRole('button', { name: 'Hentikan animasi' })
+  await stopButton.click()
+  await expect(stopButton).toBeDisabled()
+  await expect(page.getByTestId('sign-step-label')).toHaveText('I')
+  await page.getByRole('button', { name: 'Putar animasi' }).click()
+  await expect(page.getByRole('button', { name: 'Jeda animasi' })).toBeVisible()
+  await expect(page.getByTestId('sign-step-label')).not.toHaveText('I', { timeout: 6_000 })
+  await expect(page.getByText('WebGL 3D · BISINDO')).toHaveCount(0)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
   await expect(page.getByText('Link layar privat:')).toHaveCount(0)
+  await publishButton.evaluate((element) => element.scrollIntoView({ block: 'center' }))
   await publishButton.click()
   await expect(page.getByRole('alert')).toContainText('Tidak dapat terhubung ke server BISARA')
   await page.getByRole('button', { name: 'Coba simpan lagi' }).click()

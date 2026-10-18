@@ -13,8 +13,9 @@ interface AvatarCanvasProps {
   framing?: 'upper-body' | 'thigh-up'
   animationStartOffsetMs?: number
   animationEndOffsetMs?: number | undefined
+  playbackState?: 'playing' | 'paused' | 'stopped'
+  playbackSpeed?: number
   actionKey?: string
-  animationSpeed?: number
 }
 
 const SIGN_TRACK_PATTERN = /(hand|forearm|upper_arm|shoulder|index|middle|ring|pinky|thumb)/i
@@ -61,12 +62,12 @@ export default function AvatarCanvas({
   framing = 'upper-body',
   animationStartOffsetMs = 0,
   animationEndOffsetMs,
+  playbackState = 'playing',
+  playbackSpeed = 1,
   actionKey = '',
-  animationSpeed = 1,
 }: AvatarCanvasProps) {
   const mountRef = useRef<HTMLDivElement>(null)
   const [loading, setLoading] = useState(true)
-  const [hasGLB, setHasGLB] = useState<boolean | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
 
   const signingRef = useRef(signing)
@@ -74,7 +75,8 @@ export default function AvatarCanvas({
   const actionKeyRef = useRef(actionKey)
   const animationStartOffsetRef = useRef(animationStartOffsetMs)
   const animationEndOffsetRef = useRef(animationEndOffsetMs)
-  const animationSpeedRef = useRef(animationSpeed)
+  const playbackStateRef = useRef(playbackState)
+  const playbackSpeedRef = useRef(playbackSpeed)
 
   useEffect(() => {
     signingRef.current = signing
@@ -82,8 +84,9 @@ export default function AvatarCanvas({
     actionKeyRef.current = actionKey
     animationStartOffsetRef.current = animationStartOffsetMs
     animationEndOffsetRef.current = animationEndOffsetMs
-    animationSpeedRef.current = animationSpeed
-  }, [signing, actionName, actionKey, animationStartOffsetMs, animationEndOffsetMs, animationSpeed])
+    playbackStateRef.current = playbackState
+    playbackSpeedRef.current = playbackSpeed
+  }, [signing, actionName, actionKey, animationStartOffsetMs, animationEndOffsetMs, playbackState, playbackSpeed])
 
   useEffect(() => {
     const mount = mountRef.current
@@ -136,7 +139,6 @@ export default function AvatarCanvas({
         if (disposed) return
         const model = gltf.scene
         scene.add(model)
-        setHasGLB(true)
         setLoading(false)
 
         // Center and normalize model bounds
@@ -269,6 +271,7 @@ export default function AvatarCanvas({
             signAction.reset()
             signAction.time = Math.min(animationStartOffsetRef.current / 1_000, Math.max(signAction.getClip().duration - 0.05, 0))
             signAction.play()
+            signAction.paused = playbackStateRef.current !== 'playing'
             currentAction = signAction
           } else if (idleAction) {
             idleAction.play()
@@ -279,7 +282,6 @@ export default function AvatarCanvas({
       undefined,
       (err) => {
         console.warn('Failed to load GLB animation asset:', err)
-        setHasGLB(false)
         setLoading(false)
         setLoadError('Aset animasi tidak dapat dimuat')
       },
@@ -289,6 +291,7 @@ export default function AvatarCanvas({
     const timer = new THREE.Timer()
     timer.connect(document)
     let isIntersecting = true
+    let appliedPlaybackState = playbackStateRef.current
 
     const animate = (timestamp?: number) => {
       if (disposed || document.hidden || !isIntersecting) {
@@ -300,7 +303,12 @@ export default function AvatarCanvas({
       const delta = timer.getDelta()
       // GLB Mixer update
       if (mixer) {
-        mixer.update(delta * animationSpeedRef.current)
+        const requestedPlaybackState = playbackStateRef.current
+        if (requestedPlaybackState !== appliedPlaybackState) {
+          appliedPlaybackState = requestedPlaybackState
+          if (currentAction) currentAction.paused = requestedPlaybackState !== 'playing'
+        }
+        if (requestedPlaybackState === 'playing') mixer.update(delta * playbackSpeedRef.current)
 
         if (selectedActionName !== actionNameRef.current || selectedActionKey !== actionKeyRef.current) {
           selectedActionName = actionNameRef.current
@@ -323,7 +331,7 @@ export default function AvatarCanvas({
             currentAction.fadeOut(0.25)
           }
           targetAction.reset()
-          targetAction.paused = false
+          targetAction.paused = playbackStateRef.current !== 'playing'
           if (targetAction === signAction) {
             targetAction.setLoop(THREE.LoopOnce, 1)
             targetAction.clampWhenFinished = true
@@ -415,11 +423,6 @@ export default function AvatarCanvas({
             <span className="size-2 animate-ping rounded-full bg-brand" /> Memuat Avatar 3D…
           </div>
         </div>
-      )}
-      {hasGLB && (
-        <span className="absolute bottom-2 right-2 rounded bg-ink/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-paper/90 backdrop-blur-xs">
-          WebGL 3D · BISINDO
-        </span>
       )}
       {loadError && (
         <div role="alert" className="absolute inset-0 grid place-items-center bg-ink/90 px-6 text-center text-sm text-paper">
