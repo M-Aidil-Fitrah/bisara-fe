@@ -5,7 +5,7 @@ const baseUrl = 'http://localhost:5173'
 test('public service routes load and preserve accessible navigation', async ({ page }) => {
   await page.goto(baseUrl)
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-  await page.getByRole('button', { name: 'Fitur' }).click()
+  await page.getByRole('button', { name: 'Fitur' }).hover()
   const featureMenu = page.locator('#menu-fitur')
   const featureLink = featureMenu.getByRole('link', { name: /One-way Service/ })
   await expect(featureLink).toBeVisible()
@@ -18,7 +18,7 @@ test('public service routes load and preserve accessible navigation', async ({ p
   await expect(page.getByLabel('Teks untuk layar')).toBeVisible()
   await page.goto(`${baseUrl}/ritz`)
   await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toContainText('Ritz')
-  await expect(page.getByRole('heading', { name: 'Layanan psikolog bersama Ritz.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Layanan psikolog BISARA.' })).toBeVisible()
   await page.goto(`${baseUrl}/two-way/resepsionis`)
   await expect(page.getByRole('heading', { name: 'Layanan Resepsionis' })).toBeVisible()
 })
