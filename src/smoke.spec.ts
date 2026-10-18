@@ -56,6 +56,7 @@ test('one-way editor publishes the saved message to its private display', async 
   const editorToken = 'private-editor-token'
   const expiresAt = '2099-01-01T00:00:00.000Z'
   let savedText = ''
+  let saveAttempts = 0
 
   await context.route('**/api/catalog/phrases', async (route) => {
     await route.fulfill({ json: { success: true, data: [] } })
@@ -67,6 +68,11 @@ test('one-way editor publishes the saved message to its private display', async 
   })
   await context.route(`**/api/displays/${displayToken}`, async (route) => {
     if (route.request().method() === 'PATCH') {
+      saveAttempts += 1
+      if (saveAttempts === 1) {
+        await route.abort('failed')
+        return
+      }
       const payload: { text: string } = route.request().postDataJSON()
       savedText = payload.text
     }
@@ -81,6 +87,8 @@ test('one-way editor publishes the saved message to its private display', async 
   await editor.fill('Informasi layanan dibuka pukul delapan.')
   await expect(page.getByText('Link layar privat:')).toHaveCount(0)
   await publishButton.click()
+  await expect(page.getByRole('alert')).toContainText('Tidak dapat terhubung ke server BISARA')
+  await page.getByRole('button', { name: 'Coba simpan lagi' }).click()
 
   const displayLink = page.getByRole('link', { name: new RegExp(`/display/${displayToken}$`) })
   await expect(displayLink).toBeVisible()
