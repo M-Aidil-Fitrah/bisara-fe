@@ -24,6 +24,7 @@ export interface VideoCallStageProps {
   toggleMic: () => void
   callPartner: () => void
   className?: string | undefined
+  caption?: string | undefined
 }
 
 export default function VideoCallStage({
@@ -39,6 +40,7 @@ export default function VideoCallStage({
   toggleMic,
   callPartner,
   className = '',
+  caption,
 }: VideoCallStageProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const isConnected = callStatus === 'connected'
@@ -66,6 +68,7 @@ export default function VideoCallStage({
           isConnected ? 'opacity-100' : 'opacity-0 absolute inset-0 pointer-events-none'
         }`}
       />
+      {caption && <p className="absolute bottom-16 left-4 right-4 rounded-lg bg-ink/80 px-3 py-2 text-center text-sm text-paper" aria-live="polite">{caption}</p>}
 
       {/* 2. Waiting state before partner connects */}
       {!isConnected && (

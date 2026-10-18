@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { z } from 'zod'
 import { AlertCircle } from 'lucide-react'
@@ -6,6 +6,7 @@ import { api, ApiError, WS_BASE_URL, type Meeting, type PssRoom } from '../api/c
 import { useAuth } from '../lib/auth'
 import { useVideoCall } from '../lib/videoCall'
 import { useAiAssistance } from '../hooks/useAiAssistance'
+import { useSpeechCaption } from '../hooks/useSpeechCaption'
 import { formatMsgTime } from '../lib/time'
 import SessionHeader from '../components/session/SessionHeader'
 import VideoCallStage from '../components/session/VideoCallStage'
@@ -17,6 +18,7 @@ import WaitingRoom from '../components/session/WaitingRoom'
 
 const ChatEventSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('CHAT'), payload: z.object({ text: z.string(), sender: z.object({ name: z.string(), role: z.enum(['USER', 'ADMIN']) }) }) }),
+  z.object({ type: z.literal('CAPTION'), payload: z.object({ text: z.string(), isFinal: z.boolean(), sender: z.object({ name: z.string(), role: z.enum(['USER', 'ADMIN']) }) }) }),
   z.object({ type: z.literal('ERROR'), error: z.object({ message: z.string() }) }),
   z.object({ type: z.literal('MEETING_ENDED'), payload: z.object({ roomId: z.string() }) }),
   z.object({ type: z.literal('MEETING_JOINED'), payload: z.object({ roomId: z.string(), memberCount: z.number().optional() }) }),
@@ -36,6 +38,7 @@ export default function Meet() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [partnerOnline, setPartnerOnline] = useState(false)
+  const [remoteCaption, setRemoteCaption] = useState('')
 
   // Avatar stage controls
   const [speed, setSpeed] = useState(1)
@@ -59,6 +62,11 @@ export default function Meet() {
     socketJoined,
   })
   const aiAssist = useAiAssistance(room?.id ?? '', videoCall.localStream, videoCall.playTts)
+  const sendCaption = useCallback((text: string, isFinal: boolean) => {
+    if (role !== 'ADMIN' || !room || !socket || socket.readyState !== WebSocket.OPEN) return
+    socket.send(JSON.stringify({ type: 'CAPTION', payload: { roomId: room.id, text, isFinal } }))
+  }, [role, room, socket])
+  const speechCaption = useSpeechCaption(sendCaption)
 
   const videoCallRef = useRef(videoCall)
   useEffect(() => {
@@ -143,6 +151,8 @@ export default function Meet() {
               time: formatMsgTime(Date.now()),
             },
           ])
+        } else if (msg.type === 'CAPTION') {
+          setRemoteCaption(msg.payload.text)
         } else if (msg.type === 'ERROR') {
           setChatStatus(msg.error.message)
         } else if (msg.type === 'MEETING_ENDED') {
@@ -295,6 +305,7 @@ export default function Meet() {
                 toggleCamera={videoCall.toggleCamera}
                 toggleMic={videoCall.toggleMic}
                 callPartner={videoCall.callPartner}
+                caption={remoteCaption}
               />
 
               <ChatPanel
@@ -307,6 +318,8 @@ export default function Meet() {
                 onInputChange={setChatInput}
                 onSubmit={sendChat}
               />
+
+              {role === 'ADMIN' && <div className="rounded-xl border border-line bg-surface p-3 text-sm"><button type="button" onClick={speechCaption.listening ? speechCaption.stop : speechCaption.start} disabled={!speechCaption.supported} className="rounded-lg border border-line px-3 py-2 disabled:opacity-50">{speechCaption.listening ? 'Hentikan caption' : 'Aktifkan caption suara'}</button>{speechCaption.error && <p role="alert" className="mt-2 text-red-700">{speechCaption.error}</p>}{!speechCaption.supported && <p className="mt-2 text-muted">Browser ini belum mendukung caption suara.</p>}</div>}
 
               <section className="rounded-2xl border border-line bg-surface p-4" aria-label="Bantuan komunikasi AI">
                 <div className="flex items-center justify-between gap-3">
