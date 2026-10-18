@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, LogOut, Menu, X } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import logoFull from '../../assets/logo-full.png'
 import { logout, useAuth } from '../../lib/auth'
 import { triggerVisualToast } from '../../lib/a11y'
 import ProfileMenu from './ProfileMenu'
+import FeatureMenu, { type FeatureLink } from './FeatureMenu'
+import MobileNavigation from './MobileNavigation'
 
 const links = [
   { path: '/dictionary', label: 'Kamus' },
@@ -12,7 +14,7 @@ const links = [
   { path: '/about', label: 'Privasi' },
 ]
 
-const twoWayLinks = [
+const twoWayLinks: FeatureLink[] = [
   { path: '/two-way/layanan-psikolog', title: 'Layanan Psikolog' },
   { path: '/two-way/resepsionis', title: 'Layanan Resepsionis' },
   { path: '/two-way/layanan-lainnya', title: 'Layanan Publik Lainnya' },
@@ -80,32 +82,7 @@ export default function Navbar() {
           </Link>
 
           <div className="hidden items-center gap-1 md:flex">
-            <div className="relative" onBlur={(event) => {
-              if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFeatures(false)
-            }}>
-              <button type="button" onClick={() => { setFeatures((open) => !open); setProfile(false) }} aria-expanded={features} aria-controls="menu-fitur" className={`${itemClass(isFeatureActive)} ${features && !isFeatureActive ? 'bg-brand/10 text-brand' : ''} inline-flex items-center gap-1`}>
-                Fitur <ChevronDown aria-hidden="true" className={`size-4 transition-transform ${features ? 'rotate-180' : ''}`} />
-              </button>
-              {features && (
-                <div id="menu-fitur" className="absolute left-0 top-full mt-4 w-96 rounded-xl border border-line bg-surface p-3 shadow-xl">
-                  <div className="grid grid-cols-2 gap-2">
-                    <Link to="/one-way" onClick={closeMenus} className="rounded-lg px-3 py-2 text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand">
-                      One-way Service
-                    </Link>
-                    <div className="border-l border-line pl-2">
-                      <Link to="/two-way" onClick={closeMenus} className="block rounded-lg px-3 py-2 text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand">Two-way Service</Link>
-                      <div className="mt-1 space-y-1 border-t border-line pt-2">
-                      {twoWayLinks.map((feature) => (
-                        <Link key={feature.path} to={feature.path} onClick={closeMenus} className="block rounded-lg px-3 py-2 text-sm text-muted transition hover:bg-brand/10 hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand">
-                          {feature.title}
-                        </Link>
-                      ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <FeatureMenu active={isFeatureActive} open={features} twoWayLinks={twoWayLinks} onToggle={() => { setFeatures((open) => !open); setProfile(false) }} onNavigate={closeMenus} onBlur={() => setFeatures(false)} />
             {links.map(({ path, label }) => <Link key={path} to={path} onClick={closeMenus} className={itemClass(location.pathname === path)}>{label}</Link>)}
             <span className="mx-2 h-5 w-px bg-line" />
             {user ? <ProfileMenu user={user} open={profile} loggingOut={loggingOut} onToggle={() => { setProfile((open) => !open); setFeatures(false) }} onClose={() => setProfile(false)} onLogout={signOut} /> : <Link to="/login" className="rounded-md bg-brand px-3 py-2 text-sm font-medium text-white transition hover:bg-brand-strong focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand">Masuk</Link>}
@@ -116,30 +93,7 @@ export default function Navbar() {
           </button>
         </nav>
 
-        {mobile && (
-          <div id="menu-mobile" className="absolute inset-x-0 top-16 origin-top rounded-xl border border-line bg-surface p-3 shadow-xl animate-[menu-in_180ms_ease-out] md:hidden">
-            <div className="space-y-1">
-              <button type="button" onClick={() => setMobileFeatures((open) => !open)} aria-expanded={mobileFeatures} aria-controls="menu-mobile-fitur" className="flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand">Fitur <ChevronDown aria-hidden="true" className={`size-4 transition-transform ${mobileFeatures ? 'rotate-180' : ''}`} /></button>
-              <div id="menu-mobile-fitur" className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${mobileFeatures ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
-                <div className="overflow-hidden">
-                  <div className="ml-3 space-y-1 border-l border-line py-1 pl-2">
-                    <Link to="/one-way" onClick={closeMenus} className="block rounded-lg px-3 py-2 text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand">One-way Service</Link>
-                    <Link to="/two-way" onClick={closeMenus} className="block rounded-lg px-3 py-2 text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand">Two-way Service</Link>
-                    <div className="ml-3 border-l border-line pl-2">{twoWayLinks.map((feature) => <Link key={feature.path} to={feature.path} onClick={closeMenus} className="block rounded-lg px-3 py-2 text-sm text-muted transition hover:bg-brand/10 hover:text-brand">{feature.title}</Link>)}</div>
-                  </div>
-                </div>
-              </div>
-              {links.map(({ path, label }) => <Link key={path} to={path} onClick={closeMenus} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-ink transition hover:bg-brand/10 hover:text-brand">{label}</Link>)}
-              {user ? (
-                <div className="rounded-lg border border-line p-3">
-                  <p className="text-sm font-semibold text-ink">{user.name}</p>
-                  <p className="mt-1 truncate text-xs text-muted">{user.email}</p>
-                  <button type="button" disabled={loggingOut} onClick={signOut} className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-3 py-2.5 text-sm font-medium text-white transition hover:bg-brand disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand"><LogOut aria-hidden="true" className="size-4" /> {loggingOut ? 'Keluar…' : 'Keluar'}</button>
-                </div>
-              ) : <Link to="/login" onClick={closeMenus} className="mt-2 block rounded-lg bg-brand px-3 py-2.5 text-center text-sm font-medium text-white transition hover:bg-brand-strong">Masuk</Link>}
-            </div>
-          </div>
-        )}
+        <MobileNavigation user={user} open={mobile} featuresOpen={mobileFeatures} loggingOut={loggingOut} links={links} twoWayLinks={twoWayLinks} onToggleFeatures={() => setMobileFeatures((open) => !open)} onNavigate={closeMenus} onLogout={signOut} />
       </div>
     </div>
   )
