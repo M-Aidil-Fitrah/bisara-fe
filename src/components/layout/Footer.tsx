@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { ArrowUpRight } from 'lucide-react'
 import logoFull from '../../assets/logo-full.png'
 
 const FOOTER_SECTIONS = [
@@ -19,22 +18,14 @@ const FOOTER_SECTIONS = [
       { label: 'Privasi & Data', to: '/about' },
     ],
   },
-  {
-    title: 'Teknologi',
-    external: [
-      { label: 'Three.js WebGL', href: 'https://threejs.org/' },
-      { label: 'WebRTC', href: 'https://webrtc.org/' },
-      { label: 'PeerJS', href: 'https://peerjs.com/' },
-    ],
-  },
 ]
 
 export default function Footer() {
   return (
     <footer className="mt-auto border-t border-line bg-surface">
-      <div className="mx-auto max-w-6xl px-6 py-16">
-        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-5">
-          <div className="lg:col-span-2">
+      <div className="mx-auto max-w-7xl px-6 py-16">
+        <div className="grid gap-12 md:grid-cols-[minmax(0,1.5fr)_minmax(0,0.75fr)_minmax(0,0.75fr)]">
+          <div>
             <Link to="/" className="inline-block h-8 w-[90px] overflow-hidden">
               <img src={logoFull} alt="BISARA" className="size-full scale-[1.9] object-contain" />
             </Link>
@@ -54,18 +45,6 @@ export default function Footer() {
                     </Link>
                   </li>
                 ))}
-                {section.external?.map((item) => (
-                  <li key={item.label}>
-                    <a
-                      href={item.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-muted transition hover:text-ink"
-                    >
-                      {item.label} <ArrowUpRight className="size-3" />
-                    </a>
-                  </li>
-                ))}
               </ul>
             </div>
           ))}
@@ -74,7 +53,7 @@ export default function Footer() {
         <div className="mt-16 flex items-end justify-between gap-6 border-t border-line/60 pt-8">
           <img src="/logo-mark.png" alt="" className="h-16 w-auto opacity-20 sm:h-24" />
           <p className="text-xs text-muted text-right">
-            © 2026 BISARA · Sistem Komunikasi Dua Arah BISINDO
+            © 2026 BISARA · Platform Komunikasi Visual BISINDO
           </p>
         </div>
       </div>
