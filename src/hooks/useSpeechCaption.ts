@@ -20,8 +20,12 @@ function recognitionConstructor(): SpeechRecognitionConstructor | null {
   return speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition ?? null
 }
 
+export function isSpeechCaptionSupported(): boolean {
+  return typeof window !== 'undefined' && recognitionConstructor() !== null
+}
+
 export function useSpeechCaption(onCaption: (text: string, isFinal: boolean) => void) {
-  const [supported] = useState(() => typeof window !== 'undefined' && recognitionConstructor() !== null)
+  const [supported] = useState(isSpeechCaptionSupported)
   const [listening, setListening] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
